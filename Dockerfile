@@ -28,8 +28,8 @@ RUN set -eux; \
 		apcu \
 		intl \
 		opcache \
-		intl \
 		zip \
+		redis \
 	;
 
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
@@ -41,6 +41,9 @@ ENV MERCURE_TRANSPORT_URL=bolt:///data/mercure.db
 ENV PHP_INI_SCAN_DIR=":$PHP_INI_DIR/app.conf.d"
 
 ###> recipes ###
+###> doctrine/doctrine-bundle ###
+RUN install-php-extensions pdo_mysql redis intl
+###< doctrine/doctrine-bundle ###
 ###< recipes ###
 
 COPY --link frankenphp/conf.d/10-app.ini $PHP_INI_DIR/app.conf.d/
