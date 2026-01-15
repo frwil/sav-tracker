@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Entity;
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use App\Repository\VisitRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+
+#[ORM\Entity(repositoryClass: VisitRepository::class)]
+#[ApiResource(
+    normalizationContext: ['groups' => ['visit:read']],
+    denormalizationContext: ['groups' => ['visit:write']]
+)]
+class Visit
+{
+    #[ORM\Id, ORM\GeneratedValue, ORM\Column]
+    #[Groups(['visit:read'])]
+    private ?int $id = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['visit:read', 'visit:write'])]
+    private ?User $technician = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['visit:read', 'visit:write'])]
+    private ?Customer $customer = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Groups(['visit:read', 'visit:write'])]
+    private ?\DateTimeInterface $visitedAt = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['visit:read', 'visit:write'])]
+    private ?string $gpsCoordinates = null;
+
+    #[ORM\OneToMany(mappedBy: 'visit', targetEntity: Observation::class, orphanRemoval: true)]
+    #[Groups(['visit:read', 'visit:write'])]
+    private Collection $observations;
+
+    public function __construct()
+    {
+        $this->observations = new ArrayCollection();
+        $this->visitedAt = new \DateTime();
+    }
+
+    public function getId(): ?int { return $this->id; }
+
+    public function getTechnician(): ?User { return $this->technician; }
+    public function setTechnician(?User $technician): self { $this->technician = $technician; return $this; }
+
+    public function getCustomer(): ?Customer { return $this->customer; }
+    public function setCustomer(?Customer $customer): self { $this->customer = $customer; return $this; }
+
+    public function getVisitedAt(): ?\DateTimeInterface { return $this->visitedAt; }
+    public function setVisitedAt(\DateTimeInterface $visitedAt): self { $this->visitedAt = $visitedAt; return $this; }
+
+    public function getGpsCoordinates(): ?string { return $this->gpsCoordinates; }
+    public function setGpsCoordinates(?string $gpsCoordinates): self { $this->gpsCoordinates = $gpsCoordinates; return $this; }
+
+    /**
+     * @return Collection<int, Observation>
+     */
+    public function getObservations(): Collection { return $this->observations; }
+
+    public function addObservation(Observation $observation): self
+    {
+        if (!$this->observations->contains($observation)) {
+            $this->observations->add($observation);
+            $observation->setVisit($this);
+        }
+        return $this;
+    }
+
+    public function removeObservation(Observation $observation): self
+    {
+        if ($this->observations->removeElement($observation)) {
+            if ($observation->getVisit() === $this) {
+                $observation->setVisit(null);
+            }
+        }
+        return $this;
+    }
+}
