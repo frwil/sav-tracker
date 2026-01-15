@@ -2,15 +2,46 @@
 namespace App\Entity;
 
 use App\Entity\Building;
-use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\Get;
 
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use Doctrine\ORM\Mapping as ORM;
 use App\Repository\FlockRepository;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\Controller\CloseFlockController;
 use App\Validator\Constraints\BuildingAvailable;
 
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Patch(),
+        // Notre nouvelle opération de clôture :
+        new Post(
+            uriTemplate: '/flocks/{id}/close', 
+            controller: CloseFlockController::class,
+            openapiContext: [
+                'summary' => 'Clôturer une bande',
+                'description' => 'Marque la bande comme terminée et définit la date de fin automatiquement.',
+                'requestBody' => [
+                    'content' => [
+                        'application/json' => [
+                            'schema' => [
+                                'type' => 'object', // Body vide autorisé
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            name: 'close_flock'
+        )
+    ]
+)]
 #[BuildingAvailable] // Contrainte personnalisée
 class Flock
 {
