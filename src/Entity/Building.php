@@ -34,6 +34,7 @@ class Building
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['building:read', 'building:write', 'visit:read'])]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -48,7 +49,7 @@ class Building
     private Collection $flocks;
 
     #[ORM\Column(options: ['default' => true])]
-    #[Groups(['building:read', 'building:write'])]
+    #[Groups(['building:read', 'building:write', 'visit:read'])]
     private ?bool $activated = true;
 
     public function __construct()
