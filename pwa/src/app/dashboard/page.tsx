@@ -16,6 +16,8 @@ interface Visit {
         zone: string;
     };
     gpsCoordinates?: string;
+    closed: boolean;
+    activated: boolean;
 }
 
 export default function DashboardPage() {
@@ -90,31 +92,33 @@ export default function DashboardPage() {
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {visits.map((visit) => (
-                        <Link key={visit.id} href={`/dashboard/${visit.id}`} className="block">
-                            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
-                                <div className="mb-2 flex justify-between">
-                                    <span className="font-semibold text-indigo-600">
-                                        #{visit.id}
-                                    </span>
-                                    <span className="text-sm text-gray-500">
-                                        {new Date(visit.visitedAt).toLocaleDateString()}
-                                    </span>
+                        <Link key={visit.id} href={`/dashboard/${visit.id}`} className="block group">
+                            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-all border-l-4 border-transparent hover:border-indigo-500">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-lg text-gray-800">{visit.customer.name}</span>
+                                        {/* BADGES DE STATUT */}
+                                        {!visit.activated ? (
+                                            <span className="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded font-bold border border-gray-200">
+                                                ARCHIVÉE
+                                            </span>
+                                        ) : visit.closed ? (
+                                            <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold border border-green-200">
+                                                CLÔTURÉE
+                                            </span>
+                                        ) : (
+                                            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded font-bold border border-yellow-200">
+                                                EN COURS
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-sm text-gray-500">{new Date(visit.visitedAt).toLocaleDateString()}</span>
                                 </div>
-
-                                <h3 className="text-lg font-bold text-gray-900">
-                                    {visit.customer.name}
-                                </h3>
-                                <p className="text-gray-600">{visit.customer.zone}</p>
-
-                                <div className="mt-4 border-t pt-4">
-                                    <p className="text-sm text-gray-500">
-                                        Technicien : {visit.technician?.fullname || 'N/A'}
-                                    </p>
-                                    {visit.gpsCoordinates && (
-                                        <p className="mt-1 text-xs text-blue-500">
-                                            📍 {visit.gpsCoordinates}
-                                        </p>
-                                    )}
+                                <div className="flex justify-between items-end">
+                                    <p className="text-gray-600 text-sm">{visit.customer.zone}</p>
+                                    <div className="text-xs text-indigo-600 font-medium group-hover:translate-x-1 transition-transform">
+                                        Voir le dossier →
+                                    </div>
                                 </div>
                             </div>
                         </Link>

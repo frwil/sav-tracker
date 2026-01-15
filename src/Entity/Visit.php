@@ -42,6 +42,14 @@ class Visit
     #[Groups(['visit:read', 'visit:write'])]
     private ?string $gpsCoordinates = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['visit:read', 'visit:write'])] 
+    private ?bool $closed = false;
+
+    #[ORM\Column(options: ['default' => true])]
+    #[Groups(['visit:read'])] 
+    private ?bool $activated = true;
+
     #[ORM\OneToMany(mappedBy: 'visit', targetEntity: Observation::class, orphanRemoval: true)]
     #[Groups(['visit:read', 'visit:write'])]
     private Collection $observations;
@@ -65,6 +73,11 @@ class Visit
 
     public function getGpsCoordinates(): ?string { return $this->gpsCoordinates; }
     public function setGpsCoordinates(?string $gpsCoordinates): self { $this->gpsCoordinates = $gpsCoordinates; return $this; }
+
+    public function isClosed(): ?bool { return $this->closed; }
+    public function setClosed(bool $closed): self { $this->closed = $closed; return $this; }
+    public function isActivated(): ?bool { return $this->activated; }
+    public function setActivated(bool $activated): self { $this->activated = $activated; return $this; }
 
     /**
      * @return Collection<int, Observation>
