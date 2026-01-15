@@ -2,27 +2,35 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Select from 'react-select'; // <--- Import du composant style "Tom Select"
 
 interface Customer {
-  '@id': string; // L'identifiant unique API (ex: "/api/customers/1")
+  '@id': string;
   id: number;
   name: string;
   zone: string;
 }
 
+// Interface pour les options du Select
+interface CustomerOption {
+  value: string;
+  label: string;
+}
+
 export default function NewVisitPage() {
   const router = useRouter();
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  // On stocke les options formatées pour react-select
+  const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
   // États du formulaire
-  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [selectedCustomerOption, setSelectedCustomerOption] = useState<CustomerOption | null>(null);
   const [visitedAt, setVisitedAt] = useState('');
   const [gpsCoordinates, setGpsCoordinates] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 1. Chargement de la liste des clients au démarrage
+  // 1. Chargement de la liste des clients
   useEffect(() => {
     const token = localStorage.getItem('sav_token');
     if (!token) {
@@ -30,12 +38,11 @@ export default function NewVisitPage() {
       return;
     }
 
-    // Initialiser la date à "maintenant" (format compatible datetime-local)
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     setVisitedAt(now.toISOString().slice(0, 16));
 
-    fetch('http://localhost/api/customers', {
+    fetch('http://localhost/api/customers', { // HTTP local
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
@@ -43,7 +50,13 @@ export default function NewVisitPage() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setCustomers(data['hydra:member'] || data);
+        const rawCustomers = data['hydra:member'] || data;
+        // Transformation des données pour react-select (value/label)
+        const options = rawCustomers.map((c: Customer) => ({
+          value: c['@id'],
+          label: `${c.name} (${c.zone})`
+        }));
+        setCustomerOptions(options);
         setLoading(false);
       })
       .catch((err) => {
@@ -52,27 +65,37 @@ export default function NewVisitPage() {
       });
   }, [router]);
 
-  // 2. Fonction de Géolocalisation
+  // 2. Géolocalisation
   const handleGeolocate = () => {
     if (!navigator.geolocation) {
       alert("La géolocalisation n'est pas supportée par votre navigateur.");
       return;
     }
     
+    // Feedback visuel pendant la recherche
+    setGpsCoordinates('Localisation en cours...');
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const coords = `${position.coords.latitude}, ${position.coords.longitude}`;
         setGpsCoordinates(coords);
       },
       (error) => {
+        setGpsCoordinates(''); // On vide si erreur
         alert("Erreur de géolocalisation : " + error.message);
-      }
+      },
+      { enableHighAccuracy: true } // Demande la meilleure précision possible
     );
   };
 
-  // 3. Soumission du formulaire
+  // 3. Soumission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCustomerOption) {
+      alert("Veuillez sélectionner un client");
+      return;
+    }
+
     setIsSubmitting(true);
     const token = localStorage.getItem('sav_token');
 
@@ -84,10 +107,9 @@ export default function NewVisitPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          customer: selectedCustomer, // On envoie l'IRI (ex: /api/customers/1)
+          customer: selectedCustomerOption.value, // On envoie l'IRI
           visitedAt: new Date(visitedAt).toISOString(),
           gpsCoordinates: gpsCoordinates,
-          // Pas besoin d'envoyer 'technician', le backend le gère !
         }),
       });
 
@@ -96,7 +118,6 @@ export default function NewVisitPage() {
         throw new Error(errorData.detail || 'Erreur lors de la création');
       }
 
-      // Succès : retour au dashboard
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);
@@ -104,7 +125,7 @@ export default function NewVisitPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Chargement des clients...</div>;
+  if (loading) return <div className="p-8 text-center">Chargement des données...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -118,22 +139,27 @@ export default function NewVisitPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Sélection Client */}
+          {/* Sélection Client avec React-Select (Cherchable) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Client</label>
-            <select
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              value={selectedCustomer}
-              onChange={(e) => setSelectedCustomer(e.target.value)}
-            >
-              <option value="">-- Choisir un client --</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer['@id']}>
-                  {customer.name} ({customer.zone})
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+            <Select
+              instanceId="customer-select" // ID unique pour l'accessibilité
+              options={customerOptions}
+              value={selectedCustomerOption}
+              onChange={(option) => setSelectedCustomerOption(option)}
+              placeholder="Rechercher un client..."
+              isSearchable={true} // Active la recherche texte
+              noOptionsMessage={() => "Aucun client trouvé"}
+              className="text-sm"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  borderColor: '#D1D5DB', // border-gray-300
+                  padding: '2px',
+                  borderRadius: '0.375rem', // rounded-md
+                })
+              }}
+            />
           </div>
 
           {/* Date de visite */}
@@ -148,25 +174,29 @@ export default function NewVisitPage() {
             />
           </div>
 
-          {/* Coordonnées GPS */}
+          {/* Coordonnées GPS (Read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Position GPS</label>
             <div className="mt-1 flex gap-2">
               <input
                 type="text"
-                placeholder="Lat, Long"
-                className="block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                readOnly // <--- CHAMP VERROUILLÉ
+                placeholder="Cliquez sur 'Me localiser'"
+                className="block w-full rounded-md border border-gray-300 bg-gray-100 p-3 text-gray-500 shadow-sm cursor-not-allowed sm:text-sm" // Style grisé
                 value={gpsCoordinates}
-                onChange={(e) => setGpsCoordinates(e.target.value)}
+                // Pas de onChange car read-only
               />
               <button
                 type="button"
                 onClick={handleGeolocate}
-                className="rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-200"
+                className="whitespace-nowrap rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-200"
               >
                 📍 Me localiser
               </button>
             </div>
+            <p className="mt-1 text-xs text-gray-500">
+              La position est détectée automatiquement.
+            </p>
           </div>
 
           {/* Actions */}
@@ -183,7 +213,7 @@ export default function NewVisitPage() {
               disabled={isSubmitting}
               className="inline-flex justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
             >
-              {isSubmitting ? 'Enregistrement...' : 'Enregistrer la visite'}
+              {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </div>
         </form>
