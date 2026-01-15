@@ -35,7 +35,7 @@ export default function NewVisitPage() {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     setVisitedAt(now.toISOString().slice(0, 16));
 
-    fetch('https://localhost/api/customers', {
+    fetch('http://localhost/api/customers', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
@@ -77,7 +77,7 @@ export default function NewVisitPage() {
     const token = localStorage.getItem('sav_token');
 
     try {
-      const res = await fetch('https://localhost/api/visits', {
+      const res = await fetch('http://localhost/api/visits', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

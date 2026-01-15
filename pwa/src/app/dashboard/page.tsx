@@ -34,7 +34,7 @@ export default function DashboardPage() {
         }
 
         // 2. Appel API pour charger les visites
-        fetch('https://localhost/api/visits', {
+        fetch('http://localhost/api/visits', {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json',
@@ -90,32 +90,34 @@ export default function DashboardPage() {
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {visits.map((visit) => (
-                        <div key={visit.id} className="rounded-lg bg-white p-6 shadow">
-                            <div className="mb-2 flex justify-between">
-                                <span className="font-semibold text-indigo-600">
-                                    #{visit.id}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                    {new Date(visit.visitedAt).toLocaleDateString()}
-                                </span>
-                            </div>
+                        <Link key={visit.id} href={`/dashboard/${visit.id}`} className="block">
+                            <div className="rounded-lg bg-white p-6 shadow hover:shadow-md transition-shadow">
+                                <div className="mb-2 flex justify-between">
+                                    <span className="font-semibold text-indigo-600">
+                                        #{visit.id}
+                                    </span>
+                                    <span className="text-sm text-gray-500">
+                                        {new Date(visit.visitedAt).toLocaleDateString()}
+                                    </span>
+                                </div>
 
-                            <h3 className="text-lg font-bold text-gray-900">
-                                {visit.customer.name}
-                            </h3>
-                            <p className="text-gray-600">{visit.customer.zone}</p>
+                                <h3 className="text-lg font-bold text-gray-900">
+                                    {visit.customer.name}
+                                </h3>
+                                <p className="text-gray-600">{visit.customer.zone}</p>
 
-                            <div className="mt-4 border-t pt-4">
-                                <p className="text-sm text-gray-500">
-                                    Technicien : {visit.technician?.fullname || 'N/A'}
-                                </p>
-                                {visit.gpsCoordinates && (
-                                    <p className="mt-1 text-xs text-blue-500">
-                                        📍 {visit.gpsCoordinates}
+                                <div className="mt-4 border-t pt-4">
+                                    <p className="text-sm text-gray-500">
+                                        Technicien : {visit.technician?.fullname || 'N/A'}
                                     </p>
-                                )}
+                                    {visit.gpsCoordinates && (
+                                        <p className="mt-1 text-xs text-blue-500">
+                                            📍 {visit.gpsCoordinates}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             )}

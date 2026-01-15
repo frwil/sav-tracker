@@ -15,14 +15,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
 class Customer
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
-    #[Groups(['customer:read'])]
+    #[Groups(['customer:read', 'visit:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['customer:read'])]
+    #[Groups(['customer:read', 'visit:read'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['customer:read', 'visit:read'])]
     private ?string $zone = null;
 
     #[ORM\Column(length: 255, nullable: true)]

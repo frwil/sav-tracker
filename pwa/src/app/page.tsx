@@ -15,7 +15,7 @@ export default function LoginPage() {
 
     try {
       // 1. Appel à l'endpoint que nous avons testé avec CURL
-      const res = await fetch('https://localhost/api/login_check', {
+      const res = await fetch('http://localhost/api/login_check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
