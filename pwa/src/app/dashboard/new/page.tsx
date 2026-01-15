@@ -48,9 +48,12 @@ export default function NewVisitPage() {
         'Accept': 'application/ld+json', // Spécifique API Platform
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('Erreur réseau');
+        return res.json();
+      })
       .then((data) => {
-        const rawCustomers = data['hydra:member'] || data;
+        const rawCustomers = data['hydra:member'] || data['member'] || [];
         // Transformation des données pour react-select (value/label)
         const options = rawCustomers.map((c: Customer) => ({
           value: c['@id'],

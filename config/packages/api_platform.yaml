@@ -4,6 +4,9 @@ api_platform:
     formats:
         jsonld:   ['application/ld+json']
         json:     ['application/json']
+    eager_loading:
+        max_joins: 60
+        force_eager: false
     defaults:
         stateless: true
         cache_headers:

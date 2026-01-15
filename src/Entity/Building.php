@@ -1,15 +1,33 @@
 <?php 
 namespace App\Entity;
 
+use App\Entity\Flock;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Put;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\JoinColumn;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\BuildingRepository;
+use ApiPlatform\Metadata\GetCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Attribute\Groups;
 // src/Entity/Building.php
 #[ORM\Entity(repositoryClass: BuildingRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(security: "is_granted('ROLE_USER')"), // Tout le monde peut créer
+        new Put(security: "is_granted('ROLE_USER')"),
+        new Patch(security: "is_granted('ROLE_ADMIN')") // Seul l'admin peut archiver (via PATCH)
+    ],
+    normalizationContext: ['groups' => ['building:read']],
+    denormalizationContext: ['groups' => ['building:write']]
+)]
 class Building
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -26,7 +44,17 @@ class Building
     private ?Customer $customer = null;
 
     #[ORM\OneToMany(mappedBy: 'building', targetEntity: Flock::class)]
+    #[Groups(['building:read', 'visit:read'])]
     private Collection $flocks;
+
+    #[ORM\Column(options: ['default' => true])]
+    #[Groups(['building:read', 'building:write'])]
+    private ?bool $activated = true;
+
+    public function __construct()
+    {
+        $this->flocks = new ArrayCollection();
+    }
 
     // Getters/Setters...
     public function getId(): ?int { return $this->id; }
@@ -36,6 +64,8 @@ class Building
     public function setMaxCapacity(?int $maxCapacity): self { $this->maxCapacity = $maxCapacity; return $this; }
     public function getCustomer(): ?Customer { return $this->customer; }
     public function setCustomer(?Customer $customer): self { $this->customer = $customer; return $this; }
+    public function isActivated(): ?bool { return $this->activated; }
+    public function setActivated(bool $activated): self { $this->activated = $activated; return $this; }
     public function getFlocks(): Collection { return $this->flocks; }
     public function setFlocks(Collection $flocks): self { $this->flocks = $flocks; return $this; }
     public function addFlock(Flock $flock): self {

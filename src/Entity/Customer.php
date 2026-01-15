@@ -38,6 +38,10 @@ class Customer
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $erpName = null;
 
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['customer:read', 'visit:read'])] 
+    private ?string $phoneNumber = null;
+
     // Type de client : Eleveur est toujours vrai. Provendier est optionnel.
     #[ORM\Column]
     private bool $isDealer = false; 
@@ -52,6 +56,7 @@ class Customer
     private Collection $speculations; // Choix multiple pour le profil client
 
     #[OneToMany(mappedBy: 'customer', targetEntity: Building::class)]
+    #[Groups(['customer:read', 'visit:read'])]
     private Collection $buildings;
 
     public function __construct() {
@@ -80,6 +85,8 @@ class Customer
     public function setErpCode(?string $erpCode): self { $this->erpCode = $erpCode; return $this; }
     public function getErpName(): ?string { return $this->erpName; }
     public function setErpName(?string $erpName): self { $this->erpName = $erpName; return $this; }
+    public function getPhoneNumber(): ?string { return $this->phoneNumber; }
+    public function setPhoneNumber(?string $phoneNumber): self { $this->phoneNumber = $phoneNumber; return $this; }
     public function addSpeculation(Speculation $speculation): self {
         if (!$this->speculations->contains($speculation)) {
             $this->speculations[] = $speculation;

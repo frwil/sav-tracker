@@ -9,13 +9,15 @@ use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\FlockRepository;
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GetCollection;
-use App\Controller\CloseFlockController;
-use App\Validator\Constraints\BuildingAvailable;
-use ApiPlatform\OpenApi\Model\Operation;
-use ApiPlatform\OpenApi\Model\RequestBody;
-use ApiPlatform\OpenApi\Model\MediaType;
 use ApiPlatform\OpenApi\Model\Schema;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\OpenApi\Model\MediaType;
+use ApiPlatform\OpenApi\Model\Operation;
+use App\Controller\CloseFlockController;
+use ApiPlatform\OpenApi\Model\RequestBody;
+use Doctrine\Common\Collections\Collection;
+use App\Validator\Constraints\BuildingAvailable;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
@@ -51,12 +53,14 @@ class Flock
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['visit:read'])]
     private ?string $name = null;
 
     #[ORM\Column]
     private ?int $subjectCount = null; // <= capacity du bâtiment
 
     #[ORM\Column(type: 'datetime')]
+    #[Groups(['visit:read'])]
     private ?\DateTimeInterface $startDate = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
@@ -67,11 +71,16 @@ class Flock
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['visit:read'])]
     private ?Speculation $speculation = null; // Choix unique
 
     #[ORM\ManyToOne(inversedBy: 'flocks')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Building $building = null;
+
+    #[ORM\OneToMany(mappedBy: 'flock', targetEntity: Observation::class)]
+    #[Groups(['visit:read'])]
+    private Collection $observations;
 
     // Getters/Setters...
 
@@ -90,5 +99,10 @@ class Flock
     public function setSpeculation(?Speculation $speculation): self { $this->speculation = $speculation; return $this; }
     public function getBuilding(): ?Building { return $this->building; }
     public function setBuilding(?Building $building): self { $this->building = $building; return $this; }
+    /**
+     * @return Collection<int, Observation>
+     */
+    public function getObservations(): Collection { return $this->observations; }
+    public function setObservations(Collection $observations): self { $this->observations = $observations; return $this; }
     public function __toString(): string { return $this->name ?? ''; }
 }
