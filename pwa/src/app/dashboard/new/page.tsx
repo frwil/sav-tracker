@@ -45,7 +45,7 @@ export default function NewVisitPage() {
     fetch('http://localhost/api/customers', { // HTTP local
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
+        'Accept': 'application/ld+json', // Spécifique API Platform
       },
     })
       .then((res) => res.json())
