@@ -12,6 +12,10 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\Controller\CloseFlockController;
 use App\Validator\Constraints\BuildingAvailable;
+use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\RequestBody;
+use ApiPlatform\OpenApi\Model\MediaType;
+use ApiPlatform\OpenApi\Model\Schema;
 
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
@@ -25,19 +29,17 @@ use App\Validator\Constraints\BuildingAvailable;
         new Post(
             uriTemplate: '/flocks/{id}/close', 
             controller: CloseFlockController::class,
-            openapiContext: [
-                'summary' => 'Clôturer une bande',
-                'description' => 'Marque la bande comme terminée et définit la date de fin automatiquement.',
-                'requestBody' => [
-                    'content' => [
-                        'application/json' => [
-                            'schema' => [
-                                'type' => 'object', // Body vide autorisé
-                            ]
-                        ]
-                    ]
-                ]
-            ],
+            openapi: new Operation(
+                summary: 'Clôturer une bande',
+                description: 'Marque la bande comme terminée et définit la date de fin automatiquement.',
+                requestBody: new RequestBody(
+                    content: new \ArrayObject([
+                        'application/json' => new MediaType(
+                            schema: new Schema()
+                        )
+                    ])
+                )
+            ),
             name: 'close_flock'
         )
     ]
