@@ -146,6 +146,7 @@ const ObservationForm = ({
         body: JSON.stringify({
           visit: visitIri,
           flock: flock['@id'],
+          observedAt: captureDate,
           ...common,
           data: finalData
         }),

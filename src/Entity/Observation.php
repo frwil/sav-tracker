@@ -9,10 +9,10 @@ use Doctrine\DBAL\Types\Types;
 use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use App\Validator\Constraints as AppAssert;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ObservationRepository;
 use Symfony\Component\Serializer\Attribute\Groups;
-use App\Validator\Constraints\ConsistentObservationDate;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ObservationRepository::class)]
@@ -20,6 +20,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     fields: ['visit', 'flock'], 
     message: "Une observation a déjà été saisie pour cette bande lors de cette visite."
 )]
+#[AppAssert\ConsistentObservationDate]
 #[ApiResource(
     operations: [
         new Get(),
@@ -34,7 +35,6 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     normalizationContext: ['groups' => ['observation:read']],
     denormalizationContext: ['groups' => ['observation:write']]
 )]
-#[ConsistentObservationDate]
 class Observation
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
