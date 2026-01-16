@@ -118,12 +118,22 @@ const ObservationForm = ({
     e.preventDefault();
     setLoading(true);
     const token = localStorage.getItem('sav_token');
+    const captureDate = new Date().toISOString();
+    
 
     // Nettoyage données Aliment
     const finalData = { ...data };
     if (alimentType !== 'Autres') {
       finalData.aliment = alimentType; // Si c'est Belgocam ou SPC
     }
+
+    const bodyPayload = {
+          visit: visitIri,
+          flock: flock['@id'],
+          observedAt: captureDate, // <--- AJOUT DU CHAMP
+          ...common,
+          data: finalData
+    };
     // Si c'est "Autres", on s'attend à ce que finalData.aliment contienne le texte saisi manuellement
 
     try {
@@ -282,9 +292,25 @@ const ObservationForm = ({
               </div>
             )}
 
-            <div className="col-span-2">
-              <label className="text-sm">Equipements (Mangeoires/Abreuvoirs - Qté)</label>
-              <input type="text" className="w-full border p-2 rounded" placeholder="ex: 10 Mang, 15 Abreuv" onChange={e => updateData('equipements', e.target.value)} />
+            <div>
+              <label className="text-sm">Mangeoires (Qté)</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                className="w-full border p-2 rounded"
+                onChange={e => updateData('mangeoires', e.target.value ? parseInt(e.target.value) : 0)}
+              />
+            </div>
+            <div>
+              <label className="text-sm">Abreuvoirs (Qté)</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                className="w-full border p-2 rounded"
+                onChange={e => updateData('abreuvoirs', e.target.value ? parseInt(e.target.value) : 0)}
+              />
             </div>
           </div>
           {renderAlimentSection()}

@@ -3,27 +3,38 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Patch;
-use App\Repository\ObservationRepository;
 use Doctrine\DBAL\Types\Types;
+use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\Repository\ObservationRepository;
 use Symfony\Component\Serializer\Attribute\Groups;
+use App\Validator\Constraints\ConsistentObservationDate;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ObservationRepository::class)]
+#[UniqueEntity(
+    fields: ['visit', 'flock'], 
+    message: "Une observation a déjà été saisie pour cette bande lors de cette visite."
+)]
 #[ApiResource(
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
-        new Patch()
+        new Post(
+            security: "is_granted('OBSERVATION_CREATE', object)"
+        ),
+        new Patch(
+            security: "is_granted('OBSERVATION_EDIT', object)"
+        )
     ],
     normalizationContext: ['groups' => ['observation:read']],
     denormalizationContext: ['groups' => ['observation:write']]
 )]
+#[ConsistentObservationDate]
 class Observation
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -70,6 +81,26 @@ class Observation
     #[Groups(['observation:read', 'observation:write', 'visit:read'])]
     private array $data = [];
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[Groups(['observation:read', 'visit:read'])] 
+    private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)] // Mutable car peut être ajustée si besoin
+    #[Groups(['observation:read', 'observation:write', 'visit:read'])] // 'write' autorisé !
+    private ?\DateTimeInterface $observedAt = null;
+
+    #[ORM\PrePersist]
+    public function setCreatedAtValue(): void
+    {
+        // Le serveur marque toujours l'heure de réception
+        $this->createdAt = new \DateTimeImmutable();
+        
+        // Si le mobile n'a pas envoyé de date (ex: bug), on met la date serveur par défaut
+        if ($this->observedAt === null) {
+            $this->observedAt = new \DateTime();
+        }
+    }
+
     public function getId(): ?int { return $this->id; }
 
     public function getVisit(): ?Visit { return $this->visit; }
@@ -95,4 +126,12 @@ class Observation
 
     public function getData(): array { return $this->data; }
     public function setData(array $data): self { $this->data = $data; return $this; }
+
+    public function getCreatedAt(): ?\DateTimeImmutable { return $this->createdAt; }
+    public function getObservedAt(): ?\DateTimeInterface { return $this->observedAt; }
+    public function setObservedAt(\DateTimeInterface $observedAt): self { $this->observedAt = $observedAt; return $this; }
+    public function __toString(): string
+    {
+        return 'Observation #' . $this->id. ' - Bande: ' . ($this->flock ? $this->flock->getName() : 'N/A') . ' - Visite #' . ($this->visit ? $this->visit->getId() : 'N/A');
+    }
 }
