@@ -15,7 +15,7 @@ interface Flock {
   id: number;
   name: string;
   speculation: Speculation;
-  createdAt: string;
+  startDate: string;
   observations: Observation[]; // Historique pour le résumé
 }
 
@@ -566,7 +566,7 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
                     <div>
                       <div className="flex justify-between items-center mb-4">
                         <p className="text-sm text-gray-600">
-                          Bande lancée le {new Date(activeFlock.createdAt).toLocaleDateString()}
+                          Bande lancée le {new Date(activeFlock.startDate).toLocaleDateString()}
                         </p>
                         <button
                           onClick={() => setExpandedBuildingId(expandedBuildingId === building.id ? null : building.id)}

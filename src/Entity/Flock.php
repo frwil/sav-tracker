@@ -60,6 +60,7 @@ class Flock
     private ?string $name = null;
 
     #[ORM\Column]
+    #[Groups(['flock:write'])]
     private ?int $subjectCount = null; // <= capacity du bâtiment
 
     #[ORM\Column(type: 'datetime')]
