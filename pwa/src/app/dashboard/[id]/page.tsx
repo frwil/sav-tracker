@@ -108,7 +108,7 @@ const ObservationForm = ({
   // Gestion spécifique pour "Aliment Autres"
   const [alimentType, setAlimentType] = useState('');
 
-  
+
   // Met à jour le JSON `data`
   const updateData = (key: string, value: any) => {
     setData((prev: any) => ({ ...prev, [key]: value }));
@@ -615,6 +615,7 @@ const NewFlockForm = ({
   const [speculations, setSpeculations] = useState<any[]>([]);
   const [selectedSpec, setSelectedSpec] = useState('');
   const [installDate, setInstallDate] = useState(new Date().toISOString().slice(0, 10)); // Aujourd'hui par défaut
+  const [subjectCount, setSubjectCount] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   // 1. Charger les spéculations au montage
@@ -649,6 +650,7 @@ const NewFlockForm = ({
           building: buildingIri,
           speculation: selectedSpec,
           startDate: new Date(installDate).toISOString(), // Sert de date de début
+          subjectCount: subjectCount ? parseInt(subjectCount) : 0,
           // Le nom est généré automatiquement par le Backend (FlockNamingListener)
         })
       });
@@ -689,6 +691,18 @@ const NewFlockForm = ({
             className="w-full border rounded p-2"
             value={installDate}
             onChange={(e) => setInstallDate(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Effectif (Nombre)</label>
+          <input
+            type="number"
+            required
+            min="1"
+            placeholder="ex: 1000"
+            className="w-full border rounded p-2"
+            value={subjectCount}
+            onChange={(e) => setSubjectCount(e.target.value)}
           />
         </div>
       </div>

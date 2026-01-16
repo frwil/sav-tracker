@@ -15,7 +15,8 @@ class FlockNamingListener
         $customerCode = $flock->getBuilding()->getCustomer()->getCode() ?? 'CLI';
         $buildingName = str_replace(' ', '', $flock->getBuilding()->getName());
         $date = $flock->getStartDate() ? $flock->getStartDate()->format('dmY') : date('dmY');
+        $subjectCount = $flock->getSubjectCount() ?? 0;
 
-        $flock->setName(sprintf('%s-%s-%s', $customerCode, $buildingName, $date));
+        $flock->setName(sprintf('%s-%s-%s-%s', $customerCode, $buildingName, $date, $subjectCount));
     }
 }
