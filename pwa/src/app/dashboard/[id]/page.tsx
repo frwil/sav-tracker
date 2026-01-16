@@ -648,7 +648,7 @@ const NewFlockForm = ({
           customer: customerIri,
           building: buildingIri,
           speculation: selectedSpec,
-          createdAt: new Date(installDate).toISOString(), // Sert de date de début
+          startDate: new Date(installDate).toISOString(), // Sert de date de début
           // Le nom est généré automatiquement par le Backend (FlockNamingListener)
         })
       });

@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 namespace App\Entity;
 
 use App\Entity\Building;
@@ -22,6 +23,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
 #[ApiResource(
+    normalizationContext: ['groups' => ['flock:read']],
+    denormalizationContext: ['groups' => ['flock:write']],
     operations: [
         new Get(),
         new GetCollection(),
@@ -29,7 +32,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Patch(),
         // Notre nouvelle opération de clôture :
         new Post(
-            uriTemplate: '/flocks/{id}/close', 
+            uriTemplate: '/flocks/{id}/close',
             controller: CloseFlockController::class,
             openapi: new Operation(
                 summary: 'Clôturer une bande',
@@ -60,7 +63,7 @@ class Flock
     private ?int $subjectCount = null; // <= capacity du bâtiment
 
     #[ORM\Column(type: 'datetime')]
-    #[Groups(['visit:read'])]
+    #[Groups(['visit:read', 'flock:read', 'flock:write'])]
     private ?\DateTimeInterface $startDate = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
@@ -71,11 +74,12 @@ class Flock
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['visit:read'])]
+    #[Groups(['visit:read', 'flock:read', 'flock:write'])]
     private ?Speculation $speculation = null; // Choix unique
 
     #[ORM\ManyToOne(inversedBy: 'flocks')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['flock:write'])]
     private ?Building $building = null;
 
     #[ORM\OneToMany(mappedBy: 'flock', targetEntity: Observation::class)]
@@ -84,25 +88,87 @@ class Flock
 
     // Getters/Setters...
 
-    public function getId(): ?int { return $this->id; }
-    public function getName(): ?string { return $this->name; }
-    public function setName(string $name): self { $this->name = $name; return $this; }
-    public function getSubjectCount(): ?int { return $this->subjectCount; } 
-    public function setSubjectCount(?int $subjectCount): self { $this->subjectCount = $subjectCount; return $this; }
-    public function getStartDate(): ?\DateTimeInterface { return $this->startDate; }
-    public function setStartDate(?\DateTimeInterface $startDate): self { $this->startDate = $startDate; return $this; }
-    public function getEndDate(): ?\DateTimeInterface { return $this->endDate; }
-    public function setEndDate(?\DateTimeInterface $endDate): self { $this->endDate = $endDate; return $this; }
-    public function isClosed(): bool { return $this->closed; }
-    public function setClosed(bool $closed): self { $this->closed = $closed; return $this; }
-    public function getSpeculation(): ?Speculation { return $this->speculation; }
-    public function setSpeculation(?Speculation $speculation): self { $this->speculation = $speculation; return $this; }
-    public function getBuilding(): ?Building { return $this->building; }
-    public function setBuilding(?Building $building): self { $this->building = $building; return $this; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+    public function setName(string $name): self
+    {
+        $this->name = $name;
+        return $this;
+    }
+    public function getSubjectCount(): ?int
+    {
+        return $this->subjectCount;
+    }
+    public function setSubjectCount(?int $subjectCount): self
+    {
+        $this->subjectCount = $subjectCount;
+        return $this;
+    }
+    public function getStartDate(): ?\DateTimeInterface
+    {
+        return $this->startDate;
+    }
+    public function setStartDate(?\DateTimeInterface $startDate): self
+    {
+        $this->startDate = $startDate;
+        return $this;
+    }
+    public function getEndDate(): ?\DateTimeInterface
+    {
+        return $this->endDate;
+    }
+    public function setEndDate(?\DateTimeInterface $endDate): self
+    {
+        $this->endDate = $endDate;
+        return $this;
+    }
+    public function isClosed(): bool
+    {
+        return $this->closed;
+    }
+    public function setClosed(bool $closed): self
+    {
+        $this->closed = $closed;
+        return $this;
+    }
+    public function getSpeculation(): ?Speculation
+    {
+        return $this->speculation;
+    }
+    public function setSpeculation(?Speculation $speculation): self
+    {
+        $this->speculation = $speculation;
+        return $this;
+    }
+    public function getBuilding(): ?Building
+    {
+        return $this->building;
+    }
+    public function setBuilding(?Building $building): self
+    {
+        $this->building = $building;
+        return $this;
+    }
     /**
      * @return Collection<int, Observation>
      */
-    public function getObservations(): Collection { return $this->observations; }
-    public function setObservations(Collection $observations): self { $this->observations = $observations; return $this; }
-    public function __toString(): string { return $this->name ?? ''; }
+    public function getObservations(): Collection
+    {
+        return $this->observations;
+    }
+    public function setObservations(Collection $observations): self
+    {
+        $this->observations = $observations;
+        return $this;
+    }
+    public function __toString(): string
+    {
+        return $this->name ?? '';
+    }
 }
