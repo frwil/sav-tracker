@@ -81,7 +81,7 @@ class Observation
     #[Groups(['observation:read', 'observation:write', 'visit:read'])]
     private array $data = [];
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, updatable: false)]
     #[Groups(['observation:read', 'visit:read'])] 
     private ?\DateTimeImmutable $createdAt = null;
 
