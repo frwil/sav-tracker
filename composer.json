@@ -19,6 +19,7 @@
         "symfony/cache": "8.0.*",
         "symfony/console": "8.0.*",
         "symfony/dotenv": "8.0.*",
+        "symfony/expression-language": "8.0.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "8.0.*",
         "symfony/mailer": "8.0.*",
