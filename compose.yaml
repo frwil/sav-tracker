@@ -66,6 +66,8 @@ services:
       MYSQL_DATABASE: savtracker
     ports:
       - "3306:3306"
+    volumes:
+      - database_data:/var/lib/mysql
 
   pwa:
     image: node:20-alpine

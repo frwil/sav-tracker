@@ -34,7 +34,7 @@ class AppFixtures extends Fixture
         
         foreach ($specs as $label) {
             $spec = new Speculation();
-            $spec->setLabel($label);
+            $spec->setName($label);
             $manager->persist($spec);
             $specObjects[] = $spec; // On garde en mémoire pour les lier aux clients
         }
