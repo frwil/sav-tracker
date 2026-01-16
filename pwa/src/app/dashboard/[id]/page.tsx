@@ -38,9 +38,11 @@ interface Observation {
 }
 
 interface Visit {
+  '@id': string
   id: number;
   visitedAt: string;
   customer: {
+    '@id': string;
     name: string;
     zone: string;
     phoneNumber?: string;
@@ -83,10 +85,12 @@ const LastVisitSummary = ({ observations }: { observations: Observation[] }) => 
 // --- COMPOSANT : FORMULAIRE DYNAMIQUE ---
 const ObservationForm = ({
   visitIri,
+  disabled,
   flock,
   onSuccess
 }: {
   visitIri: string,
+  disabled: boolean,
   flock: Flock,
   onSuccess: () => void
 }) => {
@@ -104,6 +108,7 @@ const ObservationForm = ({
   // Gestion spécifique pour "Aliment Autres"
   const [alimentType, setAlimentType] = useState('');
 
+  
   // Met à jour le JSON `data`
   const updateData = (key: string, value: any) => {
     setData((prev: any) => ({ ...prev, [key]: value }));
@@ -409,6 +414,9 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
   // Gestion d'état pour ouvrir/fermer les formulaires par bâtiment
   const [expandedBuildingId, setExpandedBuildingId] = useState<number | null>(null);
 
+  const [creatingFlockForBuilding, setCreatingFlockForBuilding] = useState<string | null>(null); // Stocke l'IRI du bâtiment en cours de création
+
+
   const fetchVisit = async () => {
     const token = localStorage.getItem('sav_token');
     try {
@@ -450,11 +458,11 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => { fetchVisit(); }, [visitId]);
 
-  // Calculer si on peut éditer (pour désactiver les formulaires enfants)
-  const isEditable = visit.activated && !visit.closed;
 
   if (loading) return <div className="p-8 text-center">Chargement...</div>;
   if (!visit) return <div className="p-8 text-center text-red-500">Visite introuvable</div>;
+  // Calculer si on peut éditer (pour désactiver les formulaires enfants)
+  const isEditable = visit.activated && !visit.closed;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -512,7 +520,8 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
             const activeFlock = building.flocks && building.flocks.length > 0 ? building.flocks[building.flocks.length - 1] : null;
 
             return (
-              <div key={building.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+              <div key={building['@id']} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+                {/* Header Bâtiment (Inchangé) */}
                 <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
                   <h3 className="font-bold text-lg">{building.name}</h3>
                   {activeFlock ? (
@@ -526,15 +535,35 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
 
                 <div className="p-4">
                   {!activeFlock ? (
-                    <div className="text-center py-4">
-                      <p className="text-gray-500 mb-2">Aucune bande en cours.</p>
-                      <button className="text-indigo-600 font-medium hover:underline">
-                        + Mettre en place une bande
-                      </button>
+                    /* CAS 1 : Bâtiment Vide -> Afficher Bouton OU Formulaire de Création */
+                    <div>
+                      {creatingFlockForBuilding === building['@id'] ? (
+                        <NewFlockForm
+                          customerIri={visit.customer['@id']}
+                          buildingIri={building['@id']}
+                          onCancel={() => setCreatingFlockForBuilding(null)}
+                          onSuccess={() => {
+                            setCreatingFlockForBuilding(null);
+                            fetchVisit(); // Rafraîchir pour voir la nouvelle bande
+                          }}
+                        />
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-gray-500 mb-2">Aucune bande en cours.</p>
+                          {isEditable && (
+                            <button
+                              onClick={() => setCreatingFlockForBuilding(building['@id'])}
+                              className="text-indigo-600 font-medium hover:underline bg-indigo-50 px-4 py-2 rounded"
+                            >
+                              + Mettre en place une bande
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
+                    /* CAS 2 : Bâtiment Occupé -> (Code inchangé pour l'ObservationForm) */
                     <div>
-                      {/* Résumé rapide */}
                       <div className="flex justify-between items-center mb-4">
                         <p className="text-sm text-gray-600">
                           Bande lancée le {new Date(activeFlock.createdAt).toLocaleDateString()}
@@ -546,16 +575,16 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
                           {expandedBuildingId === building.id ? 'Fermer' : 'Saisir Données Visite'}
                         </button>
                       </div>
-
-                      {/* Formulaire Déroulant */}
+                      {/* ... ObservationForm ... */}
                       {expandedBuildingId === building.id && (
                         <ObservationForm
                           visitIri={`/api/visits/${visitId}`}
                           flock={activeFlock}
+                          disabled={!isEditable}
                           onSuccess={() => {
                             alert("Observation enregistrée !");
                             setExpandedBuildingId(null);
-                            fetchVisit(); // Rafraîchir
+                            fetchVisit();
                           }}
                         />
                       )}
@@ -570,3 +599,115 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
+
+// --- COMPOSANT : NOUVELLE BANDE ---
+const NewFlockForm = ({
+  customerIri,
+  buildingIri,
+  onSuccess,
+  onCancel
+}: {
+  customerIri: string,
+  buildingIri: string,
+  onSuccess: () => void,
+  onCancel: () => void
+}) => {
+  const [speculations, setSpeculations] = useState<any[]>([]);
+  const [selectedSpec, setSelectedSpec] = useState('');
+  const [installDate, setInstallDate] = useState(new Date().toISOString().slice(0, 10)); // Aujourd'hui par défaut
+  const [loading, setLoading] = useState(false);
+
+  // 1. Charger les spéculations au montage
+  useEffect(() => {
+    const token = localStorage.getItem('sav_token');
+    fetch('http://localhost/api/speculations', {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        const specs = data['hydra:member'] || data['member'] || [];
+        setSpeculations(specs);
+        if (specs.length > 0) setSelectedSpec(specs[0]['@id']);
+      })
+      .catch(err => console.error("Erreur chargement spéculations", err));
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const token = localStorage.getItem('sav_token');
+
+    try {
+      const res = await fetch('http://localhost/api/flocks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          customer: customerIri,
+          building: buildingIri,
+          speculation: selectedSpec,
+          createdAt: new Date(installDate).toISOString(), // Sert de date de début
+          // Le nom est généré automatiquement par le Backend (FlockNamingListener)
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Erreur lors de la création");
+      }
+      onSuccess();
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-green-50 p-4 rounded-lg border border-green-200 mt-4">
+      <h4 className="font-bold text-green-800 mb-3">🌱 Mettre en place une nouvelle bande</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Spéculation</label>
+          <select
+            className="w-full border rounded p-2 bg-white"
+            value={selectedSpec}
+            onChange={(e) => setSelectedSpec(e.target.value)}
+          >
+            {speculations.map(s => (
+              <option key={s['@id']} value={s['@id']}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Date d'installation</label>
+          <input
+            type="date"
+            required
+            className="w-full border rounded p-2"
+            value={installDate}
+            onChange={(e) => setInstallDate(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded"
+        >
+          Annuler
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded font-bold shadow-sm"
+        >
+          {loading ? 'Création...' : 'Valider la mise en place'}
+        </button>
+      </div>
+    </form>
+  );
+};
