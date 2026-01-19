@@ -43,7 +43,7 @@ class Observation
 
     #[ORM\ManyToOne(inversedBy: 'observations')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['observation:read', 'observation:write'])]
+    #[Groups(['observation:read', 'observation:write', 'visit:read'])]
     private ?Visit $visit = null;
 
     // Lien vers la Bande concernée (Indispensable pour savoir de quoi on parle)

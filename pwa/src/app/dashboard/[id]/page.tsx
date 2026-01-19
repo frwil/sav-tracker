@@ -35,6 +35,7 @@ interface Observation {
   observation?: string;
   recommendations?: string;
   problems?: string;
+  visit: string | { '@id': string };
 }
 
 interface Visit {
@@ -87,12 +88,16 @@ const ObservationForm = ({
   visitIri,
   disabled,
   flock,
-  onSuccess
+  initialData,
+  onSuccess,
+  onCancel
 }: {
   visitIri: string,
   disabled: boolean,
   flock: Flock,
-  onSuccess: () => void
+  initialData?: Observation | null,
+  onSuccess: () => void,
+  onCancel: () => void
 }) => {
   const specName = flock.speculation.name;
   const [loading, setLoading] = useState(false);
@@ -119,7 +124,7 @@ const ObservationForm = ({
     setLoading(true);
     const token = localStorage.getItem('sav_token');
     const captureDate = new Date().toISOString();
-    
+
 
     // Nettoyage données Aliment
     const finalData = { ...data };
@@ -127,14 +132,35 @@ const ObservationForm = ({
       finalData.aliment = alimentType; // Si c'est Belgocam ou SPC
     }
 
-    const bodyPayload = {
+    const url = initialData
+      ? `http://localhost/api/observations/${initialData.id}`
+      : 'http://localhost/api/observations';
+
+    const method = initialData ? 'PUT' : 'POST';
+    // Si c'est "Autres", on s'attend à ce que finalData.aliment contienne le texte saisi manuellement
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
           visit: visitIri,
           flock: flock['@id'],
-          observedAt: captureDate, // <--- AJOUT DU CHAMP
+          observedAt: captureDate,
           ...common,
           data: finalData
-    };
-    // Si c'est "Autres", on s'attend à ce que finalData.aliment contienne le texte saisi manuellement
+        }),
+      });
+
+      if (!res.ok) throw new Error('Erreur sauvegarde');
+      onSuccess();
+    } catch (err) {
+      alert("Erreur lors de l'enregistrement");
+    } finally {
+      setLoading(false);
+    }
 
     try {
       const res = await fetch('http://localhost/api/observations', {
@@ -381,7 +407,9 @@ const ObservationForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white p-4 rounded-lg shadow-sm border border-indigo-100">
-      <h3 className="font-bold text-lg text-indigo-900 border-b pb-2">Nouvelle Observation ({specName})</h3>
+      <h3 className="font-bold text-lg text-indigo-900 border-b pb-2">
+        {initialData ? '✏️ Modifier Observation' : '➕ Nouvelle Observation'} ({specName})
+      </h3>
 
       {/* 1. Résumé Visite Précédente */}
       <LastVisitSummary observations={flock.observations} />
@@ -416,14 +444,18 @@ const ObservationForm = ({
           <textarea className="w-full border rounded p-2" rows={2} onChange={e => setCommon({ ...common, generalComment: e.target.value })} />
         </div>
       </div>
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-indigo-600 text-white py-3 rounded-md font-bold hover:bg-indigo-700 disabled:opacity-50"
-      >
-        {loading ? 'Enregistrement...' : 'Enregistrer Observation'}
-      </button>
+      <div className="flex gap-2 justify-end">
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
+          Annuler
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-indigo-600 text-white py-3 rounded-md font-bold hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {loading ? 'Enregistrement...' : 'Enregistrer Observation'}
+        </button>
+      </div>
     </form>
   );
 };
@@ -441,8 +473,9 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
   // Gestion d'état pour ouvrir/fermer les formulaires par bâtiment
   const [expandedBuildingId, setExpandedBuildingId] = useState<number | null>(null);
 
-  const [creatingFlockForBuilding, setCreatingFlockForBuilding] = useState<string | null>(null); // Stocke l'IRI du bâtiment en cours de création
-
+  const [creatingFlockForBuilding, setCreatingFlockForBuilding] = useState<string | null>(null);
+  const [editingObservation, setEditingObservation] = useState<Observation | null>(null);
+  const [creatingObservationForFlock, setCreatingObservationForFlock] = useState<Flock | null>(null);
 
   const fetchVisit = async () => {
     const token = localStorage.getItem('sav_token');
@@ -545,6 +578,18 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
             // Note: Ici on suppose que le backend ne renvoie que la bande active ou qu'on prend la dernière.
             // Idéalement, une propriété "activeFlock" sur Building serait mieux.
             const activeFlock = building.flocks && building.flocks.length > 0 ? building.flocks[building.flocks.length - 1] : null;
+            const getExistingObservation = (flock: Flock) => {
+              if (!flock.observations || !visit) return null;
+              // On cherche une observation qui pointe vers CETTE visite
+              // Note : API Platform renvoie souvent les IRI ("/api/visits/123"), donc on compare les IRI ou les ID
+              return flock.observations.find(obs => {
+                // Si obs.visit est un objet
+                if (typeof obs.visit === 'object' && obs.visit?.['@id'] === visit['@id']) return true;
+                // Si obs.visit est une chaîne (IRI)
+                if (typeof obs.visit === 'string' && obs.visit === visit['@id']) return true;
+                return false;
+              });
+            };
 
             return (
               <div key={building['@id']} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
@@ -589,32 +634,69 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
                       )}
                     </div>
                   ) : (
-                    /* CAS 2 : Bâtiment Occupé -> (Code inchangé pour l'ObservationForm) */
-                    <div>
-                      <div className="flex justify-between items-center mb-4">
-                        <p className="text-sm text-gray-600">
-                          Bande lancée le {new Date(activeFlock.startDate).toLocaleDateString()}
-                        </p>
-                        <button
-                          onClick={() => setExpandedBuildingId(expandedBuildingId === building.id ? null : building.id)}
-                          className="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700"
-                        >
-                          {expandedBuildingId === building.id ? 'Fermer' : 'Saisir Données Visite'}
-                        </button>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600">
+                        Lot : <span className="font-medium">{activeFlock.name}</span>
+                        {activeFlock.speculation && ` (${activeFlock.speculation.name})`}
+                      </p>
+                      <div className="mt-4">
+                        {/* 👇 ICI : On vérifie si on doit afficher le FORMULAIRE ou les BOUTONS */}
+                        {creatingObservationForFlock?.id === activeFlock.id ? (
+                            <ObservationForm 
+                                visitIri={visit['@id']}
+                                flock={activeFlock}
+                                disabled={false}
+                                initialData={editingObservation} // Passer les données à modifier
+                                onSuccess={() => {
+                                    setCreatingObservationForFlock(null);
+                                    setEditingObservation(null);
+                                    fetchVisit();
+                                }}
+                                onCancel={() => {
+                                    setCreatingObservationForFlock(null);
+                                    setEditingObservation(null);
+                                }}
+                            />
+                        ) : (() => {
+                          const existingObs = getExistingObservation(activeFlock);
+
+                          if (existingObs) {
+                            // CAS 1 : Observation déjà faite
+                            if (visit?.closed) {
+                              return (
+                                <span className="inline-flex items-center px-3 py-2 text-sm text-gray-500 bg-gray-100 rounded border border-gray-200">
+                                  🔒 Observation verrouillée
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <button
+                                  onClick={() => {
+                                    setEditingObservation(existingObs); // On stocke l'obs à modifier
+                                    setCreatingObservationForFlock(activeFlock); // On ouvre le form
+                                  }}
+                                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors"
+                                >
+                                  ✏️ Modifier mon observation
+                                </button>
+                              );
+                            }
+                          } else {
+                            // CAS 2 : Pas encore d'observation
+                            if (visit?.closed) {
+                              return null; // Rien à faire si visite close et pas d'obs
+                            }
+                            return (
+                              <button
+                                onClick={() => setCreatingObservationForFlock(activeFlock)}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-green-700 bg-green-50 hover:bg-green-100 rounded border border-green-200 transition-colors"
+                              >
+                                ➕ Nouvelle observation
+                              </button>
+                            );
+                          }
+                        })()}
                       </div>
-                      {/* ... ObservationForm ... */}
-                      {expandedBuildingId === building.id && (
-                        <ObservationForm
-                          visitIri={`/api/visits/${visitId}`}
-                          flock={activeFlock}
-                          disabled={!isEditable}
-                          onSuccess={() => {
-                            alert("Observation enregistrée !");
-                            setExpandedBuildingId(null);
-                            fetchVisit();
-                          }}
-                        />
-                      )}
                     </div>
                   )}
                 </div>
