@@ -37,6 +37,10 @@ class Building
     #[Groups(['building:read', 'building:write', 'visit:read'])]
     private ?string $name = null;
 
+    #[ORM\Column(type: 'float', nullable: true)]
+    #[Groups(['visit:read', 'building:read', 'building:write', 'flock:read'])]
+    private ?float $surface = null;
+
     #[ORM\Column]
     private ?int $maxCapacity = null;
 
@@ -61,6 +65,8 @@ class Building
     public function getId(): ?int { return $this->id; }
     public function getName(): ?string { return $this->name; }
     public function setName(string $name): self { $this->name = $name; return $this; }
+    public function getSurface(): ?float { return $this->surface; }
+    public function setSurface(?float $surface): self { $this->surface = $surface; return $this; }
     public function getMaxCapacity(): ?int { return $this->maxCapacity; }
     public function setMaxCapacity(?int $maxCapacity): self { $this->maxCapacity = $maxCapacity; return $this; }
     public function getCustomer(): ?Customer { return $this->customer; }

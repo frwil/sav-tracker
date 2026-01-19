@@ -12,8 +12,10 @@ use ApiPlatform\Metadata\GetCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Attribute\Groups;
+use App\Validator\Constraints as AppAssert;
 
 #[ORM\Entity(repositoryClass: VisitRepository::class)]
+#[AppAssert\SequentialVisitDate]
 #[ApiResource(
     normalizationContext: ['groups' => ['visit:read']],
     denormalizationContext: ['groups' => ['visit:write']]
