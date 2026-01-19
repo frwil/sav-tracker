@@ -2,21 +2,56 @@
 
 namespace App\Entity;
 
+use App\Entity\Observation;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use Doctrine\DBAL\Types\Types;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\VisitRepository;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\OpenApi\Model\MediaType;
+use ApiPlatform\OpenApi\Model\Operation;
+use App\Controller\CloseVisitController;
+use ApiPlatform\OpenApi\Model\RequestBody;
+use App\Validator\Constraints as AppAssert;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Attribute\Groups;
-use App\Validator\Constraints as AppAssert;
+use ApiPlatform\OpenApi\Model\Schema;
+
 
 #[ORM\Entity(repositoryClass: VisitRepository::class)]
 #[AppAssert\SequentialVisitDate]
 #[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post(),
+        new Patch(),
+        new Delete(),
+        // 👇 AJOUTEZ CETTE OPÉRATION PERSONNALISÉE
+        new Patch(
+            uriTemplate: '/visits/{id}/close', 
+            controller: CloseVisitController::class, 
+            openapi: new Operation(
+                summary : 'Clôturer la visite',
+                description : 'Marque la visite comme terminée et verrouille les modifications.',
+                requestBody: new RequestBody(
+                    content: new \ArrayObject([
+                        'application/json' => new MediaType(
+                            schema: new Schema()
+                        )
+                    ])
+                )
+            ),
+            denormalizationContext: ['groups' => ['visit:close']], // Groupe vide pour éviter de demander des champs
+            input: false, // Pas de corps JSON requis
+            name: 'close_visit'
+        )
+    ],
     normalizationContext: ['groups' => ['visit:read']],
     denormalizationContext: ['groups' => ['visit:write']]
 )]
