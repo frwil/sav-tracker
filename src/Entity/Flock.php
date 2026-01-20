@@ -19,6 +19,7 @@ use ApiPlatform\OpenApi\Model\RequestBody;
 use Doctrine\Common\Collections\Collection;
 use App\Validator\Constraints\BuildingAvailable;
 use Symfony\Component\Serializer\Attribute\Groups;
+use App\Entity\Standard;
 
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
@@ -86,6 +87,10 @@ class Flock
     #[ORM\OneToMany(mappedBy: 'flock', targetEntity: Observation::class)]
     #[Groups(['visit:read'])]
     private Collection $observations;
+
+    #[ORM\ManyToOne]
+    #[Groups(['flock:read', 'flock:write', 'visit:read'])]
+    private ?Standard $standard = null;
 
     // Getters/Setters...
 
@@ -166,6 +171,17 @@ class Flock
     public function setObservations(Collection $observations): self
     {
         $this->observations = $observations;
+        return $this;
+    }
+
+    public function getStandard(): ?Standard
+    {
+        return $this->standard;
+    }
+
+    public function setStandard(?Standard $standard): self
+    {
+        $this->standard = $standard;
         return $this;
     }
     public function __toString(): string

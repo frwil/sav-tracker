@@ -9,10 +9,11 @@ use Doctrine\DBAL\Types\Types;
 use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
-use App\Validator\Constraints as AppAssert;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ObservationRepository;
+use App\Validator\Constraints as AppAssert;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ObservationRepository::class)]
@@ -88,6 +89,13 @@ class Observation
     #[ORM\Column(type: Types::DATETIME_MUTABLE)] // Mutable car peut être ajustée si besoin
     #[Groups(['observation:read', 'observation:write', 'visit:read'])] // 'write' autorisé !
     private ?\DateTimeInterface $observedAt = null;
+
+    #[Groups(['observation:read', 'visit:read'])]
+    #[SerializedName('hasInventory')]
+    public function hasInventory(): bool
+    {
+        return !empty($this->data['inventory']);
+    }
 
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
