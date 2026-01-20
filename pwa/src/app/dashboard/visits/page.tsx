@@ -52,7 +52,7 @@ export default function VisitsListPage() {
                         <Link href="/dashboard" className="text-sm font-medium text-gray-500 hover:text-indigo-600 transition">← Menu Principal</Link>
                         <h1 className="text-2xl font-extrabold text-gray-800 mt-1">Visites Techniques</h1>
                     </div>
-                    <Link href="/dashboard/new" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm text-sm">
+                    <Link href="/dashboard/visits/new" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm text-sm">
                         + Nouvelle Visite
                     </Link>
                 </div>

@@ -21,6 +21,7 @@ use App\Validator\Constraints\BuildingAvailable;
 use Symfony\Component\Serializer\Attribute\Groups;
 use App\Entity\Standard;
 
+
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
 #[ApiResource(
@@ -73,6 +74,10 @@ class Flock
 
     #[ORM\Column]
     private bool $closed = false;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    #[Groups(['flock:read', 'flock:write', 'visit:read'])]
+    private ?bool $activated = true;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -141,6 +146,16 @@ class Flock
     public function setClosed(bool $closed): self
     {
         $this->closed = $closed;
+        return $this;
+    }
+
+    public function isActivated(): ?bool
+    {
+        return $this->activated;
+    }
+    public function setActivated(bool $activated): self
+    {
+        $this->activated = $activated;
         return $this;
     }
     public function getSpeculation(): ?Speculation
