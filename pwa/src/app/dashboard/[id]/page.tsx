@@ -66,30 +66,17 @@ interface Visit {
 }
 
 // --- 2. MOTEUR D'ANALYSE EXPERT ---
-
+// (Le moteur d'analyse reste inchangé, je le conserve pour la complétude)
 type AnalysisLevel = 'success' | 'warning' | 'danger' | 'info';
+interface Interpretation { level: AnalysisLevel; message: string; action?: string; value?: string; }
 
-interface Interpretation {
-    level: AnalysisLevel;
-    message: string;
-    action?: string;
-    value?: string;
-}
-
-const analyzeData = (
-    data: any, 
-    speculationName: string, 
-    buildingSurface?: number, 
-    flockSubjectCount?: number
-): Record<string, Interpretation | null> => {
-    
+const analyzeData = (data: any, speculationName: string, buildingSurface?: number, flockSubjectCount?: number): Record<string, Interpretation | null> => {
     const results: Record<string, Interpretation | null> = {};
     const spec = speculationName.toLowerCase();
     const isFish = spec.includes('poisson') || spec.includes('silure') || spec.includes('pisciculture');
     const isLayer = spec.includes('pondeuse');
     const isBroiler = spec.includes('chair') || spec.includes('poulet');
 
-    // A. DENSITÉ
     const effectifDepart = data.effectifDepart || flockSubjectCount || 0;
     if (buildingSurface && buildingSurface > 0 && data.poidsMoyen && effectifDepart > 0) {
         const effectifActuel = effectifDepart - (data.mortalite || 0);
@@ -110,7 +97,6 @@ const analyzeData = (
         }
     }
 
-    // B. QUALITÉ EAU (pH)
     if (data.phValue || data.phCorrect === 'no') {
         const ph = data.phValue ? parseFloat(data.phValue) : (data.phCorrect === 'yes' ? 7.0 : 0);
         if (isFish) {
@@ -124,7 +110,6 @@ const analyzeData = (
         }
     }
 
-    // C. QUALITÉ EAU (ORP)
     if (data.orpValue) {
         const orp = parseInt(data.orpValue);
         if (orp < 250) results.orp = { level: 'danger', message: `DANGER BIO (${orp} mV)`, action: 'Choc chlore immédiat.' };
@@ -132,26 +117,21 @@ const analyzeData = (
         else results.orp = { level: 'warning', message: `Désinfection moyenne (${orp} mV)`, action: 'Viser > 650mV.' };
     }
 
-    // D. LITIÈRE
     if (!isFish && data.litiere) {
         if (['Croûteuse / Humide', 'Collante / Détrempée'].includes(data.litiere)) results.litiere = { level: 'danger', message: 'Litière dégradée', action: 'Retirer plaques humides.' };
         else if (data.litiere === 'Poussiéreuse (Trop sec)') results.litiere = { level: 'warning', message: 'Trop sec / Poussière', action: 'Réduire ventilation min.' };
         else results.litiere = { level: 'success', message: 'Litière conforme' };
     }
 
-    // E. HOMOGÉNÉITÉ
     if (data.uniformite && data.uniformite.includes('< 70%')) results.uniformite = { level: 'danger', message: 'Hétérogénéité critique', action: 'Trier les sujets.' };
 
-    // F. BIOSÉCURITÉ
     if (data.biosecurite === 'nok') results.biosecurite = { level: 'danger', message: 'Non-Conformité Sanitaire', action: 'Voir commentaire.' };
     else results.biosecurite = { level: 'success', message: 'Mesures respectées' };
 
-    // G. AUDIT DE STOCK (NOUVEAU)
     if (data.inventory) {
         const inv = data.inventory;
         if (inv.mode === 'mix') {
             if (isFish) {
-                // Audit Poisson : Farine de Poisson
                 const total = (inv.fishmeal || 0) + (inv.soja || 0) + (inv.mais_son || 0);
                 if (total > 0) {
                     const fishRatio = ((inv.fishmeal || 0) / total) * 100;
@@ -159,11 +139,9 @@ const analyzeData = (
                     else results.stock = { level: 'success', message: 'Équilibre formule OK' };
                 }
             } else {
-                // Audit Volaille : Ratio Concentré
                 const mais = inv.mais || 0;
                 const conc = inv.concentre || 0;
                 const total = mais + conc + (inv.soja || 0);
-                
                 if (total > 0) {
                     const concRatio = (conc / total) * 100;
                     if (conc > 0 && mais === 0) results.stock = { level: 'warning', message: 'Concentré sans Maïs', action: 'Vérifier approvisionnement énergie.' };
@@ -198,13 +176,11 @@ const AnalysisAlert = ({ analysis }: { analysis?: Interpretation | null }) => {
     );
 };
 
-// --- 3. COMPOSANT : VUE DÉTAILS ---
-
+// --- 3. COMPOSANTS VUES (ObservationDetailsView) ---
 const ObservationDetailsView = ({ obs, flock, buildingSurface, onClose }: { obs: Observation, flock: Flock, buildingSurface?: number, onClose: () => void }) => {
     const d = obs.data || {};
     const inv = d.inventory || {};
     const analysis = analyzeData(d, flock.speculation.name, buildingSurface, flock.subjectCount);
-    
     const spec = flock.speculation.name.toLowerCase();
     const isFish = spec.includes('poisson') || spec.includes('silure');
 
@@ -215,11 +191,8 @@ const ObservationDetailsView = ({ obs, flock, buildingSurface, onClose }: { obs:
                 <h3 className="font-bold text-xl text-indigo-900">📄 Rapport Technique & Audit</h3>
                 <p className="text-sm text-gray-500">Lot : <span className="font-medium text-gray-800">{flock.name}</span> • Standard : <span className="font-medium text-gray-800">{flock.standard?.name || 'Aucun'}</span></p>
             </div>
-
             {analysis.densite && analysis.densite.level !== 'success' && (<div className="mb-8"><AnalysisAlert analysis={analysis.densite} /></div>)}
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* GAUCHE */}
                 <div className="space-y-8">
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <h4 className="font-bold text-indigo-800 uppercase text-xs tracking-wider mb-3 flex items-center gap-2"><span>📊</span> Performances</h4>
@@ -230,12 +203,9 @@ const ObservationDetailsView = ({ obs, flock, buildingSurface, onClose }: { obs:
                             <li className="flex justify-between border-b border-dashed pb-1"><span>Conso / Tête</span> <span className="font-bold">{d.consoTete ? `${d.consoTete} g` : '-'}</span></li>
                         </ul>
                     </div>
-                    
-                    {/* AUDIT DE STOCK (AVEC CALCULS ET ALERTES) */}
                     {d.inventory && (
                         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                             <h4 className="font-bold text-yellow-900 uppercase text-xs tracking-wider mb-3 flex items-center gap-2"><span>📦</span> Audit Stocks (kg)</h4>
-                            
                             <div className="space-y-2 text-sm bg-white p-3 rounded border border-yellow-100 mb-3">
                                 {inv.mode === 'complete' ? (
                                     <div className="flex justify-between"><span>Aliment Complet</span><span className="font-bold text-lg">{inv.complete || 0} kg</span></div>
@@ -257,23 +227,18 @@ const ObservationDetailsView = ({ obs, flock, buildingSurface, onClose }: { obs:
                                     </>
                                 )}
                             </div>
-                            {/* ALERTE DE STOCK */}
                             <AnalysisAlert analysis={analysis.stock} />
                         </div>
                     )}
                 </div>
-
-                {/* DROITE */}
                 <div className="space-y-8">
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                         <h4 className="font-bold text-blue-900 uppercase text-xs tracking-wider mb-3 flex items-center gap-2"><span>💧</span> Eau & Environnement</h4>
                         <div className="space-y-4">
                             <div className="flex justify-between text-sm text-blue-900 mb-1"><span>pH</span><span className="font-bold">{d.phValue || (d.phCorrect === 'yes' ? 'Standard' : '?')}</span></div>
                             <AnalysisAlert analysis={analysis.ph} />
-                            
                             <div className="flex justify-between text-sm text-blue-900 mb-1"><span>ORP</span><span className="font-bold">{d.orpValue ? `${d.orpValue} mV` : '-'}</span></div>
                             <AnalysisAlert analysis={analysis.orp} />
-
                             {!isFish && (
                                 <>
                                     <div className="flex justify-between text-sm text-gray-700 mt-2 pt-2 border-t border-blue-200"><span>Litière</span><span className="font-medium">{d.litiere || '-'}</span></div>
@@ -282,7 +247,6 @@ const ObservationDetailsView = ({ obs, flock, buildingSurface, onClose }: { obs:
                             )}
                         </div>
                     </div>
-
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <h4 className="font-bold text-indigo-800 uppercase text-xs tracking-wider mb-2 flex items-center gap-2"><span>🛡️</span> Biosécurité</h4>
                         <AnalysisAlert analysis={analysis.biosecurite} />
@@ -290,7 +254,6 @@ const ObservationDetailsView = ({ obs, flock, buildingSurface, onClose }: { obs:
                     </div>
                 </div>
             </div>
-
             <div className="mt-8 pt-6 border-t border-gray-200">
                 <h4 className="font-bold text-gray-800 mb-4">Recommandations</h4>
                 {obs.recommendations && (
@@ -303,8 +266,7 @@ const ObservationDetailsView = ({ obs, flock, buildingSurface, onClose }: { obs:
     );
 };
 
-// --- 4. FORMULAIRE OBSERVATION (NUMÉROTATION UNIFIÉE 1-6) ---
-
+// --- 4. FORMULAIRE OBSERVATION ---
 const ObservationForm = ({ visitIri, flock, initialData, onSuccess, onCancel }: any) => {
   const [loading, setLoading] = useState(false);
   const isEditMode = !!initialData?.id; 
@@ -376,7 +338,6 @@ const ObservationForm = ({ visitIri, flock, initialData, onSuccess, onCancel }: 
       <div className="absolute top-2 right-2"><button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600 font-bold px-2 py-1">✕</button></div>
       <h3 className="font-bold text-lg text-indigo-900 border-b pb-3">{isEditMode ? '✏️ Modifier Observation' : '➕ Nouvelle Observation'}</h3>
 
-      {/* 1. PERFORMANCES */}
       <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide border-b mb-3">1. Performances</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
           <div><label className="block text-sm font-bold text-gray-700">Âge (Jours) *</label><input type="number" required min="0" className="w-full border p-2 rounded" value={data.age || ''} onChange={e => updateData('age', parseInt(e.target.value))} /></div>
@@ -385,14 +346,12 @@ const ObservationForm = ({ visitIri, flock, initialData, onSuccess, onCancel }: 
           <div><label className="block text-sm font-bold text-gray-700">Conso / Tête (g) *</label><input type="number" required step="0.01" min="0" className="w-full border p-2 rounded" value={data.consoTete || ''} onChange={e => updateData('consoTete', parseFloat(e.target.value))} /></div>
       </div>
 
-      {/* 2. HOMOGÉNÉITÉ */}
       <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide border-b mb-3">2. Homogénéité du Lot</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6 bg-gray-50 p-3 rounded">
           <div><label className="block text-sm font-bold text-gray-700">Uniformité *</label><select required className="w-full border p-2 rounded bg-white" value={data.uniformite || ''} onChange={e => updateData('uniformite', e.target.value)}><option value="">-- Sélectionner --</option><option value="> 90% (Excellent)"> &gt; 90%</option><option value="80% - 90% (Bon)">80% - 90%</option><option value="70% - 80% (Moyen)">70% - 80%</option><option value="< 70% (Mauvais)"> &lt; 70%</option></select></div>
           <div><label className="block text-sm font-bold text-gray-700">CV (Facultatif)</label><select className="w-full border p-2 rounded bg-white" value={data.cv || ''} onChange={e => updateData('cv', e.target.value)}><option value="">-- Sélectionner --</option><option value="< 8 (Excellent)"> &lt; 8 (Excellent)</option><option value="8 - 10 (Bon)">8 - 10 (Bon)</option><option value="10 - 12 (Moyen)">10 - 12 (Moyen)</option><option value="> 12 (Mauvais)"> &gt; 12 (Mauvais)</option></select></div>
       </div>
 
-      {/* 3. ENVIRONNEMENT */}
       <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide border-b mb-3">3. Environnement & Eau</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6 mb-6">
           <div className="bg-gray-50 p-2 rounded border col-span-2"><label className="block text-sm font-bold text-gray-700">Type Aliment *</label><div className="flex gap-2"><select required className="w-1/3 border p-2 rounded bg-white" value={alimentSource} onChange={e => setAlimentSource(e.target.value)}><option value="">-- Choix --</option><option value="Belgocam">Belgocam</option><option value="SPC">SPC</option><option value="Autres">Autres</option></select>{alimentSource === 'Autres' && (<input type="text" required placeholder="Précisez" className="w-2/3 border p-2 rounded bg-white" value={alimentPrecision} onChange={e => setAlimentPrecision(e.target.value)} />)}</div></div>
@@ -402,7 +361,6 @@ const ObservationForm = ({ visitIri, flock, initialData, onSuccess, onCancel }: 
           <div className="col-span-2 bg-blue-50 p-3 rounded border border-blue-100"><label className="block text-sm font-bold text-blue-900 mb-2">Qualité de l'eau</label><div className="flex gap-4 mb-2"><label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="phCorrect" value="yes" required checked={data.phCorrect === 'yes'} onChange={() => updateData('phCorrect', 'yes')} /> pH OK (6-8)</label><label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="phCorrect" value="no" required checked={data.phCorrect === 'no'} onChange={() => updateData('phCorrect', 'no')} /> pH Incorrect</label>{data.phCorrect === 'no' && (<input type="number" step="0.1" placeholder="Valeur ?" className="border border-red-300 p-1 rounded text-sm w-20" value={data.phValue || ''} onChange={e => updateData('phValue', parseFloat(e.target.value))} />)}</div><div className="flex gap-4"><label className="text-sm">ORP (mV):</label><input type="number" placeholder="ex: 300" className="border border-gray-300 p-1 rounded text-sm w-20" value={data.orpValue || ''} onChange={e => updateData('orpValue', parseInt(e.target.value))} /></div></div>
       </div>
 
-      {/* 4. STOCKS */}
       <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-6">
           <div className="flex justify-between items-center mb-3">
               <h4 className="text-sm font-bold text-orange-900 uppercase tracking-wide">4. Gestion des Stocks</h4>
@@ -446,13 +404,11 @@ const ObservationForm = ({ visitIri, flock, initialData, onSuccess, onCancel }: 
           )}
       </div>
 
-      {/* 5. BIOSÉCURITÉ */}
       <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide border-b mb-3">5. Biosécurité</h4>
-      <div className="bg-gray-50 p-4 rounded border border-gray-200 mb-6"><label className="block text-sm font-bold text-gray-700 mb-2">Conformité *</label><div className="flex gap-6 mb-3"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="biosecurite" value="ok" required checked={data.biosecurite === 'ok'} onChange={() => updateData('biosecurite', 'ok')} className="w-4 h-4 text-green-600"/><span className="text-gray-800">Conforme</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="biosecurite" value="nok" required checked={data.biosecurite === 'nok'} onChange={() => updateData('biosecurite', 'nok')} className="w-4 h-4 text-red-600"/><span className="text-gray-800">Non Conforme</span></label></div><div><label className="block text-xs font-medium text-gray-500 mb-1">Commentaires</label><textarea className="w-full border p-2 rounded text-sm" placeholder="Observations..." rows={2} value={data.biosecuriteComment || ''} onChange={e => updateData('biosecuriteComment', e.target.value)} /></div></div>
+      <div className="bg-gray-50 p-4 rounded border border-gray-200 mb-6"><label className="block text-sm font-bold text-gray-700 mb-2">Conformité *</label><div className="flex gap-6 mb-3"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="biosecurite" value="ok" required checked={data.biosecurite === 'ok'} onChange={() => updateData('biosecurite', 'ok')} className="w-4 h-4 text-green-600"/><span className="text-gray-800">Conforme</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="biosecurite" value="nok" required checked={data.biosecurite === 'nok'} onChange={() => updateData('biosecurite', 'nok')} className="w-4 h-4 text-red-600"/><span className="text-gray-800">Non Conforme</span></label></div><div><label className="block text-xs font-medium text-gray-500 mb-1">Commentaires Biosécurité</label><textarea className="w-full border p-2 rounded text-sm" placeholder="Observations..." rows={2} value={data.biosecuriteComment || ''} onChange={e => updateData('biosecuriteComment', e.target.value)} /></div></div>
 
       <hr className="border-gray-200" />
       
-      {/* 6. OBSERVATIONS */}
       <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide border-b mb-3 mt-6">6. Textes & Conclusions</h4>
       <div className="space-y-4">
         <div><label className="block text-sm font-medium text-gray-700">Préoccupations Client</label><textarea className="w-full border rounded p-2" rows={2} value={common.concerns} onChange={e => setCommon({ ...common, concerns: e.target.value })} /></div>
@@ -547,22 +503,179 @@ const NewFlockForm = ({ customerIri, buildingIri, onSuccess, onCancel }: any) =>
     );
 };
 
-// --- 6. COMPOSANT : ITEM BÂTIMENT ---
-const BuildingItem = ({ building, visit, onRefresh }: { building: Building, visit: Visit, onRefresh: () => void }) => {
+// --- 6. CRÉATION DE BÂTIMENT (NOUVEAU) ---
+const NewBuildingForm = ({ customerIri, existingBuildings, onSuccess, onCancel }: { customerIri: string, existingBuildings: Building[], onSuccess: () => void, onCancel: () => void }) => {
+    const [surface, setSurface] = useState('');
+    const [maxCapacity, setMaxCapacity] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // Algorithme pour générer le nom : "Bâtiment X"
+    const generateNextName = () => {
+        let maxNum = 0;
+        // Regex pour trouver les chiffres dans "Bâtiment 12"
+        const regex = /Bâtiment\s+(\d+)/i;
+        
+        existingBuildings.forEach(b => {
+            const match = b.name.match(regex);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNum) maxNum = num;
+            }
+        });
+        
+        // Si aucun bâtiment numéroté, on regarde juste la longueur
+        if (maxNum === 0 && existingBuildings.length > 0) {
+            return `Bâtiment ${existingBuildings.length + 1}`;
+        }
+        
+        return `Bâtiment ${maxNum + 1}`;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        
+        const autoName = generateNextName();
+
+        try {
+            const token = localStorage.getItem('sav_token');
+            const res = await fetch('http://localhost/api/buildings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ 
+                    name: autoName, // Généré auto
+                    surface: parseFloat(surface), 
+                    maxCapacity: maxCapacity ? parseInt(maxCapacity) : null,
+                    customer: customerIri, 
+                    activated: true 
+                })
+            });
+            if (!res.ok) throw new Error("Erreur");
+            onSuccess();
+        } catch (error) { alert("Erreur ajout bâtiment"); } finally { setLoading(false); }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="bg-white p-5 rounded-lg border border-indigo-100 mt-4 shadow-lg animate-fade-in relative">
+            <button type="button" onClick={onCancel} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
+            
+            <h4 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                <span>🏗️</span> Nouveau Bâtiment
+            </h4>
+            
+            <div className="bg-indigo-50 px-3 py-2 rounded text-sm text-indigo-700 mb-4 font-medium border border-indigo-100">
+                Nom généré : {generateNextName()}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Surface (m²) <span className="text-red-500">*</span></label>
+                    <input 
+                        type="number" 
+                        required 
+                        min="1" 
+                        step="0.1"
+                        placeholder="Ex: 100" 
+                        className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                        value={surface} 
+                        onChange={e => setSurface(e.target.value)} 
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Essentiel pour le calcul de densité.</p>
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Capacité Max (Sujets)</label>
+                    <input 
+                        type="number" 
+                        min="1" 
+                        placeholder="Ex: 1000" 
+                        className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                        value={maxCapacity} 
+                        onChange={e => setMaxCapacity(e.target.value)} 
+                    />
+                </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">Annuler</button>
+                <button type="submit" disabled={loading} className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 rounded hover:bg-indigo-700 shadow-sm disabled:opacity-50">
+                    {loading ? 'Création...' : 'Créer le Bâtiment'}
+                </button>
+            </div>
+        </form>
+    );
+};
+
+// --- 7. COMPOSANT : ITEM BÂTIMENT ---
+const BuildingItem = ({ building, visit, userRoles, onRefresh }: { building: Building, visit: Visit, userRoles: string[], onRefresh: () => void }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [viewMode, setViewMode] = useState<'summary' | 'form' | 'details' | 'create_flock'>('summary');
     const currentFlock = building.flocks.length > 0 ? building.flocks[building.flocks.length -1] : null;
     const existingObs = currentFlock?.observations?.find(obs => (typeof obs.visit === 'object' && obs.visit?.['@id'] === visit['@id']) || (typeof obs.visit === 'string' && obs.visit === visit['@id']));
+    
+    // Logique de sécurité pour suppression
+    const isAdmin = userRoles.includes('ROLE_ADMIN') || userRoles.includes('ROLE_SUPER_ADMIN');
+    // Une bande est "active" si elle n'a pas de date de fin (simplifié) ou si elle est récente. 
+    // Ici on suppose que le backend envoie "active" ou on vérifie si la visite est possible.
+    const hasActiveFlock = !!currentFlock; 
+    
+    const handleDelete = async () => {
+        if (!confirm("Voulez-vous vraiment supprimer ce bâtiment ? Cette action est irréversible et supprimera l'historique associé.")) return;
+        const token = localStorage.getItem('sav_token');
+        try {
+            await fetch(`http://localhost/api/buildings/${building.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            onRefresh();
+        } catch (e) { alert("Erreur suppression"); }
+    };
+
+    const handleArchive = async () => {
+        const token = localStorage.getItem('sav_token');
+        try {
+            await fetch(`http://localhost/api/buildings/${building.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ activated: !building.activated })
+            });
+            onRefresh();
+        } catch (e) { alert("Erreur archivage"); }
+    };
 
     useEffect(() => { setViewMode('summary'); }, [isExpanded, currentFlock?.id]);
 
+    if (!building.activated && !isAdmin) return null; // Masquer les bâtiments archivés pour les non-admins
+
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className={`bg-white rounded-xl shadow-sm border ${building.activated ? 'border-gray-200' : 'border-gray-200 opacity-75 bg-gray-50'} overflow-hidden`}>
             <div className={`p-5 flex justify-between items-center cursor-pointer transition-colors ${isExpanded ? 'bg-indigo-50 border-b border-indigo-100' : 'hover:bg-gray-50'}`} onClick={() => setIsExpanded(!isExpanded)}>
-                <div className="flex items-center gap-3"><span className="text-2xl">🏠</span><div><h2 className="font-bold text-lg text-gray-800">{building.name}</h2>{currentFlock ? (<p className="text-xs text-indigo-600 font-medium bg-indigo-100 px-2 py-0.5 rounded-full inline-block mt-1">Lot : {currentFlock.name}</p>) : (<p className="text-xs text-gray-400 mt-1">Vide</p>)}</div></div>
-                <span className="text-gray-400 font-bold text-xl">{isExpanded ? '−' : '+'}</span>
+                <div className="flex items-center gap-3">
+                    <span className="text-2xl">{building.activated ? '🏠' : '🗄️'}</span>
+                    <div>
+                        <h2 className={`font-bold text-lg ${building.activated ? 'text-gray-800' : 'text-gray-500 italic'}`}>
+                            {building.name} {building.activated ? '' : '(Archivé)'}
+                        </h2>
+                        {currentFlock ? (<p className="text-xs text-indigo-600 font-medium bg-indigo-100 px-2 py-0.5 rounded-full inline-block mt-1">Lot : {currentFlock.name}</p>) : (<p className="text-xs text-gray-400 mt-1">Vide</p>)}
+                        {building.surface && <span className="text-xs text-gray-400 ml-2">({building.surface} m²)</span>}
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    {isExpanded && !visit.closed && (
+                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            {isAdmin ? (
+                                <>
+                                    <button onClick={handleArchive} className="text-xs text-gray-500 hover:text-gray-700 underline">{building.activated ? 'Archiver' : 'Activer'}</button>
+                                    <button onClick={handleDelete} className="text-xs text-red-500 hover:text-red-700 underline">Supprimer</button>
+                                </>
+                            ) : (
+                                // Technicien : Peut supprimer seulement si vide
+                                !hasActiveFlock && (
+                                    <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-600 underline">Supprimer</button>
+                                )
+                            )}
+                        </div>
+                    )}
+                    <span className="text-gray-400 font-bold text-xl">{isExpanded ? '−' : '+'}</span>
+                </div>
             </div>
-            {isExpanded && (
+            {isExpanded && building.activated && (
                 <div className="p-5 bg-white">
                     {!currentFlock ? (
                         <div className="text-center py-6"><p className="text-gray-500 italic mb-4">Aucune bande installée.</p>{viewMode === 'create_flock' ? (<NewFlockForm customerIri={visit.customer['@id']} buildingIri={building['@id']} onSuccess={() => { setViewMode('summary'); onRefresh(); }} onCancel={() => setViewMode('summary')} />) : (!visit.closed && (<button onClick={() => setViewMode('create_flock')} className="bg-green-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-green-700 transition shadow-sm">+ Installer une nouvelle bande</button>))}</div>
@@ -602,6 +715,8 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
   const [unwrappedParams, setUnwrappedParams] = useState<{ id: string } | null>(null);
   const [visit, setVisit] = useState<Visit | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showNewBuilding, setShowNewBuilding] = useState(false);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
   useEffect(() => { params.then(res => setUnwrappedParams(res)); }, [params]);
   useEffect(() => { if (unwrappedParams) fetchVisit(unwrappedParams.id); }, [unwrappedParams]);
@@ -609,6 +724,13 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
   const fetchVisit = (id: string) => {
     const token = localStorage.getItem('sav_token');
     if (!token) { router.push('/'); return; }
+    
+    // Décodage du token pour les rôles
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserRoles(payload.roles || []);
+    } catch (e) { console.error(e); }
+
     fetch(`http://localhost/api/visits/${id}`, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' } })
     .then(res => { if (!res.ok) throw new Error('Visite introuvable'); return res.json(); })
     .then(data => { setVisit(data); setLoading(false); })
@@ -629,8 +751,36 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
         <div><Link href="/dashboard" className="text-sm font-medium text-gray-500 hover:text-indigo-600 transition">← Retour</Link><h1 className="text-2xl font-extrabold text-gray-800 mt-1">{visit.customer.name}</h1><p className="text-sm text-gray-500">{new Date(visit.visitedAt).toLocaleDateString()} • {visit.customer.zone}</p></div>
         <div className="flex gap-3 items-center"><span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${visit.closed ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-green-100 text-green-700 border-green-200'}`}>{visit.closed ? '🔒 CLÔTURÉE' : '🟢 EN COURS'}</span>{!visit.closed && (<button onClick={handleCloseVisit} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-100 text-sm font-bold transition">Clôturer</button>)}</div>
       </div>
+      
       <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6">
-        {visit.customer.buildings.map((building) => (<BuildingItem key={building['@id']} building={building} visit={visit} onRefresh={() => fetchVisit(visit.id.toString())} />))}
+        
+        {/* BOUTON AJOUTER BÂTIMENT */}
+        {!visit.closed && (
+            <div className="flex justify-end">
+                <button onClick={() => setShowNewBuilding(!showNewBuilding)} className="text-indigo-600 font-bold text-sm bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition">
+                    {showNewBuilding ? 'Annuler' : '+ Nouveau Bâtiment'}
+                </button>
+            </div>
+        )}
+
+        {showNewBuilding && (
+            <NewBuildingForm 
+                customerIri={visit.customer['@id']}
+                existingBuildings={visit.customer.buildings} // On passe la liste pour le calcul du nom
+                onSuccess={() => { setShowNewBuilding(false); fetchVisit(visit.id.toString()); }}
+                onCancel={() => setShowNewBuilding(false)}
+            />
+        )}
+
+        {visit.customer.buildings.map((building) => (
+            <BuildingItem 
+                key={building['@id']} 
+                building={building} 
+                visit={visit} 
+                userRoles={userRoles}
+                onRefresh={() => fetchVisit(visit.id.toString())} 
+            />
+        ))}
       </div>
     </div>
   );

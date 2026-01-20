@@ -35,8 +35,8 @@ export default function LoginPage() {
       localStorage.setItem('sav_token', token);
 
       // 4. Redirection vers le tableau de bord (que nous créerons ensuite)
-      alert('Connexion réussie ! Token: ' + token.substring(0, 10) + '...');
-      // router.push('/dashboard'); 
+      //alert('Connexion réussie ! Token: ' + token.substring(0, 10) + '...');
+      router.push('/dashboard'); 
       
     } catch (err: any) {
       setError(err.message);
