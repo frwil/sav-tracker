@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import CustomerSelector from '@/components/CustomerSelector';
+import Select from 'react-select'; // 1. Import de React-Select
+import { useCustomers, CustomerOption } from '@/hooks/useCustomers'; // 2. Import du Hook
 
 interface Building {
     '@id': string;
@@ -15,7 +16,15 @@ interface Building {
 }
 
 export default function BuildingsPage() {
-    const [customer, setCustomer] = useState<any>(null);
+    // 3. Utilisation du Hook
+    const { 
+        options: customerOptions, 
+        loading: customersLoading 
+    } = useCustomers();
+
+    // État du client sélectionné (Format React-Select)
+    const [selectedCustomerOption, setSelectedCustomerOption] = useState<CustomerOption | null>(null);
+
     const [buildings, setBuildings] = useState<Building[]>([]);
     const [loading, setLoading] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -26,34 +35,50 @@ export default function BuildingsPage() {
     const [newSurface, setNewSurface] = useState('');
     const [newCapacity, setNewCapacity] = useState('');
 
+    // Check Roles au chargement
     useEffect(() => {
         const token = localStorage.getItem('sav_token');
         if (token) {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            setIsAdmin(payload.roles.includes('ROLE_ADMIN') || payload.roles.includes('ROLE_SUPER_ADMIN'));
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                setIsAdmin(payload.roles.includes('ROLE_ADMIN') || payload.roles.includes('ROLE_SUPER_ADMIN'));
+            } catch (e) {
+                console.error("Erreur token", e);
+            }
         }
     }, []);
 
-    const fetchBuildings = () => {
-        if (!customer) return;
+    // 4. Fetch des bâtiments quand le client change
+    useEffect(() => {
+        if (!selectedCustomerOption) {
+            setBuildings([]);
+            return;
+        }
+
         setLoading(true);
         const token = localStorage.getItem('sav_token');
-        fetch(`http://localhost/api/buildings?customer=${customer.id}`, {
+        
+        // Extraction de l'ID depuis l'IRI (ex: "/api/customers/12" -> "12")
+        const customerId = selectedCustomerOption.value.split('/').pop();
+
+        fetch(`http://localhost/api/buildings?customer=${customerId}`, {
             headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
         })
         .then(res => res.json())
         .then(data => {
             setBuildings(data);
             setLoading(false);
+        })
+        .catch(err => {
+            console.error(err);
+            setLoading(false);
         });
-    };
-
-    useEffect(() => {
-        fetchBuildings();
-    }, [customer]);
+    }, [selectedCustomerOption]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!selectedCustomerOption) return;
+
         const token = localStorage.getItem('sav_token');
         try {
             await fetch('http://localhost/api/buildings', {
@@ -63,35 +88,54 @@ export default function BuildingsPage() {
                     name: newName,
                     surface: parseFloat(newSurface),
                     maxCapacity: newCapacity ? parseInt(newCapacity) : null,
-                    customer: customer['@id'],
+                    customer: selectedCustomerOption.value, // 5. Envoi direct de l'IRI
                     activated: true
                 })
             });
+            
+            // Reset du formulaire
             setShowForm(false);
             setNewName(''); setNewSurface(''); setNewCapacity('');
-            fetchBuildings();
+            
+            // Rechargement manuel rapide (ou on pourrait rappeler le code du useEffect)
+            // Pour faire simple ici, on déclenche un re-render via le select ou on recharge la page
+            // Une méthode propre serait d'extraire la fonction fetch dans le useEffect ou en dehors.
+            // Ici, on va re-déclencher le fetch en simulant un "refresh" logique ou simplement recharger la page pour garantir la synchro
+             window.location.reload();
+
         } catch (err) { alert("Erreur création"); }
     };
 
     const handleDelete = async (id: number) => {
         if(!confirm("Supprimer définitivement ce bâtiment ?")) return;
         const token = localStorage.getItem('sav_token');
+        
         const res = await fetch(`http://localhost/api/buildings/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if(res.ok) fetchBuildings();
-        else alert("Impossible de supprimer (Probablement lié à des données). Essayez d'archiver.");
+        
+        if(res.ok) {
+            setBuildings(prev => prev.filter(b => b.id !== id));
+        } else {
+            alert("Impossible de supprimer (Probablement lié à des données). Essayez d'archiver.");
+        }
     };
 
     const handleArchive = async (id: number, currentStatus: boolean) => {
         const token = localStorage.getItem('sav_token');
-        await fetch(`http://localhost/api/buildings/${id}`, {
+        const res = await fetch(`http://localhost/api/buildings/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ activated: !currentStatus })
         });
-        fetchBuildings();
+        
+        if (res.ok) {
+            // Mise à jour optimiste locale
+            setBuildings(prev => prev.map(b => 
+                b.id === id ? { ...b, activated: !currentStatus } : b
+            ));
+        }
     };
 
     return (
@@ -106,13 +150,37 @@ export default function BuildingsPage() {
             </div>
 
             <div className="max-w-5xl mx-auto px-4">
-                <CustomerSelector onSelect={setCustomer} />
+                
+                {/* REMPLACEMENT SELECTEUR CLIENT */}
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">📂 Sélectionner un Client</label>
+                    <Select
+                        instanceId="customer-select-buildings"
+                        options={customerOptions}
+                        value={selectedCustomerOption}
+                        onChange={setSelectedCustomerOption}
+                        isLoading={customersLoading}
+                        placeholder="Rechercher un client..."
+                        isClearable
+                        className="text-sm"
+                        styles={{
+                            control: (base) => ({
+                                ...base,
+                                borderColor: '#D1D5DB',
+                                borderRadius: '0.5rem',
+                                padding: '2px'
+                            })
+                        }}
+                    />
+                </div>
 
-                {customer && (
-                    <div className="space-y-6">
+                {loading && <div className="text-center py-4 text-gray-500">Chargement des bâtiments...</div>}
+
+                {selectedCustomerOption && !loading && (
+                    <div className="space-y-6 animate-fade-in">
                         {/* HEADER ACTIONS */}
                         <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-700">Parc Immobilier de {customer.name}</h2>
+                            <h2 className="text-xl font-bold text-gray-700">Parc Immobilier : {selectedCustomerOption.label}</h2>
                             <button onClick={() => setShowForm(!showForm)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-indigo-700">
                                 {showForm ? 'Fermer' : '+ Nouveau Bâtiment'}
                             </button>
@@ -132,6 +200,8 @@ export default function BuildingsPage() {
 
                         {/* LISTE DES BÂTIMENTS */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {buildings.length === 0 && <p className="text-gray-500 italic col-span-2">Aucun bâtiment enregistré.</p>}
+                            
                             {buildings.map(building => (
                                 <div key={building.id} className={`bg-white p-5 rounded-xl border ${building.activated ? 'border-gray-200' : 'border-gray-200 bg-gray-50 opacity-75'} shadow-sm relative group`}>
                                     <div className="flex justify-between items-start">
@@ -155,7 +225,6 @@ export default function BuildingsPage() {
                                                 {building.activated ? 'Archiver' : 'Réactiver'}
                                             </button>
                                             
-                                            {/* Suppression possible seulement si pas de bandes liées (même archivées) ou choix hard delete */}
                                             {building.flocks.length === 0 ? (
                                                 <button onClick={() => handleDelete(building.id)} className="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded">
                                                     Supprimer
