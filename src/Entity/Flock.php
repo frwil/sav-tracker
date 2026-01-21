@@ -55,14 +55,15 @@ use App\Entity\Standard;
 class Flock
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
+    #[Groups(['visit:read','flock:read', 'building:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['visit:read'])]
+    #[Groups(['visit:read','flock:read','building:read'])]
     private ?string $name = null;
 
     #[ORM\Column]
-    #[Groups(['flock:write'])]
+    #[Groups(['flock:write', 'flock:read', 'visit:read'])]
     private ?int $subjectCount = null; // <= capacity du bâtiment
 
     #[ORM\Column(type: 'datetime')]
@@ -86,11 +87,11 @@ class Flock
 
     #[ORM\ManyToOne(inversedBy: 'flocks')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['flock:write'])]
+    #[Groups(['flock:write', 'flock:read', 'visit:read'])]
     private ?Building $building = null;
 
     #[ORM\OneToMany(mappedBy: 'flock', targetEntity: Observation::class)]
-    #[Groups(['visit:read'])]
+    #[Groups(['visit:read', 'flock:read'])]
     private Collection $observations;
 
     #[ORM\ManyToOne]

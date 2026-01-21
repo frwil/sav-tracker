@@ -23,7 +23,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(security: "is_granted('ROLE_USER')"), // Tout le monde peut créer
         new Put(security: "is_granted('ROLE_USER')"),
-        new Patch(security: "is_granted('ROLE_ADMIN')") // Seul l'admin peut archiver (via PATCH)
+        new Patch(security: "is_granted('ROLE_ADMIN')") // Seul l'admin et le superadmin peuvent archiver (via PATCH)
     ],
     normalizationContext: ['groups' => ['building:read']],
     denormalizationContext: ['groups' => ['building:write']]
@@ -31,10 +31,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
 class Building
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
+    #[Groups(['building:read', 'visit:read', 'flock:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['building:read', 'building:write', 'visit:read'])]
+    #[Groups(['building:read', 'building:write', 'visit:read', 'flock:read'])]
     private ?string $name = null;
 
     #[ORM\Column(type: 'float', nullable: true)]
@@ -42,6 +43,7 @@ class Building
     private ?float $surface = null;
 
     #[ORM\Column]
+    #[Groups(['building:read', 'building:write', 'flock:read'])]
     private ?int $maxCapacity = null;
 
     #[ManyToOne(inversedBy: 'buildings')]

@@ -15,7 +15,7 @@ class Speculation
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups(['visit:read'])]
+    #[Groups(['visit:read','flock:read','customer:read'])]
     private ?string $name = null; // ex: "Poulet de chair"
 
     // Getters/Setters...
