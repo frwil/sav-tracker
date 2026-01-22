@@ -1,16 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Select from 'react-select'; 
-import { useAuth } from '@/hooks/useAuth'; // On récupère l'info de l'utilisateur connecté
+import { useAuth } from '@/hooks/useAuth';
 
 interface User {
     '@id': string;
     id: number;
     username: string;
+    fullname?: string;
     roles: string[];
     activated: boolean;
-    // On ajoute customer pour l'affichage si besoin, mais ici on gère les droits
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -27,25 +26,25 @@ const BASE_ROLE_OPTIONS = [
 ];
 
 export default function UsersPage() {
-    // 1. Infos utilisateur courant (via notre hook)
     const { user: currentUser } = useAuth();
     const isCurrentUserSuperAdmin = currentUser?.roles.includes('ROLE_SUPER_ADMIN') || false;
 
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
     
-    // Formulaire
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterRole, setFilterRole] = useState('');
+
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    
     const [formData, setFormData] = useState({
         username: '',
+        fullname: '', 
         password: '',
         role: 'ROLE_TECHNICIAN'
     });
 
-    // --- OPTIONS DE RÔLE ---
-    // Règle : Le rôle SuperAdmin n'est visible QUE par un SuperAdmin
     const roleOptions = isCurrentUserSuperAdmin 
         ? [{ value: 'ROLE_SUPER_ADMIN', label: 'Super Admin' }, ...BASE_ROLE_OPTIONS]
         : BASE_ROLE_OPTIONS;
@@ -71,9 +70,15 @@ export default function UsersPage() {
         }
     };
 
-    // --- LOGIQUE DE PERMISSION (HELPER) ---
+    const filteredUsers = users.filter(u => {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch = u.username.toLowerCase().includes(searchLower) || 
+                              (u.fullname && u.fullname.toLowerCase().includes(searchLower));
+        const matchesRole = filterRole ? u.roles.includes(filterRole) : true;
+        return matchesSearch && matchesRole;
+    });
+
     const canInteractWith = (targetUser: User) => {
-        // Règle : Un Admin ne peut RIEN faire sur un SuperAdmin
         if (!isCurrentUserSuperAdmin && targetUser.roles.includes('ROLE_SUPER_ADMIN')) {
             return false;
         }
@@ -88,7 +93,6 @@ export default function UsersPage() {
 
         setEditingId(user.id);
         
-        // Détermination du rôle principal pour le select
         let mainRole = 'ROLE_TECHNICIAN';
         if (user.roles.includes('ROLE_SUPER_ADMIN')) mainRole = 'ROLE_SUPER_ADMIN';
         else if (user.roles.includes('ROLE_ADMIN')) mainRole = 'ROLE_ADMIN';
@@ -96,6 +100,7 @@ export default function UsersPage() {
 
         setFormData({
             username: user.username,
+            fullname: user.fullname || '',
             password: '', 
             role: mainRole
         });
@@ -105,12 +110,8 @@ export default function UsersPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const token = localStorage.getItem('sav_token');
-        
-        // Règle : L'utilisateur courant ne peut modifier QUE son mot de passe
-        // On ne doit pas envoyer 'roles' ou 'username' s'il s'édite lui-même, sauf s'il est SuperAdmin (et encore)
-        // Pour simplifier selon la demande : "L'utilisateur en cours ne peut modifier que son mot de passe"
         const isSelf = currentUser?.id === editingId;
-
+        const finalFullname = formData.fullname.trim() === '' ? formData.username : formData.fullname;
         const payload: any = {};
 
         if (formData.password) {
@@ -120,16 +121,12 @@ export default function UsersPage() {
             return;
         }
 
-        // Si ce n'est PAS soi-même, on peut modifier le reste (Rôle, Username...)
         if (!isSelf) {
             payload.username = formData.username;
+            payload.fullname = finalFullname;
             payload.roles = [formData.role];
-        }
-
-        // Si c'est soi-même et qu'on n'a pas mis de mot de passe -> rien à faire
-        if (isSelf && !formData.password) {
-            alert("Aucune modification détectée (vous ne pouvez modifier que votre mot de passe).");
-            return;
+        } else {
+            payload.fullname = finalFullname; 
         }
 
         try {
@@ -140,40 +137,36 @@ export default function UsersPage() {
                     body: JSON.stringify(payload)
                 });
                 if(!res.ok) throw new Error("Erreur modification");
-                alert(isSelf ? "Mot de passe modifié !" : "Utilisateur modifié !");
+                alert("Modifications enregistrées !");
             } else {
-                // Création
                 const res = await fetch('http://localhost/api/users', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ ...payload, username: formData.username, roles: [formData.role], activated: true })
+                    body: JSON.stringify({ 
+                        ...payload, 
+                        username: formData.username, 
+                        fullname: finalFullname,
+                        roles: [formData.role], 
+                        activated: true 
+                    })
                 });
                 if(!res.ok) throw new Error("Erreur création");
             }
-            
             loadUsers();
             setShowForm(false);
             setEditingId(null);
-            setFormData({ username: '', password: '', role: 'ROLE_TECHNICIAN' });
+            setFormData({ username: '', fullname: '', password: '', role: 'ROLE_TECHNICIAN' });
 
         } catch (err) { alert("Une erreur est survenue."); }
     };
 
-    // --- ARCHIVAGE / ACTIVATION ---
     const handleArchive = async (user: User) => {
-        // Règle : Pas d'action sur SuperAdmin si on est simple Admin
         if (!canInteractWith(user)) return;
-
-        // Règle : L'utilisateur en cours ne peut pas se désactiver
-        if (currentUser?.id === user.id) {
-            alert("Vous ne pouvez pas désactiver votre propre compte.");
-            return;
-        }
+        if (currentUser?.id === user.id) { alert("Impossible de se désactiver soi-même."); return; }
 
         const token = localStorage.getItem('sav_token');
         const newStatus = !user.activated;
-        
-        if (!confirm(newStatus ? "Réactiver cet utilisateur ?" : "Archiver cet utilisateur ? Il n'aura plus accès à l'application.")) return;
+        if (!confirm(newStatus ? "Réactiver cet utilisateur ?" : "Archiver cet utilisateur ?")) return;
 
         try {
             await fetch(`http://localhost/api/users/${user.id}`, {
@@ -185,18 +178,12 @@ export default function UsersPage() {
         } catch (e) { alert("Erreur lors de l'action"); }
     };
 
-    // --- SUPPRESSION ---
     const handleDelete = async (id: number) => {
-        // Note: On ne passe que l'ID ici, donc on doit retrouver l'user pour vérifier les droits SuperAdmin
         const userToDelete = users.find(u => u.id === id);
-        if (userToDelete && !canInteractWith(userToDelete)) {
-            alert("Action non autorisée sur ce niveau hiérarchique.");
-            return;
-        }
-
-        if (!confirm("Tentative de suppression définitive...")) return;
+        if (userToDelete && !canInteractWith(userToDelete)) { alert("Action non autorisée."); return; }
+        if (!confirm("Supprimer définitivement ?")) return;
+        
         const token = localStorage.getItem('sav_token');
-
         try {
             const res = await fetch(`http://localhost/api/users/${id}`, {
                 method: 'DELETE',
@@ -206,11 +193,7 @@ export default function UsersPage() {
             if (res.ok) {
                 setUsers(prev => prev.filter(u => u.id !== id));
             } else {
-                // Règle : Un technicien avec des visites ne peut être supprimé (FK Constraint)
-                // L'API renverra une erreur 500 ou 400 (Violation d'intégrité)
-                alert("Impossible de supprimer cet utilisateur (il a probablement des données liées comme des visites).\n\n -> Il a été automatiquement basculé vers l'ARCHIVAGE.");
-                
-                // Fallback automatique vers l'archivage
+                alert("Impossible de supprimer. Bascule vers l'archivage.");
                 await fetch(`http://localhost/api/users/${id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
@@ -218,10 +201,9 @@ export default function UsersPage() {
                 });
                 loadUsers();
             }
-        } catch (e) { alert("Erreur technique lors de la suppression."); }
+        } catch (e) { alert("Erreur technique."); }
     };
 
-    // Détermine si le formulaire est en mode "Self Edit"
     const isSelfEdit = editingId === currentUser?.id;
 
     return (
@@ -236,67 +218,146 @@ export default function UsersPage() {
 
             <div className="max-w-5xl mx-auto px-4">
                 
-                {/* Bouton Création */}
-                <div className="flex justify-end mb-6">
-                    <button 
-                        onClick={() => { setEditingId(null); setFormData({ username: '', password: '', role: 'ROLE_TECHNICIAN' }); setShowForm(!showForm); }}
-                        className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow hover:bg-indigo-700 transition"
-                    >
-                        {showForm ? 'Fermer' : '+ Nouvel Utilisateur'}
-                    </button>
+                {/* BARRE D'ACTIONS */}
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                        <div className="flex-1 w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">🔍 Rechercher</label>
+                            <input 
+                                type="text" 
+                                placeholder="Nom ou identifiant..." 
+                                className="w-full border p-2 rounded-lg bg-gray-50 focus:bg-white transition"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="w-full md:w-64">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">🎭 Rôle</label>
+                            <select 
+                                className="w-full border p-2 rounded-lg bg-gray-50 focus:bg-white transition"
+                                value={filterRole}
+                                onChange={(e) => setFilterRole(e.target.value)}
+                            >
+                                <option value="">-- Tous --</option>
+                                <option value="ROLE_SUPER_ADMIN">Super Admin</option>
+                                <option value="ROLE_ADMIN">Administrateur</option>
+                                <option value="ROLE_TECHNICIAN">Technicien</option>
+                                <option value="ROLE_OPERATOR">Opérateur Support</option>
+                            </select>
+                        </div>
+                        <button 
+                            onClick={() => { 
+                                setEditingId(null); 
+                                setFormData({ username: '', fullname: '', password: '', role: 'ROLE_TECHNICIAN' });
+                                setShowForm(!showForm); 
+                            }}
+                            className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-indigo-700 transition h-10 w-full md:w-auto"
+                        >
+                            {showForm ? 'Fermer' : '+ Nouveau'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* FORMULAIRE */}
                 {showForm && (
                     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100 mb-8 animate-slide-down">
                         <h3 className="text-lg font-bold mb-4 text-gray-800">
-                            {editingId ? (isSelfEdit ? 'Modifier mon mot de passe' : 'Modifier l\'utilisateur') : 'Créer un utilisateur'}
+                            {editingId ? (isSelfEdit ? 'Modifier mon profil' : 'Modifier l\'utilisateur') : 'Créer un utilisateur'}
                         </h3>
-                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Identifiant</label>
-                                <input 
-                                    type="text" 
-                                    required 
-                                    className={`w-full border p-2 rounded-lg ${isSelfEdit ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
-                                    value={formData.username} 
-                                    onChange={e => setFormData({...formData, username: e.target.value})} 
-                                    disabled={isSelfEdit} // Règle : On ne change pas son propre username ici
-                                />
-                                {isSelfEdit && <p className="text-xs text-gray-500 mt-1">Vous ne pouvez pas modifier votre identifiant.</p>}
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Identifiant (Connexion)</label>
+                                <input type="text" required className={`w-full border p-2 rounded-lg ${isSelfEdit ? 'bg-gray-100' : ''}`} value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} disabled={isSelfEdit} />
                             </div>
-                            
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Mot de passe {editingId && '(Laisser vide pour conserver)'}</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Nom Complet</label>
+                                <input type="text" className="w-full border p-2 rounded-lg" value={formData.fullname} onChange={e => setFormData({...formData, fullname: e.target.value})} placeholder={formData.username} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Mot de passe {editingId && '(Vide = inchangé)'}</label>
                                 <input type="password" className="w-full border p-2 rounded-lg" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="********" />
                             </div>
-
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Rôle</label>
-                                <select 
-                                    className={`w-full border p-2 rounded-lg bg-white ${isSelfEdit ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
-                                    value={formData.role} 
-                                    onChange={e => setFormData({...formData, role: e.target.value})}
-                                    disabled={isSelfEdit} // Règle : On ne change pas ses propres droits
-                                >
-                                    {roleOptions.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
+                                <select className={`w-full border p-2 rounded-lg bg-white ${isSelfEdit ? 'bg-gray-100' : ''}`} value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} disabled={isSelfEdit}>
+                                    {roleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                 </select>
-                                {isSelfEdit && <p className="text-xs text-gray-500 mt-1">Contactez un administrateur pour changer de rôle.</p>}
                             </div>
                         </div>
-
                         <div className="flex justify-end gap-3">
-                            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Annuler</button>
+                            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg">Annuler</button>
                             <button type="submit" className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700">Enregistrer</button>
                         </div>
                     </form>
                 )}
 
-                {/* LISTE */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                {/* --- CONTENU RESPONSIVE --- */}
+                
+                {/* 1. VUE MOBILE (CARTES) - Visible uniquement sur petit écran (md:hidden) */}
+                <div className="grid grid-cols-1 gap-4 md:hidden">
+                    {filteredUsers.length === 0 && <p className="text-center text-gray-500 italic">Aucun utilisateur trouvé.</p>}
+                    {filteredUsers.map(user => {
+                        const mainRole = user.roles.find(r => ROLE_LABELS[r]) || 'ROLE_USER';
+                        const isTargetSuperAdmin = user.roles.includes('ROLE_SUPER_ADMIN');
+                        const isSelf = currentUser?.id === user.id;
+                        const isDisabled = !canInteractWith(user);
+
+                        return (
+                            <div key={user.id} className={`bg-white p-4 rounded-xl shadow-sm border ${!user.activated ? 'border-gray-200 bg-gray-50 opacity-75' : 'border-gray-200'}`}>
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
+                                            {user.username.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-gray-900 text-lg">
+                                                {user.fullname || user.username}
+                                            </div>
+                                            <div className="text-xs text-gray-500">@{user.username} {isSelf && '(Moi)'}</div>
+                                        </div>
+                                    </div>
+                                    {user.activated 
+                                        ? <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">Actif</span>
+                                        : <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full font-bold">Archivé</span>
+                                    }
+                                </div>
+
+                                <div className="mb-4">
+                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                                        isTargetSuperAdmin ? 'bg-purple-100 text-purple-800' :
+                                        mainRole === 'ROLE_ADMIN' ? 'bg-red-100 text-red-800' : 
+                                        'bg-blue-100 text-blue-800'
+                                    }`}>
+                                        {ROLE_LABELS[mainRole] || mainRole}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                                    {!isDisabled ? (
+                                        <>
+                                            <button onClick={() => handleEdit(user)} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-bold">
+                                                {isSelf ? 'Profil' : 'Modifier'}
+                                            </button>
+                                            {!isSelf && (
+                                                <>
+                                                    <button onClick={() => handleArchive(user)} className={`px-3 py-1.5 rounded-lg text-sm font-bold ${user.activated ? "bg-orange-50 text-orange-700" : "bg-green-50 text-green-700"}`}>
+                                                        {user.activated ? 'Archiver' : 'Activer'}
+                                                    </button>
+                                                    <button onClick={() => handleDelete(user.id)} className="p-2 bg-red-50 text-red-600 rounded-lg">🗑️</button>
+                                                </>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs italic py-2">🔒 Accès restreint</span>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* 2. VUE DESKTOP (TABLEAU) - Visible uniquement sur écran moyen et + (hidden md:block) */}
+                <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -307,22 +368,36 @@ export default function UsersPage() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {users.map(user => {
+                            {filteredUsers.length === 0 && (
+                                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500 italic">Aucun utilisateur trouvé.</td></tr>
+                            )}
+                            {filteredUsers.map(user => {
                                 const mainRole = user.roles.find(r => ROLE_LABELS[r]) || 'ROLE_USER';
                                 const isTargetSuperAdmin = user.roles.includes('ROLE_SUPER_ADMIN');
                                 const isSelf = currentUser?.id === user.id;
-                                
-                                // On désactive les boutons si : 
-                                // 1. C'est un SuperAdmin et je ne le suis pas
                                 const isDisabled = !canInteractWith(user);
 
                                 return (
                                     <tr key={user.id} className={!user.activated ? 'bg-gray-50 opacity-75' : ''}>
-                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{user.username} {isSelf && '(Moi)'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold mr-3">
+                                                    {user.username.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-gray-900">
+                                                        {user.fullname || user.username}
+                                                        {isSelf && <span className="text-indigo-600 text-xs ml-2">(Moi)</span>}
+                                                    </div>
+                                                    {user.fullname && <div className="text-xs text-gray-500">@{user.username}</div>}
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                isTargetSuperAdmin ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                                                mainRole === 'ROLE_ADMIN' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                                                isTargetSuperAdmin ? 'bg-purple-100 text-purple-800' :
+                                                mainRole === 'ROLE_ADMIN' ? 'bg-red-100 text-red-800' : 
+                                                'bg-blue-100 text-blue-800'
                                             }`}>
                                                 {ROLE_LABELS[mainRole] || mainRole}
                                             </span>
@@ -334,26 +409,18 @@ export default function UsersPage() {
                                             {!isDisabled && (
                                                 <>
                                                     <button onClick={() => handleEdit(user)} className="text-indigo-600 hover:text-indigo-900 mr-3 font-bold">
-                                                        {isSelf ? 'Changer MDP' : 'Modifier'}
+                                                        {isSelf ? 'Profil' : 'Modifier'}
                                                     </button>
-                                                    
-                                                    {/* Règle : Pas de désactivation pour soi-même */}
                                                     {!isSelf && (
                                                         <>
-                                                            <button 
-                                                                onClick={() => handleArchive(user)} 
-                                                                className={`mr-3 font-bold ${user.activated ? "text-orange-600 hover:text-orange-900" : "text-green-600 hover:text-green-900"}`}
-                                                            >
+                                                            <button onClick={() => handleArchive(user)} className={`mr-3 font-bold ${user.activated ? "text-orange-600 hover:text-orange-900" : "text-green-600 hover:text-green-900"}`}>
                                                                 {user.activated ? 'Archiver' : 'Activer'}
                                                             </button>
-                                                            <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 font-bold opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity">
-                                                                🗑️
-                                                            </button>
+                                                            <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 font-bold">🗑️</button>
                                                         </>
                                                     )}
                                                 </>
                                             )}
-                                            {isDisabled && <span className="text-gray-400 text-xs italic">Restreint</span>}
                                         </td>
                                     </tr>
                                 );

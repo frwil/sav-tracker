@@ -30,6 +30,11 @@ export function useAuth() {
                     throw new Error("Token expiré");
                 }
 
+                // 👇 AJOUT DE CETTE VÉRIFICATION
+                if (!payload.id) {
+                    throw new Error("Token invalide : ID utilisateur manquant (Problème Backend)");
+                }
+
                 // Vérification API
                 const res = await fetch(`http://localhost/api/users/${payload.id}`, {
                     headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
@@ -41,7 +46,7 @@ export function useAuth() {
                 }
 
                 const userData = await res.json();
-                
+
                 if (userData.activated === false) {
                     throw new Error("Compte archivé");
                 }

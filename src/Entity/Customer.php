@@ -31,19 +31,19 @@ class Customer
     private ?string $zone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
     private ?string $exactLocation = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
     private ?string $erpCode = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
     private ?string $erpName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -51,10 +51,11 @@ class Customer
     private ?string $phoneNumber = null;
 
     #[ORM\OneToMany(mappedBy: 'customer', targetEntity: Building::class, orphanRemoval: true)]
+    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
     private Collection $buildings;
 
     #[ORM\ManyToMany(targetEntity: Speculation::class)]
-    #[Groups(['customer:read', 'customer:write'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
     private Collection $speculations;
 
     // 👇 NOUVEL ATTRIBUT POUR L'ARCHIVAGE

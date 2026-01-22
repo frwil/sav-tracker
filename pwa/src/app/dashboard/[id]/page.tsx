@@ -766,13 +766,13 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
         {showNewBuilding && (
             <NewBuildingForm 
                 customerIri={visit.customer['@id']}
-                existingBuildings={visit.customer.buildings} // On passe la liste pour le calcul du nom
+                existingBuildings={visit.customer.buildings ? visit.customer.buildings : []} // On passe la liste pour le calcul du nom
                 onSuccess={() => { setShowNewBuilding(false); fetchVisit(visit.id.toString()); }}
                 onCancel={() => setShowNewBuilding(false)}
             />
         )}
 
-        {visit.customer.buildings.map((building) => (
+        {visit.customer.buildings?.map((building) => (
             <BuildingItem 
                 key={building['@id']} 
                 building={building} 

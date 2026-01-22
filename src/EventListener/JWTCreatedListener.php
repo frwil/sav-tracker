@@ -4,32 +4,31 @@ namespace App\EventListener;
 
 use App\Entity\User;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\JWTCreatedEvent;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
 class JWTCreatedListener
 {
-    /**
-     * @param JWTCreatedEvent $event
-     *
-     * @return void
-     */
-    public function onJWTCreated(JWTCreatedEvent $event)
+    #[AsEventListener(event: 'lexik_jwt_authentication.on_jwt_created')]
+    public function onJWTCreated(JWTCreatedEvent $event): void
     {
-        /** @var User $user */
         $user = $event->getUser();
 
-        // Récupération du payload existant
+        // Sécurité : s'assurer qu'on a bien un User entité
+        if (!$user instanceof User) {
+            return;
+        }
+
         $payload = $event->getData();
 
-        // Ajout de l'ID de l'utilisateur
+        // INJECTION DE L'ID
         $payload['id'] = $user->getId();
         
-        // On peut aussi forcer l'ajout des rôles ou du nom complet si besoin
+        // Ajout des rôles et nom complet
         $payload['roles'] = $user->getRoles();
         if (method_exists($user, 'getFullname')) {
             $payload['fullname'] = $user->getFullname();
         }
 
-        // Mise à jour du payload
         $event->setData($payload);
     }
 }
