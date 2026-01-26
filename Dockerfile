@@ -98,4 +98,4 @@ RUN set -eux; \
     php bin/console cache:clear --no-warmup; \
     chmod +x bin/console; sync
 
-CMD php bin/console doctrine:migrations:migrate --no-interaction && frankenphp run --config /etc/frankenphp/Caddyfile
+#CMD php bin/console doctrine:migrations:migrate --no-interaction && frankenphp run --config /etc/frankenphp/Caddyfile
