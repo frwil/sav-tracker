@@ -34,7 +34,7 @@ class ObservationVoter extends Voter
         $visit = $observation->getVisit();
 
         // ADMIN a tous les droits
-        if ($this->security->isGranted('ROLE_ADMIN')) {
+        if ($this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN')) {
             return true;
         }
 

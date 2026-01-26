@@ -20,6 +20,7 @@ use Doctrine\Common\Collections\Collection;
 use App\Validator\Constraints\BuildingAvailable;
 use Symfony\Component\Serializer\Attribute\Groups;
 use App\Entity\Standard;
+use Doctrine\DBAL\Types\Types;
 
 
 // src/Entity/Flock.php
@@ -54,12 +55,16 @@ use App\Entity\Standard;
 #[BuildingAvailable] // Contrainte personnalisée
 class Flock
 {
+    public const FEED_STRATEGY_INDUSTRIAL = 'INDUSTRIAL'; // Branche A
+    public const FEED_STRATEGY_SELF_MIX = 'SELF_MIX';     // Branche B
+    public const FEED_STRATEGY_THIRD_PARTY = 'THIRD_PARTY'; // Branche C  
+
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
-    #[Groups(['visit:read','flock:read', 'building:read'])]
+    #[Groups(['visit:read', 'flock:read', 'building:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['visit:read','flock:read','building:read'])]
+    #[Groups(['visit:read', 'flock:read', 'building:read'])]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -97,6 +102,14 @@ class Flock
     #[ORM\ManyToOne]
     #[Groups(['flock:read', 'flock:write', 'visit:read'])]
     private ?Standard $standard = null;
+
+    #[ORM\Column(length: 50, options: ['default' => self::FEED_STRATEGY_INDUSTRIAL])]
+    #[Groups(['flock:read', 'flock:write', 'visit:read'])]
+    private ?string $feedStrategy = self::FEED_STRATEGY_INDUSTRIAL;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['flock:read', 'flock:write', 'visit:read'])]
+    private ?string $feedFormula = null; // Ex: 'CONC_5', 'CONC_10'
 
     // Getters/Setters...
 
@@ -198,6 +211,28 @@ class Flock
     public function setStandard(?Standard $standard): self
     {
         $this->standard = $standard;
+        return $this;
+    }
+
+    public function getFeedStrategy(): ?string
+    {
+        return $this->feedStrategy;
+    }
+
+    public function setFeedStrategy(?string $feedStrategy): self
+    {
+        $this->feedStrategy = $feedStrategy;
+        return $this;
+    }
+
+    public function getFeedFormula(): ?string
+    {
+        return $this->feedFormula;
+    }
+
+    public function setFeedFormula(?string $feedFormula): self
+    {
+        $this->feedFormula = $feedFormula;
         return $this;
     }
     public function __toString(): string

@@ -1,9 +1,6 @@
 <?php 
 namespace App\EventListener;
 
-// src/EntityListener/BuildingNamingListener.php
-namespace App\EntityListener;
-
 use App\Entity\Building;
 use App\Repository\BuildingRepository;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
@@ -11,7 +8,7 @@ use Doctrine\ORM\Events;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 
 #[AsEntityListener(event: Events::prePersist, method: 'prePersist', entity: Building::class)]
-class BuildingNamingListener
+class NamingSubscriber
 {
     public function __construct(private BuildingRepository $buildingRepository) {}
 

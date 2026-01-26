@@ -21,6 +21,11 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Attribute\Groups;
 use ApiPlatform\OpenApi\Model\Schema;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 
 
 #[ORM\Entity(repositoryClass: VisitRepository::class)]
@@ -55,6 +60,10 @@ use ApiPlatform\OpenApi\Model\Schema;
     normalizationContext: ['groups' => ['visit:read']],
     denormalizationContext: ['groups' => ['visit:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: ['customer' => 'exact', 'technician' => 'exact'])]
+#[ApiFilter(BooleanFilter::class, properties: ['closed', 'activated'])]
+#[ApiFilter(DateFilter::class, properties: ['visitedAt'])]
+#[ApiFilter(OrderFilter::class, properties: ['visitedAt' => 'DESC'])]
 class Visit
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]

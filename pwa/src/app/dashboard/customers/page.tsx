@@ -203,7 +203,7 @@ export default function CustomersPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Nom / Raison Sociale *</label>
-                                <input type="text" required className="w-full border p-2 rounded-lg" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ex: Ferme de l'Espoir" />
+                                <input type="text" required className="w-full border p-2 rounded-lg" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value.toLocaleUpperCase()})} placeholder="Ex: Ferme de l'Espoir" />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Zone / Ville *</label>

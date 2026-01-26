@@ -63,6 +63,16 @@ class Customer
     #[Groups(['customer:read', 'customer:write', 'visit:read'])]
     private ?bool $activated = true;
 
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true)] // Peut être null si importé massivement par script
+    #[Groups(['customer:read', 'customer:write'])]
+    private ?User $createdBy = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true)] // Null = Client "libre" ou Admin
+    #[Groups(['customer:read', 'customer:write'])]
+    private ?User $affectedTo = null;
+
     public function __construct()
     {
         $this->buildings = new ArrayCollection();
@@ -95,6 +105,12 @@ class Customer
 
     public function isActivated(): ?bool { return $this->activated; }
     public function setActivated(bool $activated): self { $this->activated = $activated; return $this; }
+
+    public function getCreatedBy(): ?User { return $this->createdBy; }
+    public function setCreatedBy(?User $createdBy): self { $this->createdBy = $createdBy; return $this; }
+
+    public function getAffectedTo(): ?User { return $this->affectedTo; }
+    public function setAffectedTo(?User $affectedTo): self { $this->affectedTo = $affectedTo; return $this; }
 
     // ... (Reste des méthodes pour buildings et speculations inchangées)
     public function addSpeculation(Speculation $speculation): self {

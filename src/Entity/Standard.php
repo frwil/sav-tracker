@@ -50,7 +50,7 @@ class Standard
      * ]
      */
     #[ORM\Column(type: 'json')]
-    #[Groups(['standard:read', 'standard:write'])]
+    #[Groups(['standard:read', 'standard:write', 'flock:read', 'visit:read'])] 
     private array $curveData = [];
 
     #[ORM\Column(length: 255, nullable: true)]

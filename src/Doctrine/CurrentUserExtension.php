@@ -2,13 +2,15 @@
 
 namespace App\Doctrine;
 
-use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
-use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
-use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
-use ApiPlatform\Metadata\Operation;
+use App\Entity\User;
 use App\Entity\Visit;
+use App\Entity\Customer;
 use Doctrine\ORM\QueryBuilder;
+use ApiPlatform\Metadata\Operation;
 use Symfony\Bundle\SecurityBundle\Security;
+use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
+use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
+use ApiPlatform\Doctrine\Orm\Extension\QueryCollectionExtensionInterface;
 
 class CurrentUserExtension implements QueryCollectionExtensionInterface, QueryItemExtensionInterface
 {
@@ -38,15 +40,35 @@ class CurrentUserExtension implements QueryCollectionExtensionInterface, QueryIt
             return;
         }
 
+        if ($this->security->isGranted('ROLE_ADMIN') || 
+            $this->security->isGranted('ROLE_SUPER_ADMIN') || 
+            $this->security->isGranted('ROLE_OPERATOR')) {
+            return;
+        }
+
         // 3. On récupère l'utilisateur connecté
         $user = $this->security->getUser();
         if (null === $user) {
             return;
         }
 
+        if (!$user instanceof User) {
+            return;
+        }
+
         // 4. On ajoute la condition WHERE technician = current_user
         $rootAlias = $queryBuilder->getRootAliases()[0];
-        $queryBuilder->andWhere(sprintf('%s.technician = :current_user', $rootAlias));
-        $queryBuilder->setParameter('current_user', $user);
+        if ($resourceClass === Customer::class) {
+            // AVANT : createdBy OR affectedTo
+            // MAINTENANT : Seulement affectedTo
+            $queryBuilder->andWhere(sprintf('%s.affectedTo = :current_user', $rootAlias));
+            $queryBuilder->setParameter('current_user', $user);
+        }
+
+        // 3. Pour les visites, on garde l'historique (Je vois les visites que J'AI faites)
+        if ($resourceClass === Visit::class) {
+            $queryBuilder->andWhere(sprintf('%s.technician = :current_user', $rootAlias));
+            $queryBuilder->setParameter('current_user', $user);
+        }
     }
 }

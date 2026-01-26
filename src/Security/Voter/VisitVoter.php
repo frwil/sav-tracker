@@ -33,7 +33,7 @@ class VisitVoter extends Voter
         /** @var Visit $visit */
         $visit = $subject;
 
-        if ($this->security->isGranted('ROLE_ADMIN')) {
+        if ($this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN')) {
             return true;
         }
 

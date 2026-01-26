@@ -15,8 +15,13 @@ use App\Validator\Constraints as AppAssert;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 
 #[ORM\Entity(repositoryClass: ObservationRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(
     fields: ['visit', 'flock'], 
     message: "Une observation a déjà été saisie pour cette bande lors de cette visite."
@@ -36,6 +41,15 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
     normalizationContext: ['groups' => ['observation:read']],
     denormalizationContext: ['groups' => ['observation:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'visit' => 'exact', 
+    'visit.technician' => 'exact', // Indispensable pour les stats "Santé du Parc" par technicien
+    'flock' => 'exact'
+])]
+// Permet de filtrer par date d'observation (pour les périodes de stats)
+#[ApiFilter(DateFilter::class, properties: ['observedAt'])]
+// Permet de trier (ex: les plus récentes en premier)
+#[ApiFilter(OrderFilter::class, properties: ['observedAt' => 'DESC', 'createdAt' => 'DESC'])]
 class Observation
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -68,7 +82,7 @@ class Observation
     private ?string $recommendations = null; // Recommandations du technicien
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['observation:read', 'observation:write', 'visit:read'])]
+    #[Groups(['observation:read', 'observation:write', 'visit:read', 'flock:read'])] 
     private ?string $problems = null; // Difficultés rencontrées
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -87,7 +101,7 @@ class Observation
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)] // Mutable car peut être ajustée si besoin
-    #[Groups(['observation:read', 'observation:write', 'visit:read'])] // 'write' autorisé !
+    #[Groups(['observation:read', 'observation:write', 'visit:read', 'flock:read'])] // 'write' autorisé !
     private ?\DateTimeInterface $observedAt = null;
 
     #[Groups(['observation:read', 'visit:read'])]
