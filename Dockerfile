@@ -72,7 +72,7 @@ RUN set -eux; \
 
 COPY --link frankenphp/conf.d/20-app.dev.ini $PHP_INI_DIR/app.conf.d/
 
-CMD php bin/console doctrine:migrations:migrate --no-interaction && frankenphp run --config /etc/frankenphp/Caddyfile
+CMD [ "frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile", "--watch" ]
 
 # Prod FrankenPHP image
 FROM frankenphp_base AS frankenphp_prod
@@ -97,3 +97,5 @@ RUN set -eux; \
     composer dump-env prod; \
     php bin/console cache:clear --no-warmup; \
     chmod +x bin/console; sync
+
+CMD php bin/console doctrine:migrations:migrate --no-interaction && frankenphp run --config /etc/frankenphp/Caddyfile
