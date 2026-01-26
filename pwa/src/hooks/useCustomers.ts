@@ -13,6 +13,8 @@ export interface CustomerOption {
   label: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 export function useCustomers() {
   const [options, setOptions] = useState<CustomerOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export function useCustomers() {
 
     const fetchCustomers = async () => {
       try {
-        const res = await fetch('http://localhost/api/customers', {
+        const res = await fetch(`${API_URL}/customers`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/ld+json',

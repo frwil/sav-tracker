@@ -15,6 +15,8 @@ interface Building {
     flocks: any[];
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 export default function BuildingsPage() {
     const {
         options: customerOptions,
@@ -60,7 +62,7 @@ export default function BuildingsPage() {
         const token = localStorage.getItem('sav_token');
         const customerId = selectedCustomerOption.value.split('/').pop();
 
-        fetch(`http://localhost/api/buildings?customer=${customerId}`, {
+        fetch(`${API_URL}/buildings?customer=${customerId}`, {
             headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
         })
             .then(res => res.json())
@@ -99,7 +101,7 @@ export default function BuildingsPage() {
         try {
             if (editingId) {
                 // PATCH pour modification
-                await fetch(`http://localhost/api/buildings/${editingId}`, {
+                await fetch(`${API_URL}/buildings/${editingId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({
@@ -113,7 +115,7 @@ export default function BuildingsPage() {
                 // POST pour création
                 const autoName = `Bâtiment ${buildings.length + 1}`;
 
-                await fetch('http://localhost/api/buildings', {
+                await fetch(`${API_URL}/buildings`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({
@@ -142,7 +144,7 @@ export default function BuildingsPage() {
         if (!confirm("Supprimer définitivement ce bâtiment ?")) return;
         const token = localStorage.getItem('sav_token');
 
-        const res = await fetch(`http://localhost/api/buildings/${id}`, {
+        const res = await fetch(`${API_URL}/buildings/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -156,7 +158,7 @@ export default function BuildingsPage() {
 
     const handleArchive = async (id: number, currentStatus: boolean) => {
         const token = localStorage.getItem('sav_token');
-        const res = await fetch(`http://localhost/api/buildings/${id}`, {
+        const res = await fetch(`${API_URL}/buildings/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ activated: !currentStatus })

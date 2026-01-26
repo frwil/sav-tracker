@@ -8,6 +8,8 @@ interface UserPayload {
     exp: number;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 export function useAuth() {
     const router = useRouter();
     const [user, setUser] = useState<UserPayload | null>(null);
@@ -36,7 +38,7 @@ export function useAuth() {
                 }
 
                 // Vérification API
-                const res = await fetch(`http://localhost/api/users/${payload.id}`, {
+                const res = await fetch(`${API_URL}/users/${payload.id}`, {
                     headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
                 });
 

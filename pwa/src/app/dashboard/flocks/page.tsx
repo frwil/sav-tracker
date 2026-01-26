@@ -38,6 +38,8 @@ interface Flock {
     activated: boolean;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 export default function FlocksPage() {
     // --- HOOKS & STATES ---
     const { options: customerOptions, loading: customersLoading } = useCustomers();
@@ -89,7 +91,7 @@ export default function FlocksPage() {
 
             try {
                 // 1. Charger les bâtiments du client (qui contiennent les bandes)
-                const buildRes = await fetch(`http://localhost/api/buildings?customer=${customerId}`, { headers });
+                const buildRes = await fetch(`${API_URL}/buildings?customer=${customerId}`, { headers });
                 const buildData = await buildRes.json();
                 setBuildings(buildData);
 
@@ -101,10 +103,10 @@ export default function FlocksPage() {
                 setFlocks(allFlocks);
 
                 // 3. Charger les référentiels pour le formulaire
-                const specRes = await fetch('http://localhost/api/speculations', { headers });
+                const specRes = await fetch(`${API_URL}/speculations`, { headers });
                 setSpeculations(await specRes.json());
 
-                const stdRes = await fetch('http://localhost/api/standards', { headers });
+                const stdRes = await fetch(`${API_URL}/standards`, { headers });
                 setStandards(await stdRes.json());
 
             } catch (e) {
@@ -174,7 +176,7 @@ export default function FlocksPage() {
         if (!confirm("Voulez-vous vraiment clôturer cette bande ?")) return;
         const token = localStorage.getItem('sav_token');
         try {
-            await fetch(`http://localhost/api/flocks/${flock.id}/close`, {
+            await fetch(`${API_URL}/flocks/${flock.id}/close`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -188,7 +190,7 @@ export default function FlocksPage() {
         const token = localStorage.getItem('sav_token');
         try {
             // On fait un PATCH manuel pour remettre closed=false
-            await fetch(`http://localhost/api/flocks/${flock.id}`, {
+            await fetch(`${API_URL}/flocks/${flock.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ closed: false })
@@ -201,7 +203,7 @@ export default function FlocksPage() {
         if (!confirm("SUPPRIMER DÉFINITIVEMENT ?")) return;
         const token = localStorage.getItem('sav_token');
         try {
-            await fetch(`http://localhost/api/flocks/${flock.id}`, {
+            await fetch(`${API_URL}/flocks/${flock.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

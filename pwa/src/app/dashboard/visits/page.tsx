@@ -15,6 +15,8 @@ interface Visit {
     activated: boolean;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 // Helper pour obtenir le début et la fin de journée/semaine/mois
 const getDateRange = (type: string, dateRef: string, dateEndRef?: string) => {
     const start = new Date(dateRef);
@@ -65,7 +67,7 @@ export default function VisitsListPage() {
             if (!token) { router.push('/'); return; }
 
             // 1. Construction de l'URL avec filtres
-            let url = 'http://localhost/api/visits?page=1';
+            let url = `${API_URL}/visits?page=1`;
 
             // Filtre Client
             if (selectedCustomer) {

@@ -12,6 +12,8 @@ interface User {
     activated: boolean;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 const ROLE_LABELS: Record<string, string> = {
     'ROLE_SUPER_ADMIN': 'Super Admin',
     'ROLE_ADMIN': 'Administrateur',
@@ -58,7 +60,7 @@ export default function UsersPage() {
         if (!token) return;
 
         try {
-            const res = await fetch('http://localhost/api/users', {
+            const res = await fetch(`${API_URL}/users`, {
                 headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
             });
             const data = await res.json();
@@ -131,7 +133,7 @@ export default function UsersPage() {
 
         try {
             if (editingId) {
-                const res = await fetch(`http://localhost/api/users/${editingId}`, {
+                const res = await fetch(`${API_URL}/users/${editingId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(payload)
@@ -139,7 +141,7 @@ export default function UsersPage() {
                 if(!res.ok) throw new Error("Erreur modification");
                 alert("Modifications enregistrées !");
             } else {
-                const res = await fetch('http://localhost/api/users', {
+                const res = await fetch(`${API_URL}/users`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ 
@@ -169,7 +171,7 @@ export default function UsersPage() {
         if (!confirm(newStatus ? "Réactiver cet utilisateur ?" : "Archiver cet utilisateur ?")) return;
 
         try {
-            await fetch(`http://localhost/api/users/${user.id}`, {
+            await fetch(`${API_URL}/users/${user.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ activated: newStatus })
@@ -185,7 +187,7 @@ export default function UsersPage() {
         
         const token = localStorage.getItem('sav_token');
         try {
-            const res = await fetch(`http://localhost/api/users/${id}`, {
+            const res = await fetch(`${API_URL}/users/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -194,7 +196,7 @@ export default function UsersPage() {
                 setUsers(prev => prev.filter(u => u.id !== id));
             } else {
                 alert("Impossible de supprimer. Bascule vers l'archivage.");
-                await fetch(`http://localhost/api/users/${id}`, {
+                await fetch(`${API_URL}/users/${id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ activated: false })

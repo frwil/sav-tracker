@@ -14,6 +14,8 @@ interface Customer {
     activated: boolean;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function CustomersPage() {
 
     const loadCustomers = async (token: string) => {
         try {
-            const res = await fetch('http://localhost/api/customers', {
+            const res = await fetch(`${API_URL}/customers`, {
                 headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
             });
             const data = await res.json();
@@ -96,7 +98,7 @@ export default function CustomersPage() {
         try {
             if (editingId) {
                 // UPDATE (PATCH)
-                const res = await fetch(`http://localhost/api/customers/${editingId}`, {
+                const res = await fetch(`${API_URL}/customers/${editingId}`, {
                     method: 'PATCH',
                     headers: { 
                         'Content-Type': 'application/merge-patch+json', // Important pour API Platform
@@ -108,7 +110,7 @@ export default function CustomersPage() {
                 alert("Client modifié !");
             } else {
                 // CREATE (POST)
-                const res = await fetch('http://localhost/api/customers', {
+                const res = await fetch(`${API_URL}/customers`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json', 
@@ -138,7 +140,7 @@ export default function CustomersPage() {
         if (!confirm(newStatus ? "Réactiver ce client ?" : "Archiver ce client ? Il n'apparaîtra plus dans les sélections.")) return;
 
         try {
-            await fetch(`http://localhost/api/customers/${customer.id}`, {
+            await fetch(`${API_URL}/customers/${customer.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ activated: newStatus })
@@ -152,7 +154,7 @@ export default function CustomersPage() {
         const token = localStorage.getItem('sav_token');
 
         try {
-            const res = await fetch(`http://localhost/api/customers/${id}`, {
+            const res = await fetch(`${API_URL}/customers/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

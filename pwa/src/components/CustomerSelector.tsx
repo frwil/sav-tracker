@@ -16,6 +16,8 @@ interface Option {
     customer: Customer;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 export default function CustomerSelector({ onSelect }: { onSelect: (customer: Customer | null) => void }) {
     const [options, setOptions] = useState<Option[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function CustomerSelector({ onSelect }: { onSelect: (customer: Cu
         const token = localStorage.getItem('sav_token');
         console.log("Token présent:", !!token); // Debug
 
-        fetch('http://localhost/api/customers', {
+        fetch(`${API_URL}/customers`, {
             headers: { 
                 'Authorization': `Bearer ${token}`, 
                 'Accept': 'application/ld+json' // Important pour API Platform

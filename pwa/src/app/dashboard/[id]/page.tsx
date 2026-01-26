@@ -71,6 +71,8 @@ interface Visit {
     observations: Observation[];
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 // ============================================================================
 // 2. HELPERS (Dates, Benchmark, Couleurs Alertes)
 // ============================================================================
@@ -246,7 +248,7 @@ const NewBuildingForm = ({ customerIri, existingBuildings, onSuccess, onCancel }
         e.preventDefault(); setLoading(true);
         const token = localStorage.getItem('sav_token');
         try {
-            const res = await fetch('http://localhost/api/buildings', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ name, surface: parseFloat(surface), customer: customerIri, activated: true }) });
+            const res = await fetch(`${API_URL}/buildings`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ name, surface: parseFloat(surface), customer: customerIri, activated: true }) });
             if (res.ok) onSuccess();
         } catch (e) { alert("Erreur"); } finally { setLoading(false); }
     };
@@ -266,7 +268,7 @@ const NewFlockForm = ({ buildingIri, onSuccess, onCancel }: any) => {
             const token = localStorage.getItem('sav_token');
             const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' };
             try {
-                const [sRes, stdRes] = await Promise.all([fetch('http://localhost/api/speculations', { headers }), fetch('http://localhost/api/standards', { headers })]);
+                const [sRes, stdRes] = await Promise.all([fetch(`${API_URL}/speculations`, { headers }), fetch(`${API_URL}/standards`, { headers })]);
                 setSpeculations((await sRes.json())['hydra:member'] || []);
                 setStandards((await stdRes.json())['hydra:member'] || []);
             } catch (e) {}
@@ -278,7 +280,7 @@ const NewFlockForm = ({ buildingIri, onSuccess, onCancel }: any) => {
         e.preventDefault(); setLoading(true);
         const token = localStorage.getItem('sav_token');
         try {
-            await fetch('http://localhost/api/flocks', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ ...formData, subjectCount: parseInt(formData.subjectCount), building: buildingIri, activated: true, closed: false }) });
+            await fetch(`${API_URL}/flocks`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ ...formData, subjectCount: parseInt(formData.subjectCount), building: buildingIri, activated: true, closed: false }) });
             onSuccess();
         } catch (e) { alert("Erreur"); } finally { setLoading(false); }
     };
@@ -303,7 +305,7 @@ const ObservationForm = ({ visitIri, flock, building, visit, initialData, onSucc
             const specId = flock.speculation.id; 
             if(!specId) return;
             try {
-                const res = await fetch(`http://localhost/api/prophylaxis_tasks?speculation.id=${specId}`, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' } });
+                const res = await fetch(`${API_URL}/prophylaxis_tasks?speculation.id=${specId}`, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' } });
                 if(res.ok) {
                     const data = await res.json();
                     setVaccines(data['hydra:member'] || []);
@@ -385,10 +387,10 @@ const ObservationForm = ({ visitIri, flock, building, visit, initialData, onSucc
         if (saveStrategy || feedStrategy !== flock.feedStrategy || (feedStrategy === 'THIRD_PARTY' && feedBrand !== flock.feedFormula)) {
             const patchData: any = { feedStrategy };
             if (feedStrategy === 'THIRD_PARTY') patchData.feedFormula = feedBrand;
-            await fetch(`http://localhost/api/flocks/${flock.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(patchData) }).catch(console.error);
+            await fetch(`${API_URL}/flocks/${flock.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(patchData) }).catch(console.error);
         }
 
-        const url = isEditMode ? `http://localhost/api/observations/${initialData!.id}` : 'http://localhost/api/observations';
+        const url = isEditMode ? `${API_URL}/observations/${initialData!.id}` : `${API_URL}/observations`;
         const method = isEditMode ? 'PATCH' : 'POST';
         
         const finalData = { ...data, isSnapshot, feedStrategy, feedBrand, inventory, weightCorrection: correctionReason ? { ticketId: `TKT-${Date.now()}`, reason: correctionReason, previous: previousWeight, declared: data.poidsMoyen } : null };
@@ -415,7 +417,7 @@ const ObservationForm = ({ visitIri, flock, building, visit, initialData, onSucc
          setAdminSending(true);
          const token = localStorage.getItem('sav_token');
          try {
-             const ticketRes = await fetch('http://localhost/api/tickets', {
+             const ticketRes = await fetch(`${API_URL}/tickets`, {
                  method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                  body: JSON.stringify({ category: 'WEIGHT_ANOMALY', priority: 'HIGH', status: 'OPEN', description: correctionReason, flock: flock['@id'], visit: visitIri, details: { previous: previousWeight, current: data.poidsMoyen } })
              });
@@ -827,7 +829,7 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
         const token = localStorage.getItem('sav_token');
         if (!token) { router.push('/'); return; }
         try {
-            const res = await fetch(`http://localhost/api/visits/${id}`, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' } });
+            const res = await fetch(`${API_URL}/visits/${id}`, { headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' } });
             if (res.ok) setVisit(await res.json());
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
@@ -848,7 +850,7 @@ export default function VisitDetailsPage({ params }: { params: Promise<{ id: str
         
         const token = localStorage.getItem('sav_token');
         try {
-            await fetch(`http://localhost/api/visits/${visit.id}/close`, { 
+            await fetch(`${API_URL}/visits/${visit.id}/close`, { 
                 method: 'PATCH', 
                 headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` }, 
                 body: JSON.stringify({}) 

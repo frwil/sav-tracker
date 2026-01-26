@@ -27,6 +27,7 @@ interface UserOption {
 
 // --- CONSTANTES ---
 const ESTIMATED_TONS_PER_FLOCK = 8;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
 
 // --- COMPOSANTS UI ---
 const MenuCard = ({ title, icon, href, color, description }: any) => (
@@ -133,7 +134,7 @@ export default function DashboardHome() {
 
     const fetchTechnicians = async (token: string) => {
         try {
-            const res = await fetch('http://localhost/api/users?pagination=false', {
+            const res = await fetch(`${API_URL}/users?pagination=false`, {
                 headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
             });
             const users = await res.json();
@@ -158,24 +159,24 @@ export default function DashboardHome() {
             const techFilterPortfolio = uId ? `&technician=${uId}` : '';
 
             // 1. Visites (Toutes)
-            requests.push(fetch(`http://localhost/api/visits?visitedAt[after]=${startIso}&visitedAt[before]=${endIso}&pagination=false${techFilter}`, { headers }).then(r => r.json()));
+            requests.push(fetch(`${API_URL}/visits?visitedAt[after]=${startIso}&visitedAt[before]=${endIso}&pagination=false${techFilter}`, { headers }).then(r => r.json()));
             
             // 2. Cheptel Actif (Chantiers en cours)
-            requests.push(fetch(`http://localhost/api/visits?exists[endDate]=false${techFilter}`, { headers }).then(r => r.json()));
+            requests.push(fetch(`${API_URL}/visits?exists[endDate]=false${techFilter}`, { headers }).then(r => r.json()));
             
             // 3. Portefeuille
             if (uId) {
-                requests.push(fetch(`http://localhost/api/portfolio_histories?pagination=false${techFilterPortfolio}`, { headers }).then(r => r.json()));
+                requests.push(fetch(`${API_URL}/portfolio_histories?pagination=false${techFilterPortfolio}`, { headers }).then(r => r.json()));
             } else {
-                requests.push(fetch(`http://localhost/api/customers?activated=true&pagination=false`, { headers }).then(r => r.json()));
+                requests.push(fetch(`${API_URL}/customers?activated=true&pagination=false`, { headers }).then(r => r.json()));
             }
             
             // 4. Retards (Dette)
-            requests.push(fetch(`http://localhost/api/visits?closed=false&visitedAt[before]=${twoDaysAgoIso}${techFilter}`, { headers }).then(r => r.json()));
+            requests.push(fetch(`${API_URL}/visits?closed=false&visitedAt[before]=${twoDaysAgoIso}${techFilter}`, { headers }).then(r => r.json()));
 
             // 5. Santé du Parc (Observations sur la période)
             // On récupère les observations récentes pour analyser les problèmes
-            requests.push(fetch(`http://localhost/api/observations?observedAt[after]=${startIso}&observedAt[before]=${endIso}&pagination=false${techFilterVisit}`, { headers }).then(r => r.json()));
+            requests.push(fetch(`${API_URL}/observations?observedAt[after]=${startIso}&observedAt[before]=${endIso}&pagination=false${techFilterVisit}`, { headers }).then(r => r.json()));
 
             const results = await Promise.all(requests);
             

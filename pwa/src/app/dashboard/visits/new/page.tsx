@@ -20,6 +20,8 @@ interface LastVisitInfo {
     recommendations: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+
 export default function NewVisitPage() {
     // ... (Hooks et States inchangés)
     const router = useRouter();
@@ -68,7 +70,7 @@ export default function NewVisitPage() {
 
                 // 1. Vérifier si visite EN COURS (Correction ici 👇)
                 // On utilise 'closed=false' qui est la propriété métier fiable
-                const activeRes = await fetch(`http://localhost/api/visits?customer=${customerId}&closed=false`, { headers });
+                const activeRes = await fetch(`${API_URL}/visits?customer=${customerId}&closed=false`, { headers });
                 const activeData = await activeRes.json();
                 
                 // API Platform retourne 'hydra:member' ou un tableau direct selon la config
@@ -85,13 +87,13 @@ export default function NewVisitPage() {
                 // 2. Charger la DERNIÈRE VISITE clôturée pour l'audit
                 setLoadingAudit(true);
                 // Pour l'historique, on cherche explicitement celle qui est 'closed=true'
-                const historyRes = await fetch(`http://localhost/api/visits?customer=${customerId}&closed=true&order[visitedAt]=desc&itemsPerPage=1`, { headers });
+                const historyRes = await fetch(`${API_URL}/visits?customer=${customerId}&closed=true&order[visitedAt]=desc&itemsPerPage=1`, { headers });
                 const historyData = await historyRes.json();
                 const historyList = historyData['hydra:member'] || historyData || [];
 
                 if (historyList.length > 0) {
                     const lastV = historyList[0];
-                    const obsRes = await fetch(`http://localhost/api/observations?visit=${lastV.id}`, { headers });
+                    const obsRes = await fetch(`${API_URL}/observations?visit=${lastV.id}`, { headers });
                     const obsData = await obsRes.json();
                     const obsList = obsData['hydra:member'] || obsData || [];
 
@@ -167,7 +169,7 @@ export default function NewVisitPage() {
         const token = localStorage.getItem('sav_token');
 
         try {
-            const visitRes = await fetch('http://localhost/api/visits', {
+            const visitRes = await fetch(`${API_URL}/visits`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
@@ -189,7 +191,7 @@ export default function NewVisitPage() {
                 
                 const followUpText = `SUIVI VISITE DU ${new Date(lastVisit.date).toLocaleDateString()} :\n${summaryLines.join('\n')}`;
 
-                await fetch('http://localhost/api/observations', {
+                await fetch(`${API_URL}/observations`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({

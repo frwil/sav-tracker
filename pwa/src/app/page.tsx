@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,7 +16,7 @@ export default function LoginPage() {
 
     try {
       // 1. Appel à l'endpoint que nous avons testé avec CURL
-      const res = await fetch('http://localhost/api/login_check', {
+      const res = await fetch(`${API_URL}/login_check`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
