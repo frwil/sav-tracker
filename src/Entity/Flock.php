@@ -20,11 +20,11 @@ use Doctrine\Common\Collections\Collection;
 use App\Validator\Constraints\BuildingAvailable;
 use Symfony\Component\Serializer\Attribute\Groups;
 use App\Entity\Standard;
-use Doctrine\DBAL\Types\Types;
-
+use Doctrine\ORM\Mapping\HasLifecycleCallbacks;
 
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
+#[HasLifecycleCallbacks]
 #[ApiResource(
     normalizationContext: ['groups' => ['flock:read']],
     denormalizationContext: ['groups' => ['flock:write']],
@@ -64,7 +64,7 @@ class Flock
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['visit:read', 'flock:read', 'building:read'])]
+    #[Groups(['visit:read', 'flock:read', 'building:read', 'flock:write'])]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -79,6 +79,7 @@ class Flock
     private ?\DateTimeInterface $endDate = null;
 
     #[ORM\Column]
+    #[Groups(['visit:read', 'flock:read', 'flock:write'])]
     private bool $closed = false;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
