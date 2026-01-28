@@ -86,16 +86,16 @@ COPY --link frankenphp/conf.d/20-app.prod.ini $PHP_INI_DIR/app.conf.d/
 # prevent the reinstallation of vendors at every changes in the source code
 COPY --link composer.* symfony.* ./
 RUN set -eux; \
-    composer install --no-cache --prefer-dist --no-autoloader --no-scripts --no-progress
+    composer install --no-cache --prefer-dist --no-dev --no-autoloader --no-scripts --no-progress
 
 # copy sources
 COPY --link --exclude=frankenphp/ . ./
 
 RUN set -eux; \
     mkdir -p var/cache var/log var/share; \
-    composer dump-autoload --classmap-authoritative; \
+    composer dump-autoload --classmap-authoritative --no-dev; \
     composer dump-env prod; \
-    php bin/console cache:clear --no-warmup; \
+    php bin/console cache:clear; \
     chmod +x bin/console; sync
 
 #CMD php bin/console doctrine:migrations:migrate --no-interaction && frankenphp run --config /etc/frankenphp/Caddyfile
