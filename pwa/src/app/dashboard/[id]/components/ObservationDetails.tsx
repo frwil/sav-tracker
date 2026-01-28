@@ -62,8 +62,8 @@ export const ObservationDetails = ({ obs, flock, building, visit, onEdit, onClos
         
         text += `\n*⚙️ MATÉRIEL & AMBIANCE*\n`;
         text += `• Densité : ${density} suj/m² (${surface}m²) ${density > 20 ? '⚠️' : '✅'}\n`;
-        text += `• Mangeoires : 1/${ratioMang} ${parseInt(ratioMang) > 50 ? '⚠️' : '✅'}\n`;
-        text += `• Abreuvoirs : 1/${ratioAbr} ${parseInt(ratioAbr) > 70 ? '⚠️' : '✅'}\n`;
+        text += `• Mangeoires : 1/${ratioMang} sujets ${parseInt(ratioMang) > 50 ? '⚠️' : '✅'}\n`;
+        text += `• Abreuvoirs : 1/${ratioAbr} sujets ${parseInt(ratioAbr) > 70 ? '⚠️' : '✅'}\n`;
         text += `• Litière : ${obs.data.litiere || '?'} ${litiereStatus.message ? '⚠️' : ''}\n`;
         text += `• Eau (pH) : ${obs.data.phValue || '?'} - Conso : ${obs.data.waterConsumptionIncrease === 'no' ? '↘️ BAISSE ALARMANTE' : '✅'}\n`;
         text += `• Homogénéité : Unif ${obs.data.uniformite || '?'} / CV ${obs.data.cv || '?'}\n`;
@@ -73,10 +73,29 @@ export const ObservationDetails = ({ obs, flock, building, visit, onEdit, onClos
             insights.forEach((i:any) => text += `${i.type === 'danger' ? '🚨' : '🔸'} ${i.text}\n`); 
         }
         
+        // Affichage des Nouveaux Problèmes
+        if ((obs.detectedProblems && obs.detectedProblems.length > 0) || obs.problems) {
+            text += `\n*⛔ PROBLÈMES DÉTECTÉS*\n`;
+            if (obs.problems) text += `- ${obs.problems}\n`;
+            if (obs.detectedProblems) {
+                obs.detectedProblems.forEach((p:any) => text += `- ${p.description} (${p.severity})\n`);
+            }
+        }
+
+        // Affichage des Problèmes Résolus
+        if (obs.resolvedProblems && obs.resolvedProblems.length > 0) {
+            text += `\n*✅ PROBLÈMES RÉSOLUS*\n`;
+            obs.resolvedProblems.forEach((p:any) => text += `- ${p.description}\n`);
+        }
+
         if (obs.recommendations) {
             text += `\n*💡 RECOMMANDATIONS*\n${obs.recommendations}\n`;
         }
         
+        if (obs.observation) {
+            text += `\n*📝 NOTE*\n${obs.observation}`;
+        }
+
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
     };
 
@@ -85,13 +104,10 @@ export const ObservationDetails = ({ obs, flock, building, visit, onEdit, onClos
         let text = `SAV ${clientName} J${obs.data.age}. Lot:${flock.name}. `;
         text += `Stock:${sujetsRestants} Morts:${obs.data.mortalite}. `;
         text += `Poids:${obs.data.poidsMoyen}g. `;
-        text += `Dens:${density}/m². `;
-        
-        if (parseInt(ratioMang) > 50) text += `MANQUE MANGEOIRES. `;
-        if (cvStatus.style.includes('red')) text += `CV > 12. `;
         
         if (insights.length > 0) text += `⚠️ ${insights.length} Alertes. `;
-        if (obs.recommendations) text += `Rec: ${obs.recommendations.substring(0, 30)}...`;
+        if (obs.detectedProblems && obs.detectedProblems.length > 0) text += `⛔ ${obs.detectedProblems.length} Pb. `;
+        if (obs.resolvedProblems && obs.resolvedProblems.length > 0) text += `✅ ${obs.resolvedProblems.length} Résolus. `;
         
         const phone = visit.customer.phoneNumber || '';
         const separator = navigator.userAgent.toLowerCase().includes("iphone") ? "&" : "?";
@@ -103,43 +119,17 @@ export const ObservationDetails = ({ obs, flock, building, visit, onEdit, onClos
 
     return (
         <div className={containerClass}>
-            {/* CSS PRINT CORRIGÉ */}
             <style jsx global>{`
                 @media print {
-                    @page { 
-                        margin: 0; 
-                        size: auto; 
-                    }
-                    body * { 
-                        visibility: hidden; 
-                        margin: 0;
-                        padding: 0;
-                        width: 100%;
-                    }
-                    #printable-report, #printable-report * { 
-                        visibility: visible; 
-                    }
-                    nav{ display: none; }
-                    #printable-report { 
-                        position: absolute; /* Utiliser fixed pour coller en haut */
-                        left: 0; 
-                        top: -70%; 
-                        width: 100%; 
-                        height: 95vh;
-                        margin: 0 !important; 
-                        padding: 20px !important; 
-                        background: white; 
-                        color: black; 
-                        z-index: 9999;
-                    }
-                    .no-print { 
-                        display: none !important; 
-                    } 
+                    @page { margin: 0; size: auto; }
+                    body * { visibility: hidden; }
+                    #printable-report, #printable-report * { visibility: visible; }
+                    #printable-report { position: absolute; left: 0; top: 0; width: 100%; height: auto; margin: 0 !important; padding: 20px !important; background: white; color: black; z-index: 9999; overflow: visible; }
+                    .no-print { display: none !important; } 
                 }
             `}</style>
             
             <div id="printable-report" className={`bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden ${isModal ? 'max-h-[90vh] overflow-y-auto' : ''}`}>
-                {/* En-tête Rapport */}
                 <div className="bg-gray-800 text-white p-4 flex justify-between items-center sticky top-0 z-10 print:bg-white print:text-black print:border-b-2">
                     <div>
                         {isModal && <span className="bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 rounded uppercase mr-2 align-middle no-print">Historique</span>}
@@ -170,13 +160,13 @@ export const ObservationDetails = ({ obs, flock, building, visit, onEdit, onClos
                             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mortalité</p>
                             <div className="flex justify-center items-baseline gap-1">
                                 <p className="text-2xl font-black text-gray-800">{obs.data.mortalite}</p>
-                                <span className="text-xs text-gray-500">aujourd'hui</span>
+                                <span className="text-xs text-gray-500">jour</span>
                             </div>
                             <p className="text-[10px] font-black text-gray-600 mt-1">Total : {totalMortalite} ({pourcentMortalite}%)</p>
                         </div>
                     </div>
 
-                    {/* Section Alimentation */}
+                    {/* Alimentation */}
                     <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
                         <h5 className="text-xs font-bold text-orange-800 uppercase mb-3 flex items-center gap-2">🥣 Alimentation & Consommation</h5>
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -260,11 +250,50 @@ export const ObservationDetails = ({ obs, flock, building, visit, onEdit, onClos
                         </div>
                     )}
 
-                    {/* Textes Libres */}
-                    {(obs.observation || obs.recommendations || obs.problems) && (
+                    {/* ✅ Affichage des Problèmes DÉTECTÉS */}
+                    {(obs.observation || obs.recommendations || obs.problems || (obs.detectedProblems && obs.detectedProblems.length > 0)) && (
                         <div className="border-t border-gray-200 pt-4 space-y-3">
-                            {obs.problems && <div className="p-3 bg-red-100 text-red-900 rounded text-sm"><strong>⛔ PROBLÈMES :</strong> <p className="whitespace-pre-wrap">{obs.problems}</p></div>}
-                            {obs.recommendations && <div className="p-3 bg-green-100 text-green-900 rounded text-sm"><strong>💡 RECOMMANDATION :</strong> <p className="whitespace-pre-wrap">{obs.recommendations}</p></div>}
+                            {/* Ancien champ texte */}
+                            {obs.problems && (
+                                <div className="p-3 bg-red-100 text-red-900 rounded text-sm">
+                                    <strong className="block mb-1">⛔ PROBLÈMES (Note):</strong> 
+                                    <p className="whitespace-pre-wrap">{obs.problems}</p>
+                                </div>
+                            )}
+                            
+                            {/* Nouveaux problèmes structurés */}
+                            {obs.detectedProblems && obs.detectedProblems.length > 0 && (
+                                <div className="p-3 bg-red-100 text-red-900 rounded text-sm">
+                                    <strong className="block mb-2">⛔ PROBLÈMES DÉTECTÉS :</strong> 
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        {obs.detectedProblems.map((p: any, i:number) => (
+                                            <li key={i}>
+                                                <span className={`font-bold ${p.severity === 'critical' ? 'text-red-700' : ''}`}>{p.description}</span>
+                                                <span className="text-xs opacity-75 ml-2">({p.severity})</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* ✅ Affichage des Problèmes RÉSOLUS */}
+                            {obs.resolvedProblems && obs.resolvedProblems.length > 0 && (
+                                <div className="p-3 bg-green-100 text-green-900 rounded text-sm border border-green-200">
+                                    <strong className="block mb-2">✅ PROBLÈMES RÉSOLUS :</strong> 
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        {obs.resolvedProblems.map((p: any, i:number) => (
+                                            <li key={i} className="line-through opacity-80">{p.description}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {obs.recommendations && (
+                                <div className="p-3 bg-green-100 text-green-900 rounded text-sm">
+                                    <strong className="block mb-1">💡 RECOMMANDATION :</strong> 
+                                    <p className="whitespace-pre-wrap">{obs.recommendations}</p>
+                                </div>
+                            )}
                             {obs.observation && (
                                 <div className="bg-gray-50 p-3 rounded border border-gray-200">
                                     <strong className="text-xs text-gray-500 uppercase block mb-1">Note Générale</strong>

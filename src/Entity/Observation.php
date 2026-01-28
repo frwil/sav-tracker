@@ -90,6 +90,10 @@ class Observation
     #[Groups(['observation:read', 'observation:write', 'visit:read'])]
     private Collection $detectedProblems;
 
+    #[ORM\OneToMany(mappedBy: 'resolvedIn', targetEntity: Problem::class)]
+    #[Groups(['observation:read', 'observation:write'])]
+    private Collection $resolvedProblems;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['observation:read', 'observation:write', 'visit:read'])]
     private ?string $generalComment = null; // Commentaire général
@@ -131,6 +135,7 @@ class Observation
     public function __construct()
     {
         $this->detectedProblems = new ArrayCollection();
+        $this->resolvedProblems = new ArrayCollection();
         // Si vous aviez déjà un constructeur, ajoutez juste la ligne ci-dessus dedans.
     }
 
@@ -174,6 +179,28 @@ class Observation
             // set the owning side to null (unless already changed)
             if ($problem->getDetectedIn() === $this) {
                 $problem->setDetectedIn(null);
+            }
+        }
+        return $this;
+    }
+
+    /** @return Collection<int, Problem> */
+    public function getResolvedProblems(): Collection { return $this->resolvedProblems; }
+
+    public function addResolvedProblem(Problem $problem): self
+    {
+        if (!$this->resolvedProblems->contains($problem)) {
+            $this->resolvedProblems->add($problem);
+            $problem->setResolvedIn($this); // Ça mettra automatiquement le statut à resolved
+        }
+        return $this;
+    }
+
+    public function removeResolvedProblem(Problem $problem): self
+    {
+        if ($this->resolvedProblems->removeElement($problem)) {
+            if ($problem->getResolvedIn() === $this) {
+                $problem->setResolvedIn(null);
             }
         }
         return $this;

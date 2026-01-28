@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useSync } from '@/providers/SyncProvider'; 
-import { API_URL, ProphylaxisTask, calculateAgeInDays, calculateBenchmark, getWaterOptions, getFieldFeedback, getPreviousWeight, getHistoricalObservations, generateExpertInsights, BenchmarkCard } from '../shared';
+import { API_URL, ProphylaxisTask, calculateAgeInDays, calculateBenchmark, getWaterOptions, getFieldFeedback, getPreviousWeight, getHistoricalObservations, generateExpertInsights, BenchmarkCard, Problem } from '../shared';
 
 export const ObservationForm = ({ visitIri, flock, building, visit, initialData, onSuccess, onCancel }: any) => {
     const { addToQueue } = useSync();
@@ -28,7 +28,39 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
 
     const displayedHistory = useMemo(() => historyList.find(h => h.id == selectedHistoryId), [historyList, selectedHistoryId]);
 
-    // --- 3. DONNÉES DE BASE ---
+    // --- 3. CHARGEMENT DONNÉES EXTERNES ---
+    const [existingOpenProblems, setExistingOpenProblems] = useState<Problem[]>([]);
+    
+    // Charger les problèmes OUVERTS du flock (Checklist)
+    useEffect(() => {
+        const fetchProblems = async () => {
+            if (!navigator.onLine) return;
+            const token = localStorage.getItem('sav_token');
+            try {
+                // On utilise le nouveau filtre detectedIn.flock
+                const res = await fetch(`${API_URL}/problems?detectedIn.flock=${flock['@id'] || flock.id}&status=open`, { 
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' } 
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    let problems = data['hydra:member'] || [];
+                    
+                    // Si on est en mode édition, il faut ajouter les problèmes que CETTE observation a résolu (sinon ils n'apparaissent plus dans la liste "open")
+                    if (isEditMode && initialData?.resolvedProblems) {
+                        // On évite les doublons
+                        const currentResolvedIds = initialData.resolvedProblems.map((p: any) => p['@id']);
+                        problems = problems.filter((p: any) => !currentResolvedIds.includes(p['@id']));
+                        problems = [...problems, ...initialData.resolvedProblems];
+                    }
+                    
+                    setExistingOpenProblems(problems);
+                }
+            } catch(e) { console.error("Erreur chargement problèmes", e); }
+        };
+        fetchProblems();
+    }, [flock, isEditMode, initialData]);
+
+    // Charger les vaccins
     useEffect(() => {
         const fetchProphy = async () => {
             if (!navigator.onLine) return;
@@ -75,7 +107,36 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
     }, [feedStrategy, isFish, isPig]);
 
     const [inventory, setInventory] = useState(initialData?.data?.inventory || { complete: { current: 0, added: 0 }, mais: { current: 0, added: 0 }, soja: { current: 0, added: 0 }, concentre: { current: 0, added: 0 } });
-    const [common, setCommon] = useState({ concerns: initialData?.concerns || '', observation: initialData?.observation || '', recommendations: initialData?.recommendations || '', problems: initialData?.problems || '' });
+    
+    // --- GESTION DES PROBLÈMES (Nouveaux & Résolus) ---
+    const [common, setCommon] = useState({ concerns: initialData?.concerns || '', observation: initialData?.observation || '', recommendations: initialData?.recommendations || '' });
+    
+    // 1. Nouveaux problèmes détectés (à créer)
+    const [newProblems, setNewProblems] = useState<Partial<Problem>[]>(initialData?.detectedProblems || []);
+    const [tempProblem, setTempProblem] = useState({ description: '', severity: 'medium' as 'low'|'medium'|'high'|'critical' });
+
+    // 2. Problèmes existants marqués comme résolus (IDs)
+    const [resolvedProblemIds, setResolvedProblemIds] = useState<string[]>(
+        initialData?.resolvedProblems?.map((p: any) => p['@id']) || []
+    );
+
+    const handleAddProblem = () => {
+        if (!tempProblem.description.trim()) return;
+        setNewProblems([...newProblems, { description: tempProblem.description, severity: tempProblem.severity, status: 'open' }]);
+        setTempProblem({ description: '', severity: 'medium' });
+    };
+
+    const handleRemoveProblem = (index: number) => {
+        setNewProblems(newProblems.filter((_, i) => i !== index));
+    };
+
+    const toggleProblemResolution = (problemIri: string) => {
+        if (resolvedProblemIds.includes(problemIri)) {
+            setResolvedProblemIds(resolvedProblemIds.filter(id => id !== problemIri));
+        } else {
+            setResolvedProblemIds([...resolvedProblemIds, problemIri]);
+        }
+    };
 
     const [data, setData] = useState<any>({ 
         age: initialData?.data?.age || 0, mortalite: initialData?.data?.mortalite || 0, poidsMoyen: initialData?.data?.poidsMoyen || 0, consoTete: initialData?.data?.consoTete || 0,
@@ -100,28 +161,24 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
     const updateInventory = (type: string, field: 'current' | 'added', value: number) => setInventory((prev: any) => ({ ...prev, [type]: { ...prev[type], [field]: value } }));
     const updateData = (key: string, value: any) => setData((prev: any) => ({ ...prev, [key]: value }));
     
-    // --- 4. CALCULS EN TEMPS RÉEL (Restaurés) ---
+    // --- 4. CALCULS EN TEMPS RÉEL ---
     const benchmark = calculateBenchmark(data.age, data.poidsMoyen, data.consoTete, flock.standard?.curveData || []);
     const waterOptions = getWaterOptions(flock.speculation.name);
     
     const phFeedback = getFieldFeedback('phValue', data.phValue);
     const litiereFeedback = getFieldFeedback('litiere', data.litiere);
     const unifFeedback = getFieldFeedback('uniformite', data.uniformite);
-    // On ajoute le feedback CV
     const cvFeedback = getFieldFeedback('cv', data.cv);
 
-    // ✅ Génération des Insights "Live"
     const liveInsights = useMemo(() => {
         const surface = building.surface || 1;
         const estimatedDensity = (flock.subjectCount - data.mortalite) / surface; 
         
-        // Objet temporaire simulant une observation complète pour la fonction partagée
         const tempObs = {
             data: {
                 ...data,
                 feedStrategy,
                 inventory,
-                // On passe les champs critiques explicitement
                 mangeoires: data.mangeoires,
                 abreuvoirs: data.abreuvoirs,
                 waterConsumptionIncrease: data.waterConsumptionIncrease,
@@ -148,9 +205,20 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
         if (!feedBrand || feedBrand.trim() === '') { alert("⚠️ Précisez le type/marque d'aliment."); return; }
 
         const finalData = { ...data, feedStrategy, feedBrand, inventory, weightCorrection: correctionReason ? { ticketId: `TKT-${Date.now()}`, reason: correctionReason, previous: previousWeight, declared: data.poidsMoyen } : null };
-        const body = { visit: visitIri, flock: flock['@id'], observedAt: initialData?.observedAt || new Date().toISOString(), ...common, data: finalData };
         
-        // Sauvegarde Stratégie (Flock)
+        // ✅ CONSTRUCTION DU PAYLOAD AVEC LES DEUX LISTES
+        const body = { 
+            visit: visitIri, 
+            flock: flock['@id'], 
+            observedAt: initialData?.observedAt || new Date().toISOString(), 
+            ...common, 
+            // 1. Problèmes détectés (Objets) -> Cascade Persist côté backend créera les entités
+            detectedProblems: newProblems, 
+            // 2. Problèmes résolus (IRIs) -> Le backend mettra à jour resolvedIn + status
+            resolvedProblems: resolvedProblemIds,
+            data: finalData 
+        };
+        
         if (feedStrategy !== flock.feedStrategy || (feedStrategy === 'THIRD_PARTY' && feedBrand !== flock.feedFormula)) {
             const patchUrl = `/flocks/${flock.id}`;
             const patchBody: any = { feedStrategy, feedFormula: feedBrand };
@@ -158,7 +226,6 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
             else await fetch(`${API_URL}${patchUrl}`, { method: 'PATCH', headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(patchBody) }).catch(console.error);
         }
 
-        // Sauvegarde Observation
         const url = isEditMode ? `/observations/${initialData!.id}` : `/observations`;
         const method = isEditMode ? 'PATCH' : 'POST';
 
@@ -215,7 +282,19 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
                             {displayedHistory && (
                                 <div className="text-xs text-gray-700 grid grid-cols-2 gap-2">
                                     <span>⚖️ {displayedHistory.data.poidsMoyen}g</span><span>☠️ {displayedHistory.data.mortalite}</span>
-                                    <span className="col-span-2 italic text-gray-500">{displayedHistory.problems ? `⚠️ ${displayedHistory.problems.substring(0, 50)}...` : 'RAS'}</span>
+                                    
+                                    <div className="col-span-2 mt-1">
+                                        {/* Affichage des problèmes historiques */}
+                                        {displayedHistory.detectedProblems && displayedHistory.detectedProblems.length > 0 ? (
+                                            <ul className="list-disc pl-4 text-red-600">
+                                                {displayedHistory.detectedProblems.map((p: any, i:number) => (
+                                                    <li key={i}>{p.description} ({p.severity})</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            displayedHistory.problems && <p className="text-red-700">⚠️ {displayedHistory.problems}</p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -257,7 +336,7 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
                     {feedStrategy === 'SELF_MIX' && (<div className="bg-white p-3 rounded border border-orange-100"><div className="space-y-2"><div className="grid grid-cols-3 gap-2"><span className="text-xs font-bold text-gray-700">🌽 Maïs</span><input type="number" placeholder="+ Entrée" className="border p-1 rounded text-xs" value={inventory.mais?.added} onChange={e => updateInventory('mais', 'added', parseFloat(e.target.value))} /><input type="number" placeholder="Stock" className="border p-1 rounded text-xs" value={inventory.mais?.current} onChange={e => updateInventory('mais', 'current', parseFloat(e.target.value))} /></div></div></div>)}
                 </div>
 
-                {/* ✅ BLOC INSIGHTS TEMPS RÉEL */}
+                {/* BLOC INSIGHTS TEMPS RÉEL */}
                 {liveInsights.length > 0 && (
                     <div className="bg-red-50 p-4 rounded-lg border border-red-200 mb-6 animate-in slide-in-from-bottom-2">
                         <h4 className="text-xs font-bold text-red-800 uppercase mb-2 flex items-center gap-2">⚠️ Analyse Temps Réel</h4>
@@ -271,7 +350,84 @@ export const ObservationForm = ({ visitIri, flock, building, visit, initialData,
                     </div>
                 )}
 
-                <div className="space-y-3 pt-4 border-t"><textarea className="w-full border p-2 rounded text-sm" rows={2} placeholder="Observations..." value={common.observation} onChange={e => setCommon({ ...common, observation: e.target.value })} /><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><textarea className="w-full border bg-green-50 p-2 rounded text-sm" placeholder="✅ Recommandations..." value={common.recommendations} onChange={e => setCommon({ ...common, recommendations: e.target.value })} /><textarea className="w-full border bg-red-50 p-2 rounded text-sm" placeholder="⛔ Problèmes..." value={common.problems} onChange={e => setCommon({ ...common, problems: e.target.value })} /></div></div>
+                <div className="space-y-3 pt-4 border-t">
+                    <textarea className="w-full border p-2 rounded text-sm" rows={2} placeholder="Observations générales..." value={common.observation} onChange={e => setCommon({ ...common, observation: e.target.value })} />
+                    
+                    {/* ✅ GESTION COMPLÈTE DES PROBLÈMES */}
+                    <div className="border border-red-100 rounded-lg overflow-hidden">
+                        
+                        {/* 1. Checklist : Problèmes existants à résoudre */}
+                        {existingOpenProblems.length > 0 && (
+                            <div className="bg-orange-50 p-3 border-b border-orange-100">
+                                <h5 className="text-xs font-bold text-orange-900 mb-2 uppercase">✅ Checklist : Problèmes en cours</h5>
+                                <div className="space-y-1">
+                                    {existingOpenProblems.map((p: any) => (
+                                        <label key={p['@id']} className={`flex items-center gap-2 text-xs p-2 rounded border cursor-pointer hover:bg-white transition ${resolvedProblemIds.includes(p['@id']) ? 'bg-green-100 border-green-300 opacity-50' : 'bg-white border-orange-200'}`}>
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-green-600 rounded"
+                                                checked={resolvedProblemIds.includes(p['@id'])}
+                                                onChange={() => toggleProblemResolution(p['@id'])}
+                                            />
+                                            <span className={resolvedProblemIds.includes(p['@id']) ? 'line-through text-gray-500' : 'font-medium text-gray-800'}>
+                                                {p.description} <span className="text-[10px] px-1 bg-gray-200 rounded text-gray-600">{p.severity}</span>
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2. Ajout : Nouveaux problèmes détectés */}
+                        <div className="bg-red-50 p-3">
+                            <h5 className="text-xs font-bold text-red-900 mb-2 uppercase">⛔ Nouveaux Problèmes Détectés</h5>
+                            
+                            {newProblems.length > 0 && (
+                                <ul className="mb-2 space-y-1">
+                                    {newProblems.map((p, idx) => (
+                                        <li key={idx} className="flex justify-between items-center text-xs bg-white p-1 rounded border border-red-200 shadow-sm">
+                                            <span>
+                                                <span className={`inline-block w-2 h-2 rounded-full mr-2 ${p.severity === 'critical' ? 'bg-red-600' : (p.severity === 'high' ? 'bg-orange-500' : 'bg-yellow-400')}`}></span>
+                                                {p.description}
+                                            </span>
+                                            <button type="button" onClick={() => handleRemoveProblem(idx)} className="text-red-500 font-bold px-2 hover:bg-red-50 rounded">×</button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    className="flex-1 border p-1 rounded text-xs" 
+                                    placeholder="Décrire un problème..." 
+                                    value={tempProblem.description}
+                                    onChange={(e) => setTempProblem({...tempProblem, description: e.target.value})}
+                                />
+                                <select 
+                                    className="border p-1 rounded text-xs bg-white"
+                                    value={tempProblem.severity}
+                                    onChange={(e) => setTempProblem({...tempProblem, severity: e.target.value as any})}
+                                >
+                                    <option value="low">Faible</option>
+                                    <option value="medium">Moyen</option>
+                                    <option value="high">Élevé</option>
+                                    <option value="critical">Critique</option>
+                                </select>
+                                <button 
+                                    type="button" 
+                                    onClick={handleAddProblem}
+                                    className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 rounded"
+                                >
+                                    AJOUTER
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <textarea className="w-full border bg-green-50 p-2 rounded text-sm" placeholder="✅ Recommandations..." value={common.recommendations} onChange={e => setCommon({ ...common, recommendations: e.target.value })} />
+                </div>
+                
                 <div className="flex gap-3 justify-end pt-4"><button type="button" onClick={onCancel} className="px-4 py-2 text-gray-600 font-bold text-sm">Annuler</button><button type="submit" disabled={loading} className="px-6 py-2 bg-indigo-600 text-white font-bold rounded text-sm">{loading ? '...' : 'Enregistrer'}</button></div>
             </form>
         </div>

@@ -26,7 +26,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
     normalizationContext: ['groups' => ['problem:read']],
     denormalizationContext: ['groups' => ['problem:write']]
 )]
-#[ApiFilter(SearchFilter::class, properties: ['flock' => 'exact', 'status' => 'exact', 'detectedIn' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: [
+    'detectedIn.flock' => 'exact', // 👈 On filtre via l'observation d'origine
+    'status' => 'exact'
+])]
 class Problem
 {
     public const STATUS_OPEN = 'open';
@@ -37,7 +40,7 @@ class Problem
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['problem:read', 'problem:write', 'observation:read', 'observation:write', 'visit:read'])]
+    #[Groups(['problem:read', 'problem:write', 'observation:read', 'visit:read'])]
     private ?string $description = null;
 
     #[ORM\Column(length: 20, options: ['default' => self::STATUS_OPEN])]
@@ -45,19 +48,22 @@ class Problem
     private ?string $status = self::STATUS_OPEN;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Groups(['problem:read', 'problem:write', 'observation:read', 'observation:write'])]
-    private ?string $severity = 'medium'; // low, medium, high, critical
+    #[Groups(['problem:read', 'problem:write', 'observation:read'])]
+    private ?string $severity = 'medium';
 
     // --- RELATIONS ---
 
+    // 1. L'observation où le problème a été VU (Obligatoire)
     #[ORM\ManyToOne(inversedBy: 'detectedProblems')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['problem:read', 'problem:write'])]
     private ?Observation $detectedIn = null;
 
-    #[ORM\ManyToOne]
+    // 2. L'observation où le problème a été RÉSOLU (Optionnel)
+    #[ORM\ManyToOne(inversedBy: 'resolvedProblems')]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(['problem:read', 'problem:write'])]
-    private ?Flock $flock = null;
+    private ?Observation $resolvedIn = null;
 
     // --- DATES ---
 
@@ -74,6 +80,8 @@ class Problem
         $this->createdAt = new \DateTimeImmutable();
     }
 
+    // --- GETTERS & SETTERS ---
+
     public function getId(): ?int { return $this->id; }
 
     public function getDescription(): ?string { return $this->description; }
@@ -82,6 +90,7 @@ class Problem
     public function getStatus(): ?string { return $this->status; }
     public function setStatus(string $status): self {
         $this->status = $status;
+        // Auto-remplissage de la date si résolu
         if ($status === self::STATUS_RESOLVED && !$this->resolvedAt) {
             $this->resolvedAt = new \DateTime();
         }
@@ -94,8 +103,15 @@ class Problem
     public function getDetectedIn(): ?Observation { return $this->detectedIn; }
     public function setDetectedIn(?Observation $detectedIn): self { $this->detectedIn = $detectedIn; return $this; }
 
-    public function getFlock(): ?Flock { return $this->flock; }
-    public function setFlock(?Flock $flock): self { $this->flock = $flock; return $this; }
+    public function getResolvedIn(): ?Observation { return $this->resolvedIn; }
+    public function setResolvedIn(?Observation $resolvedIn): self { 
+        $this->resolvedIn = $resolvedIn;
+        // Si on lie une observation de résolution, on passe automatiquement le statut à résolu
+        if ($resolvedIn) {
+            $this->setStatus(self::STATUS_RESOLVED);
+        }
+        return $this; 
+    }
 
     public function getCreatedAt(): ?\DateTimeImmutable { return $this->createdAt; }
     public function getResolvedAt(): ?\DateTimeInterface { return $this->resolvedAt; }
