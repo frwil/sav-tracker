@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\FlockRepository;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\OpenApi\Model\Schema;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\MediaType;
@@ -49,7 +50,8 @@ use Doctrine\ORM\Mapping\HasLifecycleCallbacks;
                 )
             ),
             name: 'close_flock'
-        )
+        ),
+        new Delete()
     ]
 )]
 #[BuildingAvailable] // Contrainte personnalisée
