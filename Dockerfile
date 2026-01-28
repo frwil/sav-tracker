@@ -93,7 +93,7 @@ COPY --link --exclude=frankenphp/ . ./
 
 RUN set -eux; \
     mkdir -p var/cache var/log var/share; \
-    composer dump-autoload --classmap-authoritative --no-dev; \
+    composer dump-autoload --classmap-authoritative; \
     composer dump-env prod; \
     php bin/console cache:clear --no-warmup; \
     chmod +x bin/console; sync
