@@ -102,7 +102,6 @@ export default function BuildingsPage() {
                 nextNum=nextNum+1;
             }
         });
-        console.log(nextNum+1);
         setName(`BATIMENT ${buildings[0].customer?.name.replace(/ /g,'').substring(0,10).toLocaleUpperCase() || 'INCONNU'}${buildings[0].customer?.id} #${nextNum+1}`);
         setShowForm(true);
     };
@@ -121,7 +120,7 @@ export default function BuildingsPage() {
         setIsSubmitting(true);
 
         const payload = {
-            name,
+            name: name,
             surface: parseFloat(surface),
             maxCapacity: capacity ? parseInt(capacity) : null,
             customer: selectedCustomerOption.value,

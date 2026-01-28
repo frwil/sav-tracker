@@ -34,7 +34,7 @@ class BuildingExtension implements QueryCollectionExtensionInterface, QueryItemE
         }
 
         // Si l'utilisateur est ADMIN, on lui montre tout (activé ou pas)
-        if ($this->security->isGranted('ROLE_ADMIN')) {
+        if ($this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN')) {
             return;
         }
 
