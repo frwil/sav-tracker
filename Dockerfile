@@ -95,7 +95,7 @@ RUN set -eux; \
     mkdir -p var/cache var/log var/share; \
     composer dump-autoload --classmap-authoritative --no-dev; \
     composer dump-env prod; \
-    #php bin/console cache:clear; \
+    php bin/console cache:clear; \
     chmod +x bin/console; sync
 
 #CMD php bin/console doctrine:migrations:migrate --no-interaction && frankenphp run --config /etc/frankenphp/Caddyfile
