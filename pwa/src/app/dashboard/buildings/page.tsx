@@ -5,6 +5,7 @@ import Select from 'react-select';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCustomers, CustomerOption } from '@/hooks/useCustomers';
 import { useSync } from '@/providers/SyncProvider';
+import next from 'next';
 
 // --- TYPES ---
 
@@ -15,7 +16,8 @@ interface Building {
     surface: number;
     maxCapacity?: number;
     activated: boolean;
-    flocks: any[]; // On garde simple ici, juste pour vérifier s'il est vide
+    flocks: any[]; 
+    customer: { id: number; name: string; };
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -31,7 +33,7 @@ async function fetchBuildings(customerId: string) {
 
     if (!res.ok) throw new Error(`Erreur ${res.status}`);
     const data = await res.json();
-    return data['hydra:member'] || [];
+    return data['hydra:member'] || data['member'] || [];
 }
 
 export default function BuildingsPage() {
@@ -93,8 +95,15 @@ export default function BuildingsPage() {
     const handleCreate = () => {
         resetForm();
         // Nom par défaut intelligent (ex: Bâtiment 1, 2...)
-        const nextNum = buildings.length + 1;
-        setName(`Bâtiment ${nextNum}`);
+        var nextNum = 0;
+        buildings.forEach(b => {
+            const match = b.customer.name.match(new RegExp(`^BATIMENT ${b.customer.name.replace(/ /g,'').substring(0,10).toLocaleUpperCase()}${b.customer.id} #(\\d+)$`));
+            if (match) {
+                nextNum=nextNum+1;
+            }
+        });
+        console.log(nextNum+1);
+        setName(`BATIMENT ${buildings[0].customer?.name.replace(/ /g,'').substring(0,10).toLocaleUpperCase() || 'INCONNU'}${buildings[0].customer?.id} #${nextNum+1}`);
         setShowForm(true);
     };
 
@@ -199,6 +208,7 @@ export default function BuildingsPage() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             queryClient.invalidateQueries({ queryKey: ['buildings', selectedCustomerOption?.value] });
+            alert("Bâtiment supprimé.");
         } catch (e) {
             addToQueue({ url, method: 'DELETE', body: {} });
         }
@@ -255,16 +265,16 @@ export default function BuildingsPage() {
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700">Nom du bâtiment</label>
-                                    <input required type="text" className="w-full border p-2 rounded" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Bâtiment A" />
+                                    <input required type="text" className="w-full border p-2 rounded" readOnly value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Bâtiment A" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700">Surface (m²)</label>
-                                        <input required type="number" step="0.1" className="w-full border p-2 rounded" value={surface} onChange={e => setSurface(e.target.value)} />
+                                        <input required type="number" step="0.1" min="0" className="w-full border p-2 rounded" value={surface || '0'} onChange={e => setSurface(e.target.value)} />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700">Capacité Max (sujets)</label>
-                                        <input type="number" className="w-full border p-2 rounded" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="Optionnel" />
+                                        <input type="number" className="w-full border p-2 rounded" value={capacity || '0'} onChange={e => setCapacity(e.target.value)} required min="0" />
                                     </div>
                                 </div>
                                 <div className="flex justify-end gap-3 pt-2">

@@ -19,39 +19,39 @@ use Symfony\Component\Serializer\Attribute\Groups;
 class Customer
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
-    #[Groups(['customer:read', 'visit:read'])]
+    #[Groups(['customer:read', 'visit:read', 'building:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])] // 👈 customer:write ajouté partout
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])] // 👈 customer:write ajouté partout
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
     private ?string $zone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
     private ?string $exactLocation = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
     private ?string $erpCode = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
     private ?string $erpName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
     private ?string $phoneNumber = null;
 
     #[ORM\OneToMany(mappedBy: 'customer', targetEntity: Building::class, orphanRemoval: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
     private Collection $buildings;
 
     #[ORM\ManyToMany(targetEntity: Speculation::class)]
@@ -124,5 +124,20 @@ class Customer
         return $this;
     }
     public function getBuildings(): Collection { return $this->buildings; }
+    public function addBuilding(Building $building): self {
+        if (!$this->buildings->contains($building)) {
+            $this->buildings->add($building);
+            $building->setCustomer($this);
+        }
+        return $this;
+    }
+    public function removeBuilding(Building $building): self {
+        if ($this->buildings->removeElement($building)) {
+            if ($building->getCustomer() === $this) {
+                $building->setCustomer(null);
+            }
+        }
+        return $this;
+    }
     // ...
 }

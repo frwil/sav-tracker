@@ -17,7 +17,8 @@ interface Checkpoint {
 interface LastVisitInfo {
     date: string;
     tech: string;
-    problems: string[];
+    // Adapté au nouveau format
+    problems: string[] | { description: string, severity: string, status: string }[];
     recommendations: string;
 }
 
@@ -72,7 +73,7 @@ export default function NewVisitPage() {
 
                 if (res.ok) {
                     const data = await res.json();
-                    const visits = data['hydra:member'] || data['member'] || [];
+                    const visits = data['hydra:member'] || [];
                     
                     if (visits.length > 0) {
                         // 🚨 ALERTE : Une visite existe déjà !
@@ -120,20 +121,46 @@ export default function NewVisitPage() {
 
             if (lastRes.ok) {
                 const lastData = await lastRes.json();
-                const lastVisits = lastData['hydra:member'] || lastData['member'] || [];
+                const lastVisits = lastData['hydra:member'] || [];
                 
                 if (lastVisits.length > 0) {
                     const lv = lastVisits[0];
+                    
+                    // ✅ Récupération intelligente des problèmes (ancien champ vs nouveau)
+                    let problems: { description: any; severity: any; status: any; }[] = [];
+                    // Chercher dans les observations de cette visite
+                    if (lv.observations && lv.observations.length > 0) {
+                        lv.observations.forEach((obs: any) => {
+                            if (obs.problems) problems.push(obs.problems); // Ancien format (string)
+                            if (obs.detectedProblems) {
+                                obs.detectedProblems.forEach((p: any) => problems.push({
+                                    description: p.description,
+                                    severity: p.severity,
+                                    status: p.status
+                                }));
+                            }
+                        });
+                    }
+
                     setLastVisit({
                         date: new Date(lv.createdAt || lv.visitedAt).toLocaleDateString('fr-FR'),
                         tech: lv.technician?.fullname || lv.technician?.username || 'Inconnu',
-                        problems: lv.problems, // À adapter si vous stockez les problèmes dans la visite
-                        recommendations: lv.recommendations || "Aucune recommandation enregistrée."
+                        problems: problems,
+                        recommendations: lv.report || "Aucune recommandation enregistrée."
                     });
                     
-                    setChecklist([
-                        { id: 1, text: "Vérifier les points précédents", status: 'unresolved' }
-                    ]);
+                    // Générer une checklist basée sur les problèmes précédents
+                    const newChecklist = problems.map((p: any, idx: number) => ({
+                        id: idx,
+                        text: typeof p === 'string' ? p : `Vérifier : ${p.description}`,
+                        status: 'unresolved' as const
+                    }));
+
+                    if (newChecklist.length === 0) {
+                        newChecklist.push({ id: 0, text: "Vérifier l'application des recommandations", status: 'unresolved' });
+                    }
+
+                    setChecklist(newChecklist);
                     
                     setStep(2);
                 } else {
@@ -148,7 +175,8 @@ export default function NewVisitPage() {
         }
     };
 
-    // ... (Reste des fonctions : handleGeolocate, handleSubmit sont inchangées)
+    // ... (Reste des fonctions handleGeolocate, handleSubmit inchangées)
+
     const handleGeolocate = () => {
         setIsGeolocating(true);
         if ('geolocation' in navigator) {
@@ -256,7 +284,7 @@ export default function NewVisitPage() {
                             </div>
                             
                             <Link 
-                                href={`/dashboard/${activeVisit.id}`}
+                                href={`/dashboard/visits/${activeVisit.id}`}
                                 className="mt-4 block w-full text-center py-3 bg-red-600 text-white font-bold rounded shadow hover:bg-red-700 transition"
                             >
                                 👉 REPRENDRE LA VISITE #{activeVisit.id}
@@ -277,7 +305,7 @@ export default function NewVisitPage() {
                 </div>
             )}
 
-            {/* ÉTAPE 2 : REVUE (Code inchangé mais connecté) */}
+            {/* ÉTAPE 2 : REVUE */}
             {step === 2 && lastVisit && (
                 <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
                     <h2 className="text-lg font-semibold">2. Revue de la dernière visite</h2>
@@ -286,9 +314,40 @@ export default function NewVisitPage() {
                             <span className="text-xs font-bold text-gray-500 uppercase">Le {lastVisit.date}</span>
                             <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">{lastVisit.tech}</span>
                         </div>
-                        <p className="text-gray-800 italic">"{lastVisit.recommendations}"</p>
+                        
+                        {/* Affichage des problèmes */}
+                        {lastVisit.problems && lastVisit.problems.length > 0 && (
+                            <div className="mb-4">
+                                <h4 className="text-xs font-bold text-red-800 uppercase mb-1">Problèmes signalés :</h4>
+                                <ul className="list-disc pl-4 text-sm text-gray-700">
+                                    {lastVisit.problems.map((p, idx) => (
+                                        <li key={idx}>
+                                            {typeof p === 'string' ? p : `${p.description} (${p.severity})`}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        <div className="mt-2">
+                            <h4 className="text-xs font-bold text-green-800 uppercase mb-1">Recommandations :</h4>
+                            <p className="text-gray-800 italic text-sm">"{lastVisit.recommendations}"</p>
+                        </div>
                     </div>
-                    {/* ... (Checklist UI identique à avant) ... */}
+                    
+                    {/* Checklist */}
+                    <div>
+                        <h3 className="font-bold text-sm text-gray-700 mb-2">Points à vérifier (Checklist)</h3>
+                        <div className="space-y-2">
+                            {checklist.map((item) => (
+                                <label key={item.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" />
+                                    <span className="text-sm text-gray-700">{item.text}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="flex justify-between pt-4">
                         <button onClick={() => setStep(1)} className="text-gray-500 font-medium">Retour</button>
                         <button onClick={() => setStep(3)} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition">
@@ -298,7 +357,7 @@ export default function NewVisitPage() {
                 </div>
             )}
 
-            {/* ÉTAPE 3 : FORMULAIRE (Code inchangé) */}
+            {/* ÉTAPE 3 : FORMULAIRE */}
             {step === 3 && (
                 <div className="bg-white p-6 rounded-xl shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -319,6 +378,7 @@ export default function NewVisitPage() {
                                 <input type="text" readOnly className="block w-full rounded-md border border-gray-300 bg-gray-100 p-2 text-sm" value={gpsCoordinates} placeholder="Non localisé" />
                                 <button type="button" onClick={handleGeolocate} disabled={isGeolocating} className="bg-green-100 text-green-700 px-4 py-2 rounded-md text-sm font-bold">{isGeolocating ? '...' : '📍 Localiser'}</button>
                             </div>
+                            <p className="text-xs text-gray-400 mt-1">Nécessaire pour valider le passage.</p>
                         </div>
                         <div className="flex justify-between pt-4 border-t">
                             <button type="button" onClick={() => setStep(lastVisit ? 2 : 1)} className="text-gray-500 font-medium text-sm px-4 py-2">Retour</button>

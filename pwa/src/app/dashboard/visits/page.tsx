@@ -2,391 +2,289 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Select from 'react-select';
 import Link from 'next/link';
+import Select from 'react-select';
 import { useCustomers, CustomerOption } from '@/hooks/useCustomers';
-import { useSync } from '@/providers/SyncProvider';
-
-// Types
-interface Checkpoint {
+interface Visit {
     id: number;
-    text: string;
-    status: 'resolved' | 'partial' | 'unresolved';
-}
-
-interface LastVisitInfo {
-    date: string;
-    tech: string;
-    // Adapté au nouveau format
-    problems: string[] | { description: string, severity: string, status: string }[];
-    recommendations: string;
+    visitedAt: string;
+    technician: { fullname: string };
+    customer: { name: string; zone: string };
+    gpsCoordinates?: string;
+    closed: boolean;
+    activated: boolean;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export default function NewVisitPage() {
-    const router = useRouter();
-    const { addToQueue } = useSync();
-    const { options: customerOptions, loading: customersLoading, error: customersError } = useCustomers();
-
-    const [step, setStep] = useState<1 | 2 | 3>(1);
+// Helper pour obtenir le début et la fin de journée/semaine/mois
+const getDateRange = (type: string, dateRef: string, dateEndRef?: string) => {
+    const start = new Date(dateRef);
+    const end = new Date(dateEndRef || dateRef);
     
-    // Étape 1
+    // Reset heures
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    if (type === 'week') {
+        // Début de semaine (Lundi)
+        const day = start.getDay() || 7; 
+        if (day !== 1) start.setHours(-24 * (day - 1));
+        // Fin de semaine (Dimanche)
+        end.setTime(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+        end.setHours(23, 59, 59, 999);
+    } else if (type === 'month') {
+        start.setDate(1);
+        end.setMonth(end.getMonth() + 1);
+        end.setDate(0); // Dernier jour du mois
+        end.setHours(23, 59, 59, 999);
+    }
+
+    return { 
+        after: start.toISOString(), 
+        before: end.toISOString() 
+    };
+};
+
+
+export default function VisitsListPage() {
+    const router = useRouter();
+    const { options: customerOptions, loading: customersLoading } = useCustomers();
+
+    const [visits, setVisits] = useState<Visit[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // --- ÉTATS DES FILTRES ---
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
-    const [activeVisit, setActiveVisit] = useState<{ id: number, date: string, tech?: string } | null>(null);
-    const [checkingStatus, setCheckingStatus] = useState(false);
+    const [filterType, setFilterType] = useState('today'); // 'today', 'date', 'week', 'month', 'interval'
+    const [datePrimary, setDatePrimary] = useState(new Date().toISOString().slice(0, 10)); // Date principale
+    const [dateSecondary, setDateSecondary] = useState(''); // Pour l'intervalle
 
-    // Étape 2
-    const [lastVisit, setLastVisit] = useState<LastVisitInfo | null>(null);
-    const [checklist, setChecklist] = useState<Checkpoint[]>([]);
-
-    // Étape 3
-    const [objective, setObjective] = useState('');
-    const [gpsCoordinates, setGpsCoordinates] = useState('');
-    const [isGeolocating, setIsGeolocating] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState('');
-
-    // --- 1. DÉTECTION AUTOMATIQUE (Dès la sélection) ---
     useEffect(() => {
-        const checkExistingVisit = async () => {
-            // Reset si on désélectionne
-            if (!selectedCustomer) {
-                setActiveVisit(null);
-                return;
+        const fetchVisits = async () => {
+            setLoading(true);
+            const token = localStorage.getItem('sav_token');
+            if (!token) { router.push('/'); return; }
+
+            // 1. Construction de l'URL avec filtres
+            let url = `${API_URL}/visits?page=1`;
+
+            // Filtre Client
+            if (selectedCustomer) {
+                const customerId = selectedCustomer.value.split('/').pop();
+                url += `&customer=${customerId}`;
             }
 
-            setCheckingStatus(true);
-            const token = localStorage.getItem('sav_token');
+            // Filtre Temporel
+            if (filterType !== 'all') {
+                let range = { after: '', before: '' };
 
-            // Offline : On ne peut pas vérifier, on laisse passer (le serveur bloquera au pire)
-            if (!navigator.onLine) {
-                setCheckingStatus(false);
-                return;
+                if (filterType === 'today') {
+                    range = getDateRange('day', new Date().toISOString());
+                } else if (filterType === 'date') {
+                    range = getDateRange('day', datePrimary);
+                } else if (filterType === 'week') {
+                    range = getDateRange('week', datePrimary);
+                } else if (filterType === 'month') {
+                    range = getDateRange('month', datePrimary);
+                } else if (filterType === 'interval' && datePrimary && dateSecondary) {
+                    range = getDateRange('interval', datePrimary, dateSecondary);
+                }
+
+                // Application des filtres de date API Platform (Standard: visitedAt[after] / [before])
+                if (range.after && range.before) {
+                    url += `&visitedAt[after]=${range.after}&visitedAt[before]=${range.before}`;
+                }
             }
 
             try {
-                // On cherche une visite NON CLÔTURÉE (closed=false) et ACTIVE (activated=true)
-                const res = await fetch(`${API_URL}/visits?customer=${selectedCustomer.value}&closed=false&activated=true`, {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
                 });
 
-                if (res.ok) {
-                    const data = await res.json();
-                    const visits = data['hydra:member'] || [];
-                    
-                    if (visits.length > 0) {
-                        // 🚨 ALERTE : Une visite existe déjà !
-                        const v = visits[0];
-                        setActiveVisit({ 
-                            id: v.id, 
-                            date: v.visitedAt, // ou createdAt selon votre API
-                            tech: v.technician?.fullname || v.technician?.username 
-                        });
-                    } else {
-                        setActiveVisit(null);
-                    }
+                if (res.status === 401) {
+                    localStorage.removeItem('sav_token');
+                    router.push('/');
+                    return;
                 }
-            } catch (e) {
-                console.error("Erreur vérification visite", e);
-            } finally {
-                setCheckingStatus(false);
-            }
-        };
 
-        checkExistingVisit();
-    }, [selectedCustomer]); // Se déclenche à chaque changement de client
-
-    // --- 2. PASSAGE ETAPE SUIVANTE (Bouton) ---
-    const handleNextStep = async () => {
-        if (!selectedCustomer) return;
-        
-        // Si une visite est active, on empêche de continuer (sécurité doublée)
-        if (activeVisit) return;
-
-        const token = localStorage.getItem('sav_token');
-
-        // Mode Offline : on saute directement à l'étape 3 (pas d'historique)
-        if (!navigator.onLine) {
-            setLastVisit(null); 
-            setStep(3); 
-            return;
-        }
-
-        try {
-            // Récupérer la dernière visite TERMINÉE pour l'étape 2 (Revue)
-            const lastRes = await fetch(`${API_URL}/visits?customer=${selectedCustomer.value}&order[createdAt]=desc&itemsPerPage=1`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
-            });
-
-            if (lastRes.ok) {
-                const lastData = await lastRes.json();
-                const lastVisits = lastData['hydra:member'] || [];
+                const data = await res.json();
                 
-                if (lastVisits.length > 0) {
-                    const lv = lastVisits[0];
-                    
-                    // ✅ Récupération intelligente des problèmes (ancien champ vs nouveau)
-                    let problems: { description: any; severity: any; status: any; }[] = [];
-                    // Chercher dans les observations de cette visite
-                    if (lv.observations && lv.observations.length > 0) {
-                        lv.observations.forEach((obs: any) => {
-                            if (obs.problems) problems.push(obs.problems); // Ancien format (string)
-                            if (obs.detectedProblems) {
-                                obs.detectedProblems.forEach((p: any) => problems.push({
-                                    description: p.description,
-                                    severity: p.severity,
-                                    status: p.status
-                                }));
-                            }
-                        });
+                // 2. LOGIQUE DE TRI CÔTÉ CLIENT
+                // Règle 1 : Non-clôturées (En cours) en premier
+                // Règle 2 : Date la plus récente en premier
+                const sortedData = data.sort((a: Visit, b: Visit) => {
+                    // Priorité aux visites actives (closed = false)
+                    if (a.closed !== b.closed) {
+                        return a.closed ? 1 : -1; 
                     }
+                    // Ensuite tri par date décroissante (plus récent en haut)
+                    return new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime();
+                });
 
-                    setLastVisit({
-                        date: new Date(lv.createdAt || lv.visitedAt).toLocaleDateString('fr-FR'),
-                        tech: lv.technician?.fullname || lv.technician?.username || 'Inconnu',
-                        problems: problems,
-                        recommendations: lv.report || "Aucune recommandation enregistrée."
-                    });
-                    
-                    // Générer une checklist basée sur les problèmes précédents
-                    const newChecklist = problems.map((p: any, idx: number) => ({
-                        id: idx,
-                        text: typeof p === 'string' ? p : `Vérifier : ${p.description}`,
-                        status: 'unresolved' as const
-                    }));
-
-                    if (newChecklist.length === 0) {
-                        newChecklist.push({ id: 0, text: "Vérifier l'application des recommandations", status: 'unresolved' });
-                    }
-
-                    setChecklist(newChecklist);
-                    
-                    setStep(2);
-                } else {
-                    setStep(3); // Pas d'historique, direct formulaire
-                }
-            } else {
-                setStep(3);
+                setVisits(sortedData);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
             }
-        } catch (err) {
-            console.error("Erreur historique", err);
-            setStep(3);
-        }
-    };
-
-    // ... (Reste des fonctions handleGeolocate, handleSubmit inchangées)
-
-    const handleGeolocate = () => {
-        setIsGeolocating(true);
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setGpsCoordinates(`${position.coords.latitude}, ${position.coords.longitude}`);
-                    setIsGeolocating(false);
-                },
-                (error) => {
-                    alert('Erreur: ' + error.message);
-                    setIsGeolocating(false);
-                }
-            );
-        } else {
-            alert("Géolocalisation non supportée.");
-            setIsGeolocating(false);
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setError('');
-
-        const payload = {
-            customer: selectedCustomer?.value,
-            objective: objective,
-            gpsCoordinates: gpsCoordinates,
         };
 
-        if (!navigator.onLine) {
-            addToQueue({ url: '/visits', method: 'POST', body: payload });
-            router.push('/dashboard/visits');
-            return;
-        }
+        fetchVisits();
+    }, [router, selectedCustomer, filterType, datePrimary, dateSecondary]);
 
-        try {
-            const token = localStorage.getItem('sav_token');
-            const res = await fetch(`${API_URL}/visits`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData['hydra:description'] || 'Erreur lors de la création');
-            }
-            router.push('/dashboard/visits');
-        } catch (err: any) {
-            console.error(err);
-            const confirmOffline = window.confirm("Connexion échouée. Sauvegarder en mode hors-ligne ?");
-            if (confirmOffline) {
-                addToQueue({ url: '/visits', method: 'POST', body: payload });
-                router.push('/dashboard/visits');
-            } else {
-                setError(err.message || "Erreur");
-                setIsSubmitting(false);
-            }
-        }
+    // Rendu dynamique du libellé de période
+    const getFilterLabel = () => {
+        if (filterType === 'today') return "Aujourd'hui";
+        if (filterType === 'week') return "Semaine du";
+        if (filterType === 'month') return "Mois de";
+        return "Date";
     };
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6 pb-20">
-            <h1 className="text-2xl font-bold text-gray-900">Nouvelle Visite</h1>
-
-            {/* Barre de progression */}
-            <div className="flex items-center justify-between mb-8">
-                <div className={`h-2 flex-1 rounded ${step >= 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
-                <div className={`h-2 flex-1 rounded mx-2 ${step >= 2 ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
-                <div className={`h-2 flex-1 rounded ${step >= 3 ? 'bg-indigo-600' : 'bg-gray-200'}`}></div>
+        <div className="min-h-screen bg-gray-50 pb-20 font-sans">
+            <div className="bg-white shadow px-6 py-4 mb-6">
+                <div className="max-w-5xl mx-auto flex justify-between items-center">
+                    <div>
+                        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-indigo-600">← Retour</Link>
+                        <h1 className="text-2xl font-extrabold text-gray-800">Visites Techniques</h1>
+                    </div>
+                    <Link href="/dashboard/visits/new" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-indigo-700 text-sm">
+                        + Nouvelle Visite
+                    </Link>
+                </div>
             </div>
 
-            {/* ÉTAPE 1 : CHOIX CLIENT */}
-            {step === 1 && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Sélectionner le Client</label>
-                    
-                    <Select
-                        className="mb-6"
-                        options={customerOptions}
-                        isLoading={customersLoading}
-                        value={selectedCustomer}
-                        onChange={setSelectedCustomer}
-                        placeholder="Rechercher un client..."
-                        noOptionsMessage={() => "Aucun client trouvé"}
-                        isDisabled={checkingStatus}
-                    />
-
-                    {/* Feedback visuel immédiat */}
-                    {checkingStatus && <p className="text-sm text-gray-500 animate-pulse mb-4">🔍 Vérification du dossier client...</p>}
-
-                    {/* ALERTE BLOQUANTE */}
-                    {activeVisit ? (
-                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded animate-in slide-in-from-top-2">
-                            <div className="flex items-center gap-3">
-                                <span className="text-2xl">⛔</span>
-                                <div>
-                                    <h3 className="font-bold text-red-900 text-sm">IMPOSSIBLE DE CRÉER UNE VISITE</h3>
-                                    <p className="text-red-700 text-xs mt-1">
-                                        Une visite est déjà ouverte chez ce client depuis le <strong>{new Date(activeVisit.date).toLocaleDateString()}</strong>.
-                                        {activeVisit.tech && <span> (Tech: {activeVisit.tech})</span>}
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <Link 
-                                href={`/dashboard/visits/${activeVisit.id}`}
-                                className="mt-4 block w-full text-center py-3 bg-red-600 text-white font-bold rounded shadow hover:bg-red-700 transition"
-                            >
-                                👉 REPRENDRE LA VISITE #{activeVisit.id}
-                            </Link>
-                        </div>
-                    ) : (
-                        // BOUTON SUIVANT (Affiché seulement si pas de visite active)
-                        <button
-                            onClick={handleNextStep}
-                            disabled={!selectedCustomer || checkingStatus}
-                            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition mt-4 
-                                ${!selectedCustomer || checkingStatus ? 'bg-gray-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02]'}
-                            `}
-                        >
-                            Suivant ➜
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {/* ÉTAPE 2 : REVUE */}
-            {step === 2 && lastVisit && (
-                <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
-                    <h2 className="text-lg font-semibold">2. Revue de la dernière visite</h2>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div className="flex justify-between items-start mb-2">
-                            <span className="text-xs font-bold text-gray-500 uppercase">Le {lastVisit.date}</span>
-                            <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">{lastVisit.tech}</span>
-                        </div>
+            <div className="max-w-5xl mx-auto px-4">
+                
+                {/* --- BARRE DE FILTRES --- */}
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                         
-                        {/* Affichage des problèmes */}
-                        {lastVisit.problems && lastVisit.problems.length > 0 && (
-                            <div className="mb-4">
-                                <h4 className="text-xs font-bold text-red-800 uppercase mb-1">Problèmes signalés :</h4>
-                                <ul className="list-disc pl-4 text-sm text-gray-700">
-                                    {lastVisit.problems.map((p, idx) => (
-                                        <li key={idx}>
-                                            {typeof p === 'string' ? p : `${p.description} (${p.severity})`}
-                                        </li>
-                                    ))}
-                                </ul>
+                        {/* 1. Type de filtre temporel */}
+                        <div className="md:col-span-3">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Période</label>
+                            <select 
+                                className="w-full border p-2 rounded-lg bg-gray-50 text-sm"
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                            >
+                                <option value="today">Aujourd'hui</option>
+                                <option value="date">Date précise</option>
+                                <option value="week">Semaine</option>
+                                <option value="month">Mois</option>
+                                <option value="interval">Intervalle</option>
+                                <option value="all">Tout l'historique</option>
+                            </select>
+                        </div>
+
+                        {/* 2. Champs Date dynamiques */}
+                        {filterType !== 'today' && filterType !== 'all' && (
+                            <div className={`${filterType === 'interval' ? 'md:col-span-4' : 'md:col-span-3'} flex gap-2`}>
+                                <div className="w-full">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">
+                                        {filterType === 'interval' ? 'Du' : getFilterLabel()}
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        className="w-full border p-2 rounded-lg bg-white text-sm"
+                                        value={datePrimary}
+                                        onChange={(e) => setDatePrimary(e.target.value)}
+                                    />
+                                </div>
+                                {filterType === 'interval' && (
+                                    <div className="w-full">
+                                        <label className="block text-xs font-bold text-gray-500 mb-1">Au</label>
+                                        <input 
+                                            type="date" 
+                                            className="w-full border p-2 rounded-lg bg-white text-sm"
+                                            value={dateSecondary}
+                                            onChange={(e) => setDateSecondary(e.target.value)}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        <div className="mt-2">
-                            <h4 className="text-xs font-bold text-green-800 uppercase mb-1">Recommandations :</h4>
-                            <p className="text-gray-800 italic text-sm">"{lastVisit.recommendations}"</p>
+                        {/* 3. Filtre Client */}
+                        <div className="md:col-span-4">
+                            <label className="block text-xs font-bold text-gray-500 mb-1">Filtrer par Client</label>
+                            <Select
+                                instanceId="customer-filter"
+                                options={customerOptions}
+                                value={selectedCustomer}
+                                onChange={setSelectedCustomer}
+                                isLoading={customersLoading}
+                                placeholder="Tous les clients..."
+                                isClearable
+                                className="text-sm"
+                                styles={{ control: (base) => ({ ...base, minHeight: '38px', borderRadius: '0.5rem' }) }}
+                            />
                         </div>
-                    </div>
-                    
-                    {/* Checklist */}
-                    <div>
-                        <h3 className="font-bold text-sm text-gray-700 mb-2">Points à vérifier (Checklist)</h3>
-                        <div className="space-y-2">
-                            {checklist.map((item) => (
-                                <label key={item.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                                    <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" />
-                                    <span className="text-sm text-gray-700">{item.text}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
 
-                    <div className="flex justify-between pt-4">
-                        <button onClick={() => setStep(1)} className="text-gray-500 font-medium">Retour</button>
-                        <button onClick={() => setStep(3)} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition">
-                            Tout est vu, commencer
-                        </button>
+                        {/* 4. Bouton Reset */}
+                        <div className="md:col-span-1">
+                            <button 
+                                onClick={() => {
+                                    setFilterType('today');
+                                    setSelectedCustomer(null);
+                                    setDatePrimary(new Date().toISOString().slice(0, 10));
+                                }}
+                                className="w-full py-2 text-xs font-bold text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-50 rounded-lg border border-gray-200 transition"
+                                title="Réinitialiser les filtres"
+                            >
+                                ↺ Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
-            )}
 
-            {/* ÉTAPE 3 : FORMULAIRE */}
-            {step === 3 && (
-                <div className="bg-white p-6 rounded-xl shadow-sm space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                        🚀 Démarrer la visite
-                        <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {selectedCustomer?.label}
-                        </span>
-                    </h2>
-                    {error && (<div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">{error}</div>)}
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Objectif principal</label>
-                            <textarea required className="w-full rounded-md border-gray-300 shadow-sm border p-3" rows={3} value={objective} onChange={(e) => setObjective(e.target.value)} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Position GPS</label>
-                            <div className="flex gap-2">
-                                <input type="text" readOnly className="block w-full rounded-md border border-gray-300 bg-gray-100 p-2 text-sm" value={gpsCoordinates} placeholder="Non localisé" />
-                                <button type="button" onClick={handleGeolocate} disabled={isGeolocating} className="bg-green-100 text-green-700 px-4 py-2 rounded-md text-sm font-bold">{isGeolocating ? '...' : '📍 Localiser'}</button>
+                {/* --- LISTE DES VISITES --- */}
+                {loading ? (
+                    <div className="text-center py-12 text-gray-500 animate-pulse">Chargement des visites...</div>
+                ) : (
+                    <div className="grid gap-4">
+                        {visits.length === 0 && (
+                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                                <p className="text-gray-500 mb-2">Aucune visite trouvée pour ces critères.</p>
+                                {filterType === 'today' && (
+                                    <p className="text-sm text-indigo-600">Le planning est vide pour aujourd'hui.</p>
+                                )}
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">Nécessaire pour valider le passage.</p>
-                        </div>
-                        <div className="flex justify-between pt-4 border-t">
-                            <button type="button" onClick={() => setStep(lastVisit ? 2 : 1)} className="text-gray-500 font-medium text-sm px-4 py-2">Retour</button>
-                            <button type="submit" disabled={isSubmitting} className={`px-8 py-3 rounded-lg font-bold text-white shadow-lg transition ${isSubmitting ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{isSubmitting ? 'Enregistrement...' : '🚀 DÉMARRER LA VISITE'}</button>
-                        </div>
-                    </form>
-                </div>
-            )}
+                        )}
+
+                        {visits.map(visit => (
+                            <Link key={visit.id} href={`/dashboard/${visit.id}`}>
+                                <div className={`p-5 rounded-xl border transition-all duration-200 flex justify-between items-center group shadow-sm hover:shadow-md ${
+                                    visit.closed 
+                                        ? 'bg-white border-gray-200 opacity-90' 
+                                        : 'bg-white border-l-4 border-l-green-500 border-gray-100'
+                                }`}>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <h2 className="font-bold text-lg text-gray-800 group-hover:text-indigo-700 transition-colors">
+                                                {visit.customer.name}
+                                            </h2>
+                                            {visit.closed ? (
+                                                <span className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide border border-gray-200">Clôturée</span>
+                                            ) : (
+                                                <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide border border-green-200 animate-pulse">En cours</span>
+                                            )}
+                                        </div>
+                                        <div className="text-sm text-gray-500 flex flex-col md:flex-row gap-1 md:gap-3">
+                                            <span>📅 {new Date(visit.visitedAt).toLocaleDateString()} à {new Date(visit.visitedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            <span className="hidden md:inline">•</span>
+                                            <span>📍 {visit.customer.zone}</span>
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-1">Tech: {visit.technician.fullname}</p>
+                                    </div>
+                                    <div className="text-2xl text-gray-300 group-hover:text-indigo-500 transition-colors">→</div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

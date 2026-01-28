@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\JoinColumn;
@@ -23,7 +24,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(security: "is_granted('ROLE_USER')"), // Tout le monde peut créer
         new Put(security: "is_granted('ROLE_USER')"),
-        new Patch(security: "is_granted('ROLE_ADMIN')") // Seul l'admin et le superadmin peuvent archiver (via PATCH)
+        new Patch(security: "is_granted('ROLE_ADMIN') || is_granted('ROLE_SUPER_ADMIN')"), // Seul l'admin et le superadmin peuvent archiver (via PATCH)
+        new Delete(security: "is_granted('ROLE_SUPER_ADMIN')") // Seul le superadmin peut supprimer
     ],
     normalizationContext: ['groups' => ['building:read']],
     denormalizationContext: ['groups' => ['building:write']]
@@ -31,23 +33,24 @@ use Symfony\Component\Serializer\Attribute\Groups;
 class Building
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
-    #[Groups(['building:read', 'visit:read', 'flock:read'])]
+    #[Groups(['building:read', 'visit:read', 'flock:read','customer:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['building:read', 'building:write', 'visit:read', 'flock:read'])]
+    #[Groups(['building:read', 'building:write', 'visit:read', 'flock:read','customer:read'])]
     private ?string $name = null;
 
     #[ORM\Column(type: 'float', nullable: true)]
-    #[Groups(['visit:read', 'building:read', 'building:write', 'flock:read'])]
+    #[Groups(['visit:read', 'building:read', 'building:write', 'flock:read','customer:read'])]
     private ?float $surface = null;
 
     #[ORM\Column]
-    #[Groups(['building:read', 'building:write', 'flock:read'])]
+    #[Groups(['building:read', 'building:write', 'flock:read','customer:read'])]
     private ?int $maxCapacity = null;
 
-    #[ManyToOne(inversedBy: 'buildings')]
-    #[JoinColumn(nullable: false)]
+    #[ORM\ManyToOne(inversedBy: 'buildings')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['building:read', 'building:write', 'flock:read','customer:read'])]
     private ?Customer $customer = null;
 
     #[ORM\OneToMany(mappedBy: 'building', targetEntity: Flock::class)]
