@@ -8,17 +8,19 @@ use ApiPlatform\Metadata\Post;
 use Doctrine\DBAL\Types\Types;
 use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ObservationRepository;
 use App\Validator\Constraints as AppAssert;
-use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Serializer\Attribute\SerializedName;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use Doctrine\Common\Collections\ArrayCollection;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Doctrine\Common\Collections\Collection;
+use Symfony\Component\Serializer\Attribute\SerializedName;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ObservationRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -81,9 +83,12 @@ class Observation
     #[Groups(['observation:read', 'observation:write', 'visit:read'])]
     private ?string $recommendations = null; // Recommandations du technicien
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['observation:read', 'observation:write', 'visit:read', 'flock:read'])] 
-    private ?string $problems = null; // Difficultés rencontrées
+    /**
+     * Liste des problèmes détectés durant cette observation.
+     */
+    #[ORM\OneToMany(mappedBy: 'detectedIn', targetEntity: Problem::class, cascade: ['persist', 'remove'])]
+    #[Groups(['observation:read', 'observation:write', 'visit:read'])]
+    private Collection $detectedProblems;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['observation:read', 'observation:write', 'visit:read'])]
@@ -123,6 +128,12 @@ class Observation
         }
     }
 
+    public function __construct()
+    {
+        $this->detectedProblems = new ArrayCollection();
+        // Si vous aviez déjà un constructeur, ajoutez juste la ligne ci-dessus dedans.
+    }
+
     public function getId(): ?int { return $this->id; }
 
     public function getVisit(): ?Visit { return $this->visit; }
@@ -140,9 +151,33 @@ class Observation
     public function getRecommendations(): ?string { return $this->recommendations; }
     public function setRecommendations(?string $recommendations): self { $this->recommendations = $recommendations; return $this; }
 
-    public function getProblems(): ?string { return $this->problems; }
-    public function setProblems(?string $problems): self { $this->problems = $problems; return $this; }
+    /**
+     * @return Collection<int, Problem>
+     */
+    public function getDetectedProblems(): Collection
+    {
+        return $this->detectedProblems;
+    }
 
+    public function addDetectedProblem(Problem $problem): self
+    {
+        if (!$this->detectedProblems->contains($problem)) {
+            $this->detectedProblems->add($problem);
+            $problem->setDetectedIn($this);
+        }
+        return $this;
+    }
+
+    public function removeDetectedProblem(Problem $problem): self
+    {
+        if ($this->detectedProblems->removeElement($problem)) {
+            // set the owning side to null (unless already changed)
+            if ($problem->getDetectedIn() === $this) {
+                $problem->setDetectedIn(null);
+            }
+        }
+        return $this;
+    }
     public function getGeneralComment(): ?string { return $this->generalComment; }
     public function setGeneralComment(?string $generalComment): self { $this->generalComment = $generalComment; return $this; }
 

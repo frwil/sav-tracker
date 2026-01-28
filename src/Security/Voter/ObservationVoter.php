@@ -1,4 +1,5 @@
 <?php
+// api/src/Security/Voter/ObservationVoter.php
 
 namespace App\Security\Voter;
 
@@ -33,19 +34,22 @@ class ObservationVoter extends Voter
         $observation = $subject;
         $visit = $observation->getVisit();
 
-        // ADMIN a tous les droits
         if ($this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN')) {
             return true;
         }
 
-        // Si la visite liée n'est pas encore définie (cas rare en création pure), on bloque
+        // Si la visite n'est pas encore liée (impossible avec securityPostDenormalize, mais sécurité)
         if (!$visit) {
-            return true; // Ou false selon votre logique de création
+            return false; 
         }
 
-        // VERROUILLAGE PRINCIPAL
-        // Si la visite est clôturée OU archivée, on interdit tout changement sur l'observation
+        // 1. La visite doit être active et ouverte
         if ($visit->isClosed() || !$visit->isActivated()) {
+            return false;
+        }
+
+        // 2. ✅ SEUL LE TECHNICIEN ASSIGNÉ PEUT CRÉER/MODIFIER
+        if ($visit->getTechnician() !== $user) {
             return false;
         }
 

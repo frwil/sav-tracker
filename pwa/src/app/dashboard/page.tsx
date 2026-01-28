@@ -27,7 +27,7 @@ interface UserOption {
 
 // --- CONSTANTES ---
 const ESTIMATED_TONS_PER_FLOCK = 8;
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // --- COMPOSANTS UI ---
 const MenuCard = ({ title, icon, href, color, description }: any) => (

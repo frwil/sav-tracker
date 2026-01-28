@@ -8,7 +8,7 @@ interface UserPayload {
     exp: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function useAuth() {
     const router = useRouter();
@@ -25,6 +25,7 @@ export function useAuth() {
             }
 
             try {
+                // 1. Décodage local (Toujours possible)
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const now = Math.floor(Date.now() / 1000);
 
@@ -32,27 +33,30 @@ export function useAuth() {
                     throw new Error("Token expiré");
                 }
 
-                // 👇 AJOUT DE CETTE VÉRIFICATION
                 if (!payload.id) {
-                    throw new Error("Token invalide : ID utilisateur manquant (Problème Backend)");
+                    throw new Error("Token invalide : ID manquant");
                 }
 
-                // Vérification API
-                const res = await fetch(`${API_URL}/users/${payload.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
+                // 2. Vérification API (SEULEMENT SI EN LIGNE)
+                // En mode offline, on fait confiance au token local non expiré
+                if (navigator.onLine) {
+                    const res = await fetch(`${API_URL}/users/${payload.id}`, {
+                        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                    });
 
-                // 👇 MODIFICATION ICI : On gère le cas où l'user n'existe plus (404) ou erreur (500)
-                if (!res.ok) {
-                    throw new Error(`Erreur validation utilisateur (${res.status})`);
+                    if (!res.ok) {
+                        throw new Error(`Erreur validation utilisateur (${res.status})`);
+                    }
+
+                    const userData = await res.json();
+                    if (userData.activated === false) {
+                        throw new Error("Compte archivé");
+                    }
+                } else {
+                    console.log("🌐 Mode Hors Ligne : Validation API ignorée, connexion locale maintenue.");
                 }
 
-                const userData = await res.json();
-
-                if (userData.activated === false) {
-                    throw new Error("Compte archivé");
-                }
-
+                // 3. Session Validée
                 setUser({
                     username: payload.username,
                     roles: payload.roles,
@@ -62,9 +66,9 @@ export function useAuth() {
                 setLoading(false);
 
             } catch (e) {
-                console.warn("Session invalide ou expirée:", e);
-                localStorage.removeItem('sav_token'); // On nettoie le token invalide
-                router.push('/'); // Retour à la case départ
+                console.warn("Session invalide :", e);
+                localStorage.removeItem('sav_token');
+                router.push('/');
             }
         };
 

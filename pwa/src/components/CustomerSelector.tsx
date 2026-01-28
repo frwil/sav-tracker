@@ -16,7 +16,7 @@ interface Option {
     customer: Customer;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CustomerSelector({ onSelect }: { onSelect: (customer: Customer | null) => void }) {
     const [options, setOptions] = useState<Option[]>([]);

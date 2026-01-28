@@ -12,7 +12,7 @@ interface User {
     activated: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const ROLE_LABELS: Record<string, string> = {
     'ROLE_SUPER_ADMIN': 'Super Admin',

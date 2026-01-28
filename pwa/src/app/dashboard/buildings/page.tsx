@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Select from 'react-select';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCustomers, CustomerOption } from '@/hooks/useCustomers';
+import { useSync } from '@/providers/SyncProvider';
+
+// --- TYPES ---
 
 interface Building {
     '@id': string;
@@ -12,323 +15,318 @@ interface Building {
     surface: number;
     maxCapacity?: number;
     activated: boolean;
-    flocks: any[];
+    flocks: any[]; // On garde simple ici, juste pour vérifier s'il est vide
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// Fonction de fetch isolée
+async function fetchBuildings(customerId: string) {
+    const token = localStorage.getItem('sav_token');
+    if (!token) throw new Error("Non authentifié");
+
+    const res = await fetch(`${API_URL}/buildings?customer=${customerId}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
+    });
+
+    if (!res.ok) throw new Error(`Erreur ${res.status}`);
+    const data = await res.json();
+    return data['hydra:member'] || [];
+}
 
 export default function BuildingsPage() {
-    const {
-        options: customerOptions,
-        loading: customersLoading
-    } = useCustomers();
+    const queryClient = useQueryClient();
+    const { addToQueue } = useSync(); // ✅ Gestion Offline
 
+    // --- 1. SÉLECTION CLIENT ---
+    const { options: customerOptions, loading: customersLoading } = useCustomers();
     const [selectedCustomerOption, setSelectedCustomerOption] = useState<CustomerOption | null>(null);
 
-    const [buildings, setBuildings] = useState<Building[]>([]);
-    const [loading, setLoading] = useState(false);
+    // --- 2. CHARGEMENT DONNÉES (CACHE) ---
+    const { data: buildings = [], isLoading: buildingsLoading, isError: buildingsError } = useQuery<Building[]>({
+        queryKey: ['buildings', selectedCustomerOption?.value],
+        queryFn: () => fetchBuildings(selectedCustomerOption!.value),
+        enabled: !!selectedCustomerOption, // Ne charge que si un client est choisi
+        staleTime: 1000 * 60 * 10, // Cache de 10 minutes
+    });
+
+    // --- 3. ÉTATS UI & FORMULAIRE ---
     const [isAdmin, setIsAdmin] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // États pour le formulaire (Création & Édition)
+    // Champs Formulaire
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [name, setName] = useState(''); // Nom manuel (ex: "Bâtiment A")
     const [surface, setSurface] = useState('');
     const [capacity, setCapacity] = useState('');
-    
-    // NOUVEAU : État pour le filtre de recherche
-    const [searchTerm, setSearchTerm] = useState('');
 
-    // Vérification des rôles (Admin / Super Admin)
+    // --- 4. PERMISSIONS ---
     useEffect(() => {
         const token = localStorage.getItem('sav_token');
         if (token) {
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                setIsAdmin(payload.roles.includes('ROLE_ADMIN') || payload.roles.includes('ROLE_SUPER_ADMIN'));
-            } catch (e) {
-                console.error("Erreur token", e);
-            }
+                const roles = payload.roles || [];
+                setIsAdmin(roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN'));
+            } catch (e) { console.error(e); }
         }
     }, []);
 
-    // Chargement des bâtiments
-    useEffect(() => {
-        if (!selectedCustomerOption) {
-            setBuildings([]);
-            return;
-        }
-
-        setLoading(true);
-        const token = localStorage.getItem('sav_token');
-        const customerId = selectedCustomerOption.value.split('/').pop();
-
-        fetch(`${API_URL}/buildings?customer=${customerId}`, {
-            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
-        })
-            .then(res => res.json())
-            .then(data => {
-                const list = data['hydra:member'] || data['member'] || (Array.isArray(data) ? data : []);
-                setBuildings(list);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setBuildings([]);
-                setLoading(false);
-            });
-    }, [selectedCustomerOption]);
-
-    // NOUVEAU : Logique de filtrage
-    const filteredBuildings = buildings.filter(building => 
-        building.name.toLowerCase().includes(searchTerm.toLowerCase())
+    // --- 5. LOGIQUE DE FILTRAGE LOCAL ---
+    const filteredBuildings = buildings.filter(b => 
+        b.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Initialiser l'édition
-    const handleEdit = (building: Building) => {
-        setEditingId(building.id);
-        setSurface(building.surface ? building.surface.toString() : '100');
-        setCapacity(building.maxCapacity ? building.maxCapacity.toString() : '100');
+    // --- 6. HANDLERS (ONLINE + OFFLINE) ---
+
+    const resetForm = () => {
+        setEditingId(null);
+        setName('');
+        setSurface('');
+        setCapacity('');
+        setShowForm(false);
+        setIsSubmitting(false);
+    };
+
+    const handleCreate = () => {
+        resetForm();
+        // Nom par défaut intelligent (ex: Bâtiment 1, 2...)
+        const nextNum = buildings.length + 1;
+        setName(`Bâtiment ${nextNum}`);
         setShowForm(true);
     };
 
-    // Soumission du formulaire
+    const handleEdit = (building: Building) => {
+        setEditingId(building.id);
+        setName(building.name);
+        setSurface(building.surface.toString());
+        setCapacity(building.maxCapacity ? building.maxCapacity.toString() : '');
+        setShowForm(true);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCustomerOption) return;
+        setIsSubmitting(true);
 
-        const token = localStorage.getItem('sav_token');
+        const payload = {
+            name,
+            surface: parseFloat(surface),
+            maxCapacity: capacity ? parseInt(capacity) : null,
+            customer: selectedCustomerOption.value,
+            activated: true
+        };
 
+        const url = editingId ? `/buildings/${editingId}` : '/buildings';
+        const method = editingId ? 'PUT' : 'POST';
+
+        // 1. CAS OFFLINE
+        if (!navigator.onLine) {
+            addToQueue({ url, method: method as any, body: payload });
+            resetForm();
+            return;
+        }
+
+        // 2. CAS ONLINE
         try {
-            if (editingId) {
-                // PATCH pour modification
-                await fetch(`${API_URL}/buildings/${editingId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({
-                        surface: parseFloat(surface),
-                        maxCapacity: capacity ? parseInt(capacity) : null,
-                    })
-                });
-                alert('Modification enregistrée');
+            const token = localStorage.getItem('sav_token');
+            const res = await fetch(`${API_URL}${url}`, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
 
+            if (!res.ok) throw new Error("Erreur API");
+
+            queryClient.invalidateQueries({ queryKey: ['buildings', selectedCustomerOption.value] });
+            resetForm();
+
+        } catch (error) {
+            console.error(error);
+            if (confirm("Erreur réseau. Sauvegarder hors ligne ?")) {
+                addToQueue({ url, method: method as any, body: payload });
+                resetForm();
             } else {
-                // POST pour création
-                const autoName = `Bâtiment ${buildings.length + 1}`;
-
-                await fetch(`${API_URL}/buildings`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({
-                        name: autoName,
-                        surface: parseFloat(surface),
-                        maxCapacity: capacity ? parseInt(capacity) : null,
-                        customer: selectedCustomerOption.value,
-                        activated: true
-                    })
-                });
-                alert('Nouveau bâtiment créé');
+                setIsSubmitting(false);
             }
+        }
+    };
 
-            setShowForm(false);
-            setEditingId(null);
-            setSurface('');
-            setCapacity('');
-            
-            // Rechargement simple
-            window.location.reload();
+    const handleToggleStatus = async (building: Building) => {
+        const newStatus = !building.activated;
+        const url = `/buildings/${building.id}`;
+        
+        // Offline
+        if (!navigator.onLine) {
+            addToQueue({ url, method: 'PATCH', body: { activated: newStatus } });
+            alert("Action mise en file d'attente.");
+            return;
+        }
 
-        } catch (err) { alert("Erreur lors de l'enregistrement"); }
+        // Online
+        try {
+            const token = localStorage.getItem('sav_token');
+            await fetch(`${API_URL}${url}`, {
+                method: 'PATCH',
+                headers: { 
+                    'Content-Type': 'application/merge-patch+json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ activated: newStatus })
+            });
+            queryClient.invalidateQueries({ queryKey: ['buildings', selectedCustomerOption?.value] });
+        } catch (e) {
+            addToQueue({ url, method: 'PATCH', body: { activated: newStatus } });
+        }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Supprimer définitivement ce bâtiment ?")) return;
-        const token = localStorage.getItem('sav_token');
+        if (!confirm("Supprimer ce bâtiment ?")) return;
+        const url = `/buildings/${id}`;
 
-        const res = await fetch(`${API_URL}/buildings/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        if (!navigator.onLine) {
+            addToQueue({ url, method: 'DELETE', body: {} });
+            alert("Suppression locale effectuée.");
+            return;
+        }
 
-        if (res.ok) {
-            setBuildings(prev => prev.filter(b => b.id !== id));
-        } else {
-            alert("Impossible de supprimer (Probablement lié à des données). Essayez d'archiver.");
+        try {
+            const token = localStorage.getItem('sav_token');
+            await fetch(`${API_URL}${url}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            queryClient.invalidateQueries({ queryKey: ['buildings', selectedCustomerOption?.value] });
+        } catch (e) {
+            addToQueue({ url, method: 'DELETE', body: {} });
         }
     };
 
-    const handleArchive = async (id: number, currentStatus: boolean) => {
-        const token = localStorage.getItem('sav_token');
-        const res = await fetch(`${API_URL}/buildings/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/merge-patch+json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ activated: !currentStatus })
-        });
-
-        if (res.ok) {
-            setBuildings(prev => prev.map(b =>
-                b.id === id ? { ...b, activated: !currentStatus } : b
-            ));
-        }
-    };
-
-    const toggleForm = () => {
-        if (showForm) {
-            setShowForm(false);
-            setEditingId(null);
-            setSurface('');
-            setCapacity('');
-        } else {
-            setShowForm(true);
-            setEditingId(null);
-            setSurface('');
-            setCapacity('');
-        }
-    };
+    // --- RENDU ---
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 font-sans">
-            <div className="bg-white shadow px-6 py-4 mb-6">
-                <div className="max-w-5xl mx-auto flex justify-between items-center">
-                    <div>
-                        <Link href="/dashboard" className="text-sm text-gray-500 hover:text-indigo-600">← Retour</Link>
-                        <h1 className="text-2xl font-extrabold text-gray-800">Gestion des Bâtiments</h1>
-                    </div>
-                </div>
+        <div className="max-w-4xl mx-auto space-y-6 pb-20">
+            <h1 className="text-2xl font-bold text-gray-900">Gestion des Bâtiments</h1>
+
+            {/* SÉLECTEUR CLIENT */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Client</label>
+                <Select
+                    instanceId="customer-select-buildings"
+                    options={customerOptions}
+                    value={selectedCustomerOption}
+                    onChange={(val) => {
+                        setSelectedCustomerOption(val);
+                        setSearchTerm('');
+                        setShowForm(false);
+                    }}
+                    placeholder="Sélectionner un client..."
+                    isLoading={customersLoading}
+                />
             </div>
 
-            <div className="max-w-5xl mx-auto px-4">
-
-                {/* SELECTEUR CLIENT */}
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
-                    <label className="block text-sm font-bold text-gray-700 mb-2">📂 Sélectionner un Client</label>
-                    <Select
-                        instanceId="customer-select-buildings"
-                        options={customerOptions}
-                        value={selectedCustomerOption}
-                        onChange={setSelectedCustomerOption}
-                        isLoading={customersLoading}
-                        placeholder="Rechercher un client..."
-                        isClearable
-                        className="text-sm"
-                        styles={{
-                            control: (base) => ({
-                                ...base,
-                                borderColor: '#D1D5DB',
-                                borderRadius: '0.5rem',
-                                padding: '2px'
-                            })
-                        }}
-                    />
-                </div>
-
-                {loading && <div className="text-center py-4 text-gray-500">Chargement des bâtiments...</div>}
-
-                {selectedCustomerOption && !loading && (
-                    <div className="space-y-6 animate-fade-in">
-                        {/* HEADER ACTIONS */}
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-700">Parc Immobilier : {selectedCustomerOption.label}</h2>
-                            <button onClick={toggleForm} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-indigo-700">
-                                {showForm ? 'Fermer' : '+ Nouveau Bâtiment'}
+            {selectedCustomerOption && (
+                <>
+                    {/* BARRE D'ACTIONS */}
+                    <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <input 
+                            type="text" 
+                            placeholder="Rechercher un bâtiment..." 
+                            className="border p-2 rounded-lg flex-1"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                        {!showForm && (
+                            <button 
+                                onClick={handleCreate}
+                                className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-indigo-700 whitespace-nowrap"
+                            >
+                                + Ajouter Bâtiment
                             </button>
-                        </div>
+                        )}
+                    </div>
 
-                        {/* FORMULAIRE (AJOUT / MODIFICATION) */}
-                        {showForm && (
-                            <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md border border-indigo-100 animate-slide-down">
-                                <h3 className="text-lg font-bold mb-4 text-gray-800">
-                                    {editingId ? 'Modifier le bâtiment' : 'Nouveau Bâtiment (Nom auto)'}
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* FORMULAIRE */}
+                    {showForm && (
+                        <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-600 animate-in slide-in-from-top-4">
+                            <h2 className="text-lg font-bold mb-4">{editingId ? 'Modifier' : 'Nouveau Bâtiment'}</h2>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700">Nom du bâtiment</label>
+                                    <input required type="text" className="w-full border p-2 rounded" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Bâtiment A" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700">Surface (m²)</label>
-                                        <input
-                                            type="number"
-                                            required
-                                            step="0.1"
-                                            className="w-full border p-2 rounded"
-                                            value={surface}
-                                            onChange={e => setSurface(e.target.value)}
-                                        />
+                                        <input required type="number" step="0.1" className="w-full border p-2 rounded" value={surface} onChange={e => setSurface(e.target.value)} />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700">Capacité (Sujets)</label>
-                                        <input
-                                            type="number"
-                                            className="w-full border p-2 rounded"
-                                            value={capacity}
-                                            onChange={e => setCapacity(e.target.value)}
-                                        />
+                                        <label className="block text-sm font-bold text-gray-700">Capacité Max (sujets)</label>
+                                        <input type="number" className="w-full border p-2 rounded" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="Optionnel" />
                                     </div>
                                 </div>
-                                <button type="submit" className="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700">
-                                    {editingId ? 'Mettre à jour' : 'Enregistrer'}
-                                </button>
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button type="button" onClick={resetForm} className="px-4 py-2 text-gray-500 font-bold">Annuler</button>
+                                    <button type="submit" disabled={isSubmitting} className="bg-indigo-600 text-white px-6 py-2 rounded font-bold hover:bg-indigo-700 disabled:opacity-50">
+                                        {isSubmitting ? '...' : 'Enregistrer'}
+                                    </button>
+                                </div>
                             </form>
-                        )}
-
-                        {/* NOUVEAU : BARRE DE RECHERCHE */}
-                        <div className="bg-gray-100 p-3 rounded-lg border border-gray-200">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">🔍 Rechercher par Nom</label>
-                            <input 
-                                type="text" 
-                                placeholder="Ex: Bâtiment 1..." 
-                                className="w-full border p-2 rounded text-sm bg-white" 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
                         </div>
+                    )}
 
-                        {/* LISTE DES BÂTIMENTS (UTILISATION DU TABLEAU FILTRÉ) */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {filteredBuildings.length === 0 && <p className="text-gray-500 italic col-span-2 text-center py-4">Aucun bâtiment ne correspond à votre recherche.</p>}
-
-                            {filteredBuildings.map(building => (
-                                <div key={building.id} className={`bg-white p-5 rounded-xl border ${building.activated ? 'border-gray-200' : 'border-gray-200 bg-gray-50 opacity-75'} shadow-sm relative group`}>
-                                    <div className="flex justify-between items-start">
+                    {/* LISTE */}
+                    <div>
+                        {buildingsLoading ? (
+                            <div className="text-center py-10 text-indigo-600">Chargement...</div>
+                        ) : buildingsError ? (
+                            <div className="bg-red-50 p-4 rounded text-red-600">Erreur de chargement.</div>
+                        ) : filteredBuildings.length === 0 ? (
+                            <div className="text-center py-10 bg-gray-50 rounded border border-dashed text-gray-500">
+                                Aucun bâtiment trouvé.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {filteredBuildings.map(building => (
+                                    <div key={building.id} className={`bg-white p-5 rounded-xl shadow-sm border-l-4 ${building.activated ? 'border-indigo-500' : 'border-gray-300 opacity-75'} flex justify-between items-center`}>
+                                        
                                         <div>
-                                            <h3 className="font-bold text-lg text-gray-800">{building.name} </h3>
-                                            <p className="text-sm text-gray-500">{building.surface} m² • {building.maxCapacity || '?'} sujets max</p>
-                                            {!building.activated && <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded mt-2 inline-block">Archivé</span>}
-                                            {building.flocks && building.flocks.length > 0 && (<span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-2 inline-block">Occupé - {building.flocks[0].name}</span>)}
+                                            <h3 className="font-bold text-lg text-gray-900">{building.name}</h3>
+                                            <p className="text-sm text-gray-600">📐 {building.surface} m² {building.maxCapacity && <span>| 🐔 Max: {building.maxCapacity}</span>}</p>
+                                            {!building.activated && <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600">Archivé</span>}
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-3xl">{building.activated ? '🏠' : '🗄️'}</div>
-                                        </div>
-                                    </div>
 
-                                    {/* ACTIONS ADMIN UNIQUEMENT */}
-                                    {isAdmin && (
-                                        <div className="mt-4 pt-3 border-t border-gray-100 flex gap-3 justify-end group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => handleArchive(building.id, building.activated)}
-                                                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1 rounded"
-                                            >
-                                                {building.activated ? 'Archiver' : 'Réactiver'}
-                                            </button>
-
-                                            <button
-                                                onClick={() => handleEdit(building)}
-                                                className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1 rounded"
-                                            >
+                                        <div className="flex flex-col gap-2">
+                                            {isAdmin && (
+                                                <button 
+                                                    onClick={() => handleToggleStatus(building)}
+                                                    className={`text-xs font-bold px-3 py-1 rounded ${building.activated ? 'text-orange-600 bg-orange-50' : 'text-green-600 bg-green-50'}`}
+                                                >
+                                                    {building.activated ? 'Archiver' : 'Activer'}
+                                                </button>
+                                            )}
+                                            
+                                            <button onClick={() => handleEdit(building)} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded">
                                                 Modifier
                                             </button>
 
-                                            {building.flocks && building.flocks.length === 0 ? (
-                                                <button onClick={() => handleDelete(building.id)} className="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 px-3 py-1 rounded">
+                                            {(!building.flocks || building.flocks.length === 0) ? (
+                                                <button onClick={() => handleDelete(building.id)} className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded">
                                                     Supprimer
                                                 </button>
                                             ) : (
-                                                <span className="text-xs text-gray-400 cursor-not-allowed" title="Contient des historiques">Suppression impossible</span>
+                                                <span className="text-xs text-gray-400 text-center cursor-help" title="Contient des lots">🔒</span>
                                             )}
                                         </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+                </>
+            )}
         </div>
     );
 }

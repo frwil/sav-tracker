@@ -1,73 +1,93 @@
-// hooks/useCustomers.ts
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+'use client';
 
-interface Customer {
-  '@id': string;
-  name: string;
-  zone: string;
-}
+import { useState, useEffect } from 'react';
+
+// Nettoyage URL pour éviter les doubles slashs
+const cleanUrl = (url: string | undefined) => {
+    if (!url) return '';
+    return url.endsWith('/') ? url.slice(0, -1) : url;
+};
+
+const API_BASE = cleanUrl(process.env.NEXT_PUBLIC_API_URL);
 
 export interface CustomerOption {
-  value: string;
-  label: string;
+    value: string;
+    label: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
-
 export function useCustomers() {
-  const [options, setOptions] = useState<CustomerOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const router = useRouter();
+    const [options, setOptions] = useState<CustomerOption[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem('sav_token');
-    
-    // Redirection si pas de token (optionnel selon le contexte)
-    if (!token) {
-      // Tu peux commenter cette ligne si tu veux gérer la redirection dans le composant parent
-      // router.push('/'); 
-      setLoading(false);
-      return;
-    }
+    useEffect(() => {
+        let isMounted = true;
 
-    const fetchCustomers = async () => {
-      try {
-        const res = await fetch(`${API_URL}/customers`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/ld+json',
-          },
-        });
+        const loadCustomers = async () => {
+            const token = localStorage.getItem('sav_token');
+            
+            // 1. CHARGEMENT CACHE (Immédiat)
+            const cachedData = localStorage.getItem('sav_customers_cache');
+            if (cachedData) {
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    if (isMounted) setOptions(parsed);
+                } catch (e) {
+                    console.error("Erreur cache", e);
+                }
+            }
 
-        if (res.status === 401) {
-          localStorage.removeItem('sav_token');
-          router.push('/');
-          return;
-        }
+            if (!navigator.onLine) {
+                if (isMounted) setLoading(false);
+                return;
+            }
 
-        if (!res.ok) throw new Error('Erreur réseau lors du chargement des clients');
+            // 2. APPEL API
+            try {
+                // On tente de charger sans pagination pour avoir toute la liste
+                const url = `${API_BASE}/customers?pagination=false`;
+                
+                const res = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/ld+json'
+                    }
+                });
 
-        const data = await res.json();
-        const rawCustomers = data['hydra:member'] || data['member'] || [];
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // ⚠️ CORRECTION ICI : On cherche 'hydra:member' OU 'member'
+                    const rawMembers = data['hydra:member'] || data['member'] || [];
 
-        // Transformation pour React-Select
-        const formattedOptions = rawCustomers.map((c: Customer) => ({
-          value: c['@id'], // L'IRI (ex: /api/customers/12)
-          label: `${c.name} (${c.zone})`
-        }));
+                    //console.log(`✅ ${rawMembers.length} clients chargés.`);
 
-        setOptions(formattedOptions);
-      } catch (err: any) {
-        setError(err.message || 'Impossible de charger les clients');
-      } finally {
-        setLoading(false);
-      }
-    };
+                    const formattedOptions: CustomerOption[] = rawMembers.map((c: any) => ({
+                        // Utilise @id ou construit l'IRI manuellement si absent
+                        value: c['@id'] || `/api/customers/${c.id}`, 
+                        label: c.zone ? `${c.name} (${c.zone})` : c.name
+                    }));
 
-    fetchCustomers();
-  }, [router]);
+                    if (isMounted) {
+                        setOptions(formattedOptions);
+                        localStorage.setItem('sav_customers_cache', JSON.stringify(formattedOptions));
+                    }
+                } else {
+                    console.error("Erreur API Customers:", res.status);
+                    if (!cachedData && isMounted) setError("Impossible de charger les clients.");
+                }
+            } catch (err: any) {
+                console.error("Erreur Fetch Customers:", err);
+                if (!cachedData && isMounted) setError("Erreur de connexion.");
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        };
 
-  return { options, loading, error };
+        loadCustomers();
+
+        return () => { isMounted = false; };
+    }, []);
+
+    return { options, loading, error };
 }

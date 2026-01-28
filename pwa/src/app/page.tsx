@@ -1,21 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // Pour éviter le flash du formulaire
   const router = useRouter();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+  
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  console.log("API_URL utilisée:", API_URL); // Debug
+
+  // ✅ 1. Vérification au chargement : A-t-on déjà un token ?
+  useEffect(() => {
+    const token = localStorage.getItem('sav_token');
+    
+    if (token) {
+      // Si on a un token, on suppose qu'il est bon (Offline First)
+      // Si le token est invalide, les appels API futurs renverront 401 et redirigeront ici
+      console.log("Token trouvé, redirection auto...");
+      router.push('/dashboard');
+    } else {
+      // Pas de token, on affiche le formulaire
+      setIsCheckingAuth(false);
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    // ✅ 2. Vérification connexion avant l'appel
+    if (!navigator.onLine) {
+      setError("Vous êtes hors ligne. Une connexion internet est requise pour s'identifier la première fois.");
+      return;
+    }
+
     try {
-      // 1. Appel à l'endpoint que nous avons testé avec CURL
       const res = await fetch(`${API_URL}/login_check`, {
         method: 'POST',
         headers: {
@@ -25,24 +48,35 @@ export default function LoginPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Identifiants incorrects');
+        // Gestion plus fine des erreurs
+        if (res.status === 401) {
+          throw new Error('Identifiants incorrects');
+        } else {
+          throw new Error('Erreur serveur ou connexion');
+        }
       }
 
-      // 2. Récupération du token
       const data = await res.json();
       const token = data.token;
 
-      // 3. Stockage du token (localStorage pour commencer simple)
+      // Stockage du token
       localStorage.setItem('sav_token', token);
 
-      // 4. Redirection vers le tableau de bord (que nous créerons ensuite)
-      //alert('Connexion réussie ! Token: ' + token.substring(0, 10) + '...');
       router.push('/dashboard'); 
       
     } catch (err: any) {
       setError(err.message);
     }
   };
+
+  // Pendant qu'on vérifie le token, on affiche un écran vide ou un loader
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
@@ -59,7 +93,7 @@ export default function LoginPage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded bg-red-100 p-3 text-sm text-red-700">
+            <div className={`rounded p-3 text-sm ${error.includes('hors ligne') ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-700'}`}>
               {error}
             </div>
           )}

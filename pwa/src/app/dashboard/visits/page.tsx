@@ -15,7 +15,7 @@ interface Visit {
     activated: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Helper pour obtenir le début et la fin de journée/semaine/mois
 const getDateRange = (type: string, dateRef: string, dateEndRef?: string) => {
