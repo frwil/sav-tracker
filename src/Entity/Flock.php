@@ -22,10 +22,12 @@ use App\Validator\Constraints\BuildingAvailable;
 use Symfony\Component\Serializer\Attribute\Groups;
 use App\Entity\Standard;
 use Doctrine\ORM\Mapping\HasLifecycleCallbacks;
+use App\EntityListener\FlockDeletionListener;
 
 // src/Entity/Flock.php
 #[ORM\Entity(repositoryClass: FlockRepository::class)]
 #[HasLifecycleCallbacks]
+#[ORM\EntityListeners([FlockDeletionListener::class])]
 #[ApiResource(
     normalizationContext: ['groups' => ['flock:read']],
     denormalizationContext: ['groups' => ['flock:write']],
