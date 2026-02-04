@@ -26,7 +26,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter; // <--- AJOUTER
         new GetCollection(), // Le filtrage se fera via une Extension Doctrine
         new Post(
             processor: ProspectionProcessor::class, // ✅ Injection automatique du technicien
-            security: "is_granted('ROLE_TECHNICIAN')"
+            securityPostDenormalize: "is_granted('PROSPECTION_CREATE', object)"
         ),
         new Patch(
             security: "is_granted('PROSPECTION_EDIT', object)"
