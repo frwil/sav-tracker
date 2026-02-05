@@ -2,14 +2,14 @@
 
 namespace App\Security\Voter;
 
-use App\Entity\Prospection;
+use App\Entity\Consultation;
 use App\Entity\User;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Symfony\Bundle\SecurityBundle\Security;
 
-class ProspectionVoter extends Voter
+class ConsultationVoter extends Voter
 {
     const VIEW = 'PROSPECTION_VIEW';
     const EDIT = 'PROSPECTION_EDIT';
@@ -20,9 +20,10 @@ class ProspectionVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        /* return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::CREATE])
-            && $subject instanceof Prospection; */
-            return true;
+        return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::CREATE])
+            && $subject instanceof Consultation;
+
+         //return true; // Permet de tester le vote sans se soucier du sujet
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
@@ -32,8 +33,8 @@ class ProspectionVoter extends Voter
             return false;
         }
 
-        /** @var Prospection $prospection */
-        $prospection = $subject;
+        /** @var Consultation $consultation */
+        $consultation = $subject;
 
         // Les Admins peuvent tout faire
         if ($this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN')) {
@@ -49,25 +50,25 @@ class ProspectionVoter extends Voter
 
             case self::VIEW:
                 // Vérification auteur
-                return $this->isAuthor($prospection, $user);
+                return $this->isAuthor($consultation, $user);
                 
             case self::EDIT:
-                return $this->isAuthor($prospection, $user);
+                return $this->isAuthor($consultation, $user);
                 
             case self::DELETE:
-                return $this->isAuthor($prospection, $user);
+                return $this->isAuthor($consultation, $user);
         }
- 
+
         return true;
     }
 
     // Petite fonction helper pour éviter la répétition et gérer le null safety
-    private function isAuthor(Prospection $prospection, User $user): bool
+    private function isAuthor(Consultation $consultation, User $user): bool
     {
         // Si pas de technicien assigné, accès refusé par défaut (ou true si vous préférez)
-        if ($prospection->getTechnician() === null) {
+        if ($consultation->getTechnician() === null) {
             return false; 
         }
-        return $prospection->getTechnician()->getId() === $user->getId();
+        return $consultation->getTechnician()->getId() === $user->getId();
     }
 }

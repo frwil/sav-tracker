@@ -73,6 +73,10 @@ class Customer
     #[Groups(['customer:read', 'customer:write'])]
     private ?User $affectedTo = null;
 
+    #[ORM\Column(length: 20, options: ['default' => 'CLIENT'])]
+    #[Groups(['customer:read', 'customer:write', 'consultation:read'])]
+    private string $status = 'CLIENT';
+
     public function __construct()
     {
         $this->buildings = new ArrayCollection();
@@ -139,5 +143,10 @@ class Customer
         }
         return $this;
     }
-    // ...
+    
+    public function getStatus(): string { return $this->status; }
+    public function setStatus(string $status): self {
+        $this->status = $status;
+        return $this;
+    }
 }
