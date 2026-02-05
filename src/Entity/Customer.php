@@ -2,7 +2,9 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\OneToMany;
 use Doctrine\ORM\Mapping\ManyToMany;
@@ -20,6 +22,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Get(),
         new Patch(),
         new GetCollection(),
+        new Post(),
+        new Delete()
     ],
     normalizationContext: ['groups' => ['customer:read']],
     denormalizationContext: ['groups' => ['customer:write']] // 👈 AJOUTÉ : Permet l'écriture
