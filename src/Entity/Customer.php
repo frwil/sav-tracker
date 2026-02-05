@@ -1,11 +1,14 @@
 <?php 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\Mapping\OneToMany;
 use Doctrine\ORM\Mapping\ManyToMany;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\CustomerRepository;
+use ApiPlatform\Metadata\GetCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -13,49 +16,54 @@ use Symfony\Component\Serializer\Attribute\Groups;
 // src/Entity/Customer.php
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
 #[ApiResource(
+    operations: [
+        new Get(),
+        new Patch(),
+        new GetCollection(),
+    ],
     normalizationContext: ['groups' => ['customer:read']],
     denormalizationContext: ['groups' => ['customer:write']] // 👈 AJOUTÉ : Permet l'écriture
 )]
 class Customer
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
-    #[Groups(['customer:read', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])] // 👈 customer:write ajouté partout
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])] // 👈 customer:write ajouté partout
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private ?string $zone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private ?string $exactLocation = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private ?string $code = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private ?string $erpCode = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private ?string $erpName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private ?string $phoneNumber = null;
 
     #[ORM\OneToMany(mappedBy: 'customer', targetEntity: Building::class, orphanRemoval: true)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read', 'building:read','prospection:read','consultation:read'])]
     private Collection $buildings;
 
     #[ORM\ManyToMany(targetEntity: Speculation::class)]
-    #[Groups(['customer:read', 'customer:write', 'visit:read'])]
+    #[Groups(['customer:read', 'customer:write', 'visit:read','consultation:read'])]
     private Collection $speculations;
 
     // 👇 NOUVEL ATTRIBUT POUR L'ARCHIVAGE
@@ -74,7 +82,7 @@ class Customer
     private ?User $affectedTo = null;
 
     #[ORM\Column(length: 20, options: ['default' => 'CLIENT'])]
-    #[Groups(['customer:read', 'customer:write', 'consultation:read'])]
+    #[Groups(['customer:read', 'customer:write', 'consultation:read','prospection:write','consultation:write'])]
     private string $status = 'CLIENT';
 
     public function __construct()
