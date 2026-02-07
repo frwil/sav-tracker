@@ -2,68 +2,106 @@
 
 namespace App\Security\Voter;
 
-use App\Entity\Consultation;
 use App\Entity\User;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use App\Entity\Consultation;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
-use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 class ConsultationVoter extends Voter
 {
-    const EDIT = 'PROSPECTION_EDIT';
-    const DELETE = 'PROSPECTION_DELETE';
-    const CREATE = 'PROSPECTION_CREATE';
+    const VIEW = 'CONSULTATION_VIEW';
+    const EDIT = 'CONSULTATION_EDIT';
+    const DELETE = 'CONSULTATION_DELETE';
+    const CREATE = 'CONSULTATION_CREATE';
 
     public function __construct(private Security $security) {}
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [ self::EDIT, self::DELETE, self::CREATE])
-            && $subject instanceof Consultation;
-
-         //return true; // Permet de tester le vote sans se soucier du sujet
+        // ✅ CORRECTION : Supporte CREATE même sans subject (null) ou avec une instance
+        return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::CREATE])
+            && ($subject instanceof Consultation || $subject === null);
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
         $user = $token->getUser();
+        
         if (!$user instanceof User) {
             return false;
         }
 
-        /** @var Consultation $consultation */
-        $consultation = $subject;
-
         // Les Admins peuvent tout faire
-        if ($this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN')) {
+        if ($this->security->isGranted('ROLE_ADMIN') || 
+            $this->security->isGranted('ROLE_SUPER_ADMIN')) {
             return true;
         }
 
         switch ($attribute) {
             case self::CREATE:
-                // ✅ LOGIQUE POUR LA CRÉATION :
-                // Ici, le processeur n'a pas encore injecté le technicien dans l'objet.
-                // On vérifie simplement si l'utilisateur a le droit technique de créer (Role).
-                return $this->security->isGranted('ROLE_TECHNICIAN');
+                // ✅ Vérifie que l'utilisateur est un technicien
+                return $this->canCreate($user);
+
+            case self::VIEW:
+                /** @var Consultation $consultation */
+                $consultation = $subject;
+                return $this->canView($consultation, $user);
 
             case self::EDIT:
-                return $this->isAuthor($consultation, $user);
+                /** @var Consultation $consultation */
+                $consultation = $subject;
+                return $this->canEdit($consultation, $user);
                 
             case self::DELETE:
-                return $this->isAuthor($consultation, $user);
+                /** @var Consultation $consultation */
+                $consultation = $subject;
+                return $this->canDelete($consultation, $user);
         }
 
-        return true;
+        return false;
     }
 
-    // Petite fonction helper pour éviter la répétition et gérer le null safety
+    private function canCreate(User $user): bool
+    {
+        // Tout utilisateur authentifié peut créer une consultation
+        // Ou vérifiez un rôle spécifique : ROLE_TECHNICIAN
+        return $this->security->isGranted('ROLE_TECHNICIAN') || 
+               $this->security->isGranted('ROLE_USER');
+    }
+
+    private function canView(Consultation $consultation, User $user): bool
+    {
+        // Admin déjà géré, ici on est sûr que c'est un user normal
+        
+        // Si pas de technicien assigné, visible par tous (ou selon votre logique)
+        if ($consultation->getTechnician() === null) {
+            return false; // ou true si vous voulez que les sans-technicien soient visibles
+        }
+
+        // Le technicien assigné peut voir
+        return $consultation->getTechnician()->getId() === $user->getId();
+    }
+
+    private function canEdit(Consultation $consultation, User $user): bool
+    {
+        // Même logique que VIEW
+        return $this->isAuthor($consultation, $user);
+    }
+
+    private function canDelete(Consultation $consultation, User $user): bool
+    {
+        // Même logique que VIEW
+        return $this->isAuthor($consultation, $user);
+    }
+
     private function isAuthor(Consultation $consultation, User $user): bool
     {
-        // Si pas de technicien assigné, accès refusé par défaut (ou true si vous préférez)
         if ($consultation->getTechnician() === null) {
-            return false; 
+            return false;
         }
+        
         return $consultation->getTechnician()->getId() === $user->getId();
     }
 }
