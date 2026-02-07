@@ -2,26 +2,27 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
+use Doctrine\DBAL\Types\Types;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\DBAL\Types\Types;
+use ApiPlatform\Metadata\ApiFilter;
+use App\State\ConsultationProvider;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use Symfony\Component\Serializer\Attribute\Groups;
 use App\State\ConsultationProcessor; // Pensez à créer ce processeur (copie de ProspectionProcessor)
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 
 #[ORM\Entity]
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('CONSULTATION_VIEW', object)"),
-        new GetCollection(),
+        new Get(provider: ConsultationProvider::class), // Créez ce provider si vous voulez un comportement spécifique
+        new GetCollection(provider: ConsultationProvider::class),
         new Post(
             processor: ConsultationProcessor::class,
             securityPostDenormalize: "is_granted('CONSULTATION_CREATE', object)"

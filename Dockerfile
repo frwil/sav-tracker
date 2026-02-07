@@ -15,7 +15,7 @@ WORKDIR /app
 # Menu "Volumes" -> Add Volume -> Mount Path: /app/var/
 # -----------------------------------------------------------------------
 # VOLUME /app/var/
-
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # persistent / runtime deps
 # hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN set -eux; \
     install-php-extensions \
-        @composer \
+        # @composer \
         apcu \
         intl \
         opcache \

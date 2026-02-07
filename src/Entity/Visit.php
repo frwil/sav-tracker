@@ -3,14 +3,17 @@
 namespace App\Entity;
 
 use App\Entity\Observation;
+use App\State\VisitProvider;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
 use Doctrine\DBAL\Types\Types;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\ApiFilter;
 use App\Repository\VisitRepository;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\OpenApi\Model\Schema;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\MediaType;
 use ApiPlatform\OpenApi\Model\Operation;
@@ -18,14 +21,12 @@ use App\Controller\CloseVisitController;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use App\Validator\Constraints as AppAssert;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\Common\Collections\ArrayCollection;
-use Symfony\Component\Serializer\Attribute\Groups;
-use ApiPlatform\OpenApi\Model\Schema;
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use Doctrine\Common\Collections\ArrayCollection;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 
@@ -33,8 +34,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[AppAssert\SequentialVisitDate]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
+        new Get(provider: VisitProvider::class), // Créez ce provider si vous voulez un comportement spécifique
+        new GetCollection(provider: VisitProvider::class),
         new Post(),
         new Patch(),
         new Delete(),

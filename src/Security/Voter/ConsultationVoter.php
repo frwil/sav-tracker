@@ -11,7 +11,6 @@ use Symfony\Bundle\SecurityBundle\Security;
 
 class ConsultationVoter extends Voter
 {
-    const VIEW = 'PROSPECTION_VIEW';
     const EDIT = 'PROSPECTION_EDIT';
     const DELETE = 'PROSPECTION_DELETE';
     const CREATE = 'PROSPECTION_CREATE';
@@ -20,7 +19,7 @@ class ConsultationVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::CREATE])
+        return in_array($attribute, [ self::EDIT, self::DELETE, self::CREATE])
             && $subject instanceof Consultation;
 
          //return true; // Permet de tester le vote sans se soucier du sujet
@@ -48,10 +47,6 @@ class ConsultationVoter extends Voter
                 // On vérifie simplement si l'utilisateur a le droit technique de créer (Role).
                 return $this->security->isGranted('ROLE_TECHNICIAN');
 
-            case self::VIEW:
-                // Vérification auteur
-                return $this->isAuthor($consultation, $user);
-                
             case self::EDIT:
                 return $this->isAuthor($consultation, $user);
                 

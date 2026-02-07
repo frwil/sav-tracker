@@ -3,28 +3,29 @@
 namespace App\Repository;
 
 use App\Entity\User;
-use App\Entity\Customer;
+use App\Entity\Prospection;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\SecurityBundle\Security;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 
 /**
- * @extends ServiceEntityRepository<Customer>
+ * @extends ServiceEntityRepository<Prospection>
  */
-class CustomerRepository extends ServiceEntityRepository
+class ProspectionRepository extends ServiceEntityRepository
 {
     public function __construct(
         ManagerRegistry $registry,
         private Security $security
     ) {
-        parent::__construct($registry, Customer::class);
+        parent::__construct($registry, Prospection::class);
     }
 
     /**
-     * Récupère tous les customers pour l'utilisateur courant
-     * - Admin : voit tout
-     * - User : voit ses clients affectés + clients non affectés
+     * Récupère toutes les prospections pour l'utilisateur courant
+     * - Admin : voit tout (y compris sans technician)
+     * - User : voit seulement ses prospections (technician)
+     *   Les prospections sans technician sont invisibles pour les non-admins
      */
     public function findForCurrentUser(): array
     {
@@ -37,9 +38,9 @@ class CustomerRepository extends ServiceEntityRepository
             return [];
         }
 
-        return $this->createQueryBuilder('c')
-            ->leftJoin('c.affectedTo', 'u')
-            ->where('u.id = :userId OR u.id IS NULL')
+        return $this->createQueryBuilder('p')
+            ->join('p.technician', 't')  // INNER JOIN exclut les NULL
+            ->where('t.id = :userId')
             ->setParameter('userId', $user->getId())
             ->getQuery()
             ->getResult();
@@ -48,7 +49,7 @@ class CustomerRepository extends ServiceEntityRepository
     /**
      * Crée un QueryBuilder filtré pour l'utilisateur courant
      */
-    public function createQueryBuilderForUser(string $alias = 'c'): QueryBuilder
+    public function createQueryBuilderForUser(string $alias = 'p'): QueryBuilder
     {
         $qb = $this->createQueryBuilder($alias);
 
@@ -58,8 +59,8 @@ class CustomerRepository extends ServiceEntityRepository
 
         $user = $this->security->getUser();
         if ($user instanceof User) {
-            $qb->leftJoin("$alias.affectedTo", 'u')
-               ->andWhere('u.id = :userId OR u.id IS NULL')
+            $qb->join("$alias.technician", 't')
+               ->andWhere('t.id = :userId')
                ->setParameter('userId', $user->getId());
         }
 
@@ -67,9 +68,9 @@ class CustomerRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère un customer par ID si accessible par l'utilisateur courant
+     * Récupère une prospection par ID si accessible par l'utilisateur courant
      */
-    public function findOneForCurrentUser(int $id): ?Customer
+    public function findOneForCurrentUser(int $id): ?Prospection
     {
         if ($this->isAdmin()) {
             return $this->find($id);
@@ -80,10 +81,10 @@ class CustomerRepository extends ServiceEntityRepository
             return null;
         }
 
-        return $this->createQueryBuilder('c')
-            ->leftJoin('c.affectedTo', 'u')
-            ->where('c.id = :id')
-            ->andWhere('u.id = :userId OR u.id IS NULL')
+        return $this->createQueryBuilder('p')
+            ->join('p.technician', 't')
+            ->where('p.id = :id')
+            ->andWhere('t.id = :userId')
             ->setParameter('id', $id)
             ->setParameter('userId', $user->getId())
             ->getQuery()

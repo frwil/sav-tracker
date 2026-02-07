@@ -9,3 +9,8 @@
 
 controllers:
     resource: routing.controllers
+
+app_filtered_api:
+    resource: ../src/Controller/FilteredDataController.php
+    type: attribute
+    prefix: /api

@@ -11,7 +11,6 @@ use Symfony\Bundle\SecurityBundle\Security;
 
 class ProspectionVoter extends Voter
 {
-    const VIEW = 'PROSPECTION_VIEW';
     const EDIT = 'PROSPECTION_EDIT';
     const DELETE = 'PROSPECTION_DELETE';
     const CREATE = 'PROSPECTION_CREATE';
@@ -20,9 +19,8 @@ class ProspectionVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        /* return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::CREATE])
-            && $subject instanceof Prospection; */
-            return true;
+         return in_array($attribute, [ self::EDIT, self::DELETE, self::CREATE])
+            && $subject instanceof Prospection; 
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
@@ -47,11 +45,7 @@ class ProspectionVoter extends Voter
                 // On vérifie simplement si l'utilisateur a le droit technique de créer (Role).
                 return $this->security->isGranted('ROLE_TECHNICIAN');
 
-            case self::VIEW:
-                // Vérification auteur
-                return $this->isAuthor($prospection, $user);
-                
-            case self::EDIT:
+             case self::EDIT:
                 return $this->isAuthor($prospection, $user);
                 
             case self::DELETE:

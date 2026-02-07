@@ -3,28 +3,29 @@
 namespace App\Repository;
 
 use App\Entity\User;
-use App\Entity\Customer;
+use App\Entity\Consultation;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\SecurityBundle\Security;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 
 /**
- * @extends ServiceEntityRepository<Customer>
+ * @extends ServiceEntityRepository<Consultation>
  */
-class CustomerRepository extends ServiceEntityRepository
+class ConsultationRepository extends ServiceEntityRepository
 {
     public function __construct(
         ManagerRegistry $registry,
         private Security $security
     ) {
-        parent::__construct($registry, Customer::class);
+        parent::__construct($registry, Consultation::class);
     }
 
     /**
-     * Récupère tous les customers pour l'utilisateur courant
-     * - Admin : voit tout
-     * - User : voit ses clients affectés + clients non affectés
+     * Récupère toutes les consultations pour l'utilisateur courant
+     * - Admin : voit tout (y compris sans technician)
+     * - User : voit seulement ses consultations (technician)
+     *   Les consultations sans technician sont invisibles pour les non-admins
      */
     public function findForCurrentUser(): array
     {
@@ -38,8 +39,9 @@ class CustomerRepository extends ServiceEntityRepository
         }
 
         return $this->createQueryBuilder('c')
-            ->leftJoin('c.affectedTo', 'u')
-            ->where('u.id = :userId OR u.id IS NULL')
+            ->join('c.technician', 't')  // INNER JOIN exclut les NULL
+            ->addSelect('t')
+            ->where('t.id = :userId')
             ->setParameter('userId', $user->getId())
             ->getQuery()
             ->getResult();
@@ -58,8 +60,8 @@ class CustomerRepository extends ServiceEntityRepository
 
         $user = $this->security->getUser();
         if ($user instanceof User) {
-            $qb->leftJoin("$alias.affectedTo", 'u')
-               ->andWhere('u.id = :userId OR u.id IS NULL')
+            $qb->join("$alias.technician", 't')
+               ->andWhere('t.id = :userId')
                ->setParameter('userId', $user->getId());
         }
 
@@ -67,9 +69,9 @@ class CustomerRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère un customer par ID si accessible par l'utilisateur courant
+     * Récupère une consultation par ID si accessible par l'utilisateur courant
      */
-    public function findOneForCurrentUser(int $id): ?Customer
+    public function findOneForCurrentUser(int $id): ?Consultation
     {
         if ($this->isAdmin()) {
             return $this->find($id);
@@ -81,9 +83,9 @@ class CustomerRepository extends ServiceEntityRepository
         }
 
         return $this->createQueryBuilder('c')
-            ->leftJoin('c.affectedTo', 'u')
+            ->join('c.technician', 't')
             ->where('c.id = :id')
-            ->andWhere('u.id = :userId OR u.id IS NULL')
+            ->andWhere('t.id = :userId')
             ->setParameter('id', $id)
             ->setParameter('userId', $user->getId())
             ->getQuery()
