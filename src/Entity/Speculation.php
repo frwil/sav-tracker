@@ -2,16 +2,20 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Metadata\ApiFilter;
 
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\SpeculationRepository;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use Symfony\Component\Serializer\Attribute\Groups;
 // src/Entity/Speculation.php
 #[ORM\Entity(repositoryClass: SpeculationRepository::class)]
 #[ApiResource]
+#[ApiFilter(SearchFilter::class, properties: ['id'=>'exact'])]
 class Speculation
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
+    #[Groups(['visit:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
