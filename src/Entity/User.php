@@ -113,6 +113,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:detail'])]
     private Collection $assignedCustomers;
 
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: UserObjective::class, cascade: ['persist', 'remove'])]
+    private Collection $objectives;
+
     public function __construct()
     {
         $this->visits = new ArrayCollection();
@@ -120,6 +123,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->consultations = new ArrayCollection();
         $this->createdCustomers = new ArrayCollection();
         $this->assignedCustomers = new ArrayCollection();
+        $this->objectives = new ArrayCollection();
     }
 
     public function getId(): ?int { return $this->id; }
@@ -165,6 +169,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function isActivated(): ?bool { return $this->activated; }
     public function setActivated(bool $activated): self { $this->activated = $activated; return $this; }
+
 
     // --- GETTERS & SETTERS POUR LES RELATIONS ---
 
@@ -301,5 +306,55 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             }
         }
         return $this;
+    }
+
+    /**
+     * @return Collection<int, UserObjective>
+     */
+    public function getObjectives(): Collection
+    {
+        return $this->objectives;
+    }
+
+    public function addObjective(UserObjective $objective): self
+    {
+        if (!$this->objectives->contains($objective)) {
+            $this->objectives->add($objective);
+            $objective->setUser($this);
+        }
+        return $this;
+    }
+
+    public function removeObjective (UserObjective $objective): self
+    {
+        if ($this->objectives->removeElement($objective)) {
+            if ($objective->getUser() === $this) {
+                $objective->setUser(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Getter virtuel pour exposer l'objectif actuel via l'API
+     */
+    #[Groups(['user:read', 'visit:read'])] 
+    public function getDailyVisitObjective(): int
+    {
+        // On récupère le dernier objectif valide (le plus récent)
+        // Ou celui actif aujourd'hui
+        $today = new \DateTime();
+        
+        foreach ($this->objectives as $obj) {
+            $start = $obj->getStartDate();
+            $end = $obj->getEndDate();
+            
+            // Si la date du jour est dans la plage de validité
+            if ($today >= $start && ($end === null || $today <= $end)) {
+                return $obj->getDailyRate();
+            }
+        }
+
+        return 0; // Valeur par défaut si aucun objectif actif
     }
 }

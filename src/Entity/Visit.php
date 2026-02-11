@@ -107,6 +107,21 @@ class Visit
     #[Assert\NotBlank(message: "L'objectif principal de la visite est obligatoire.")]
     private ?string $objective = 'RAS';
 
+    /**
+     * Date de réalisation effective (KPI : Adhérence)
+     */
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['visit:read', 'visit:write'])]
+    private ?\DateTimeInterface $completedAt = null;
+
+    /**
+     * Date de planification (Agenda). 
+     * Si null, c'est une visite spontanée.
+     */
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['visit:read', 'visit:write'])]
+    private ?\DateTimeInterface $plannedAt = null;
+
     public function __construct()
     {
         $this->observations = new ArrayCollection();
@@ -128,7 +143,17 @@ class Visit
     public function setGpsCoordinates(?string $gpsCoordinates): self { $this->gpsCoordinates = $gpsCoordinates; return $this; }
 
     public function isClosed(): ?bool { return $this->closed; }
-    public function setClosed(bool $closed): self { $this->closed = $closed; return $this; }
+    public function setClosed(bool $closed): self
+    {
+        $this->closed = $closed;
+
+        // Si on ferme la visite et qu'aucune date de fin n'est définie, on met "Maintenant"
+        if ($closed === true && $this->completedAt === null) {
+            $this->completedAt = new \DateTime();
+        }
+
+        return $this;
+    }
     public function isActivated(): ?bool { return $this->activated; }
     public function setActivated(bool $activated): self { $this->activated = $activated; return $this; }
 
@@ -158,4 +183,66 @@ class Visit
 
     public function getObjective(): ?string { return $this->objective; }
     public function setObjective(string $objective): self { $this->objective = $objective; return $this; }
+
+    public function getCompletedAt(): ?\DateTimeInterface
+    {
+        return $this->completedAt;
+    }
+
+    public function setCompletedAt(?\DateTimeInterface $completedAt): self
+    {
+        $this->completedAt = $completedAt;
+        return $this;
+    }
+
+    /**
+     * KPI : Écart en heures (Négatif = Avance, Positif = Retard)
+     */
+    #[Groups(['visit:read'])]
+    public function getTimeDeviation(): ?int
+    {
+        if (!$this->visitedAt || !$this->completedAt) return null;
+        
+        // Comparaison simple des timestamps
+        $seconds = $this->completedAt->getTimestamp() - $this->visitedAt->getTimestamp();
+        return (int) round($seconds / 3600);
+    }
+
+    public function getPlannedAt(): ?\DateTimeInterface
+    {
+        return $this->plannedAt;
+    }
+
+    public function setPlannedAt(?\DateTimeInterface $plannedAt): self
+    {
+        $this->plannedAt = $plannedAt;
+        return $this;
+    }
+
+    #[Groups(['visit:read'])]
+    public function isPlanned(): bool
+    {
+        return $this->plannedAt !== null;
+    }
+
+    /**
+     * KPI : Écart de planning (en jours)
+     * 0 = Le jour même, < 0 = En avance, > 0 = En retard, Null = Spontané ou pas fait
+     */
+    #[Groups(['visit:read'])]
+    public function getPlanningDeviation(): ?int
+    {
+        if ($this->plannedAt === null || $this->visitedAt === null) {
+            return null;
+        }
+
+        // On compare les dates sans les heures pour l'adhérence jour
+        $plan = \DateTime::createFromInterface($this->plannedAt)->setTime(0, 0);
+        $real = \DateTime::createFromInterface($this->visitedAt)->setTime(0, 0);
+        
+        $diff = $real->diff($plan);
+        
+        // $diff->invert est 1 si $real > $plan (donc retard)
+        return $diff->days * ($diff->invert ? 1 : -1); 
+    }
 }

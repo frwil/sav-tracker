@@ -124,4 +124,46 @@ class VisitRepository extends ServiceEntityRepository
                $this->security->isGranted('ROLE_SUPER_ADMIN') ||
                $this->security->isGranted('ROLE_OPERATOR');
     }
+
+    /**
+     * @param array $technicianIds Tableau d'IDs (vide = tous les techniciens)
+     */
+    public function findByTechniciansAndDateRange(array $technicianIds, \DateTimeInterface $start, \DateTimeInterface $end): array
+    {
+        $qb = $this->createQueryBuilder('v')
+            ->andWhere('v.visitedAt BETWEEN :start AND :end')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end);
+
+        // Si on a des techniciens spécifiques, on filtre. Sinon, on prend tout.
+        if (!empty($technicianIds)) {
+            $qb->andWhere('v.technician IN (:ids)')
+               ->setParameter('ids', $technicianIds);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findVisitsForStats(array $techIds, \DateTimeInterface $start, \DateTimeInterface $end): array
+    {
+        $qb = $this->createQueryBuilder('v');
+
+        // Condition de base : Période
+        // Soit c'est planifié dans la période, soit c'est réalisé et complété dans la période
+        $qb->andWhere('
+            (v.plannedAt BETWEEN :start AND :end) 
+            OR 
+            ((v.visitedAt BETWEEN :start AND :end) AND (v.completedAt BETWEEN :start AND :end) AND v.closed=true)
+        ')
+        ->setParameter('start', $start)
+        ->setParameter('end', $end);
+
+        // Filtre Techs
+        if (!empty($techIds)) {
+            $qb->andWhere('v.technician IN (:ids)')
+               ->setParameter('ids', $techIds);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }
