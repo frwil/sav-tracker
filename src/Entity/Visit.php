@@ -2,30 +2,31 @@
 
 namespace App\Entity;
 
-use App\Entity\Observation;
-use App\State\VisitProvider;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Post;
-use Doctrine\DBAL\Types\Types;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Delete;
-use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\ExistsFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
-use App\Repository\VisitRepository;
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\OpenApi\Model\Schema;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\MediaType;
 use ApiPlatform\OpenApi\Model\Operation;
-use App\Controller\CloseVisitController;
 use ApiPlatform\OpenApi\Model\RequestBody;
+use ApiPlatform\OpenApi\Model\Schema;
+use App\Controller\CloseVisitController;
+use App\Entity\Observation;
+use App\Repository\VisitRepository;
+use App\State\VisitProvider;
 use App\Validator\Constraints as AppAssert;
-use Doctrine\Common\Collections\Collection;
-use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
-use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use Doctrine\Common\Collections\ArrayCollection;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -62,10 +63,11 @@ use Symfony\Component\Validator\Constraints as Assert;
     normalizationContext: ['groups' => ['visit:read']],
     denormalizationContext: ['groups' => ['visit:write']]
 )]
+#[ApiFilter(DateFilter::class, properties: ['visitedAt', 'plannedAt'])] // Ajout de plannedAt
+#[ApiFilter(OrderFilter::class, properties: ['visitedAt' => 'DESC', 'plannedAt' => 'ASC', 'createdAt' => 'DESC'])] // Ajout de plannedAt
 #[ApiFilter(SearchFilter::class, properties: ['customer' => 'exact', 'technician' => 'exact'])]
 #[ApiFilter(BooleanFilter::class, properties: ['closed', 'activated'])]
-#[ApiFilter(DateFilter::class, properties: ['visitedAt'])]
-#[ApiFilter(OrderFilter::class, properties: ['visitedAt' => 'DESC'])]
+#[ApiFilter(ExistsFilter::class, properties: ['plannedAt', 'visitedAt'])] // Nouveau filtre utile
 class Visit
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
