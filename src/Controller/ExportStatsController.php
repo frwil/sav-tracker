@@ -84,7 +84,7 @@ class ExportStatsController extends AbstractController
 
             foreach ($visits as $visit) {
                 $isPlanned = $visit->getPlannedAt() !== null;
-                $isRealized = $visit->getVisitedAt() !== null;
+                $isRealized = $visit->getCompletedAt() !== null && $visit->isClosed();
 
                 // 1. Est-ce planifié DANS la période ?
                 if ($isPlanned && $this->isDateInRange($visit->getPlannedAt(), $start, $end)) {

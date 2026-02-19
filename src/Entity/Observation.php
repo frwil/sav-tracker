@@ -57,18 +57,18 @@ use Symfony\Component\HttpFoundation\File\File;
 class Observation
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
-    #[Groups(['observation:read', 'visit:read'])]
+    #[Groups(['observation:read'])]
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'observations')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['observation:read', 'observation:write', 'visit:read'])]
+    #[Groups(['observation:read', 'observation:write'])]
     private ?Visit $visit = null;
 
     // Lien vers la Bande concernée (Indispensable pour savoir de quoi on parle)
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['observation:read', 'observation:write', 'visit:read'])]
+    #[Groups(['observation:read', 'observation:write', 'visit:read','visit:detail'])]
     private ?Flock $flock = null;
 
     // --- CHAMPS COMMUNS A TOUTES LES SPECULATIONS ---
@@ -89,7 +89,7 @@ class Observation
      * Liste des problèmes détectés durant cette observation.
      */
     #[ORM\OneToMany(mappedBy: 'detectedIn', targetEntity: Problem::class, cascade: ['persist', 'remove'])]
-    #[Groups(['observation:read', 'observation:write', 'visit:read'])]
+    #[Groups(['observation:read', 'observation:write'])]
     private Collection $detectedProblems;
 
     #[ORM\OneToMany(mappedBy: 'resolvedIn', targetEntity: Problem::class)]
@@ -97,7 +97,7 @@ class Observation
     private Collection $resolvedProblems;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['observation:read', 'observation:write', 'visit:read'])]
+    #[Groups(['observation:read', 'observation:write', 'visit:read','visit:detail'])]
     private ?string $generalComment = null; // Commentaire général
 
     // --- DONNEES SPECIFIQUES (JSON) ---
@@ -108,18 +108,18 @@ class Observation
     private array $data = [];
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, updatable: false)]
-    #[Groups(['observation:read', 'visit:read'])]
+    #[Groups(['observation:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)] // Mutable car peut être ajustée si besoin
-    #[Groups(['observation:read', 'observation:write', 'visit:read', 'flock:read'])] // 'write' autorisé !
+    #[Groups(['observation:read', 'observation:write', 'flock:read'])] // 'write' autorisé !
     private ?\DateTimeInterface $observedAt = null;
 
     #[ORM\OneToMany(mappedBy: 'observation', targetEntity: ObservationPhoto::class, cascade: ['persist', 'remove'])]
     #[Groups(['observation:read'])]
     private Collection $photos;
 
-    #[Groups(['observation:read', 'visit:read'])]
+    #[Groups(['observation:read'])]
     #[SerializedName('hasInventory')]
     public function hasInventory(): bool
     {
