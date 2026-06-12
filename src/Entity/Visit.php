@@ -2,74 +2,69 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
+use App\Entity\Observation;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\OpenApi\Model\MediaType;
-use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
-use ApiPlatform\OpenApi\Model\RequestBody;
-use ApiPlatform\OpenApi\Model\Schema;
-use App\Controller\CloseVisitController;
-use App\Controller\StartVisitController;
-use App\Repository\VisitRepository;
-use App\State\VisitProvider;
-use App\Validator\Constraints as AppAssert;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\VisitRepository;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\OpenApi\Model\MediaType;
+use ApiPlatform\OpenApi\Model\Operation;
+use App\Controller\CloseVisitController;
+use ApiPlatform\OpenApi\Model\RequestBody;
+use App\Validator\Constraints as AppAssert;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Attribute\Groups;
+use ApiPlatform\OpenApi\Model\Schema;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use Symfony\Component\Validator\Constraints as Assert;
+
 
 #[ORM\Entity(repositoryClass: VisitRepository::class)]
 #[AppAssert\SequentialVisitDate]
 #[ApiResource(
     operations: [
-        new Get(
-            provider: VisitProvider::class,
-            normalizationContext: ['groups' => ['visit:read', 'visit:detail']]
-        ),
-        new GetCollection(
-            provider: VisitProvider::class,
-            normalizationContext: ['groups' => ['visit:read', 'visit:list']]
-        ),
+        new Get(),
+        new GetCollection(),
         new Post(),
         new Patch(),
         new Delete(),
+        // 👇 AJOUTEZ CETTE OPÉRATION PERSONNALISÉE
         new Patch(
-            uriTemplate: '/visits/{id}/close',
-            controller: CloseVisitController::class,
-            openapi: new OpenApiOperation(
-                summary: 'Clôturer la visite',
-                description: 'Marque la visite comme terminée.',
+            uriTemplate: '/visits/{id}/close', 
+            controller: CloseVisitController::class, 
+            openapi: new Operation(
+                summary : 'Clôturer la visite',
+                description : 'Marque la visite comme terminée et verrouille les modifications.',
                 requestBody: new RequestBody(
                     content: new \ArrayObject([
-                        'application/json' => new MediaType(schema: new Schema())
+                        'application/json' => new MediaType(
+                            schema: new Schema()
+                        )
                     ])
                 )
             ),
-            denormalizationContext: ['groups' => ['visit:close']],
-            input: false,
+            denormalizationContext: ['groups' => ['visit:close']], // Groupe vide pour éviter de demander des champs
+            input: false, // Pas de corps JSON requis
             name: 'close_visit'
-        ),
-        new Patch(
-            uriTemplate: '/visits/{id}/start',
-            controller: StartVisitController::class,
-            openapi: new OpenApiOperation(
-                summary: 'Démarrer la visite',
-                description: 'Marque le début effectif.',
-            ),
-            denormalizationContext: ['groups' => ['visit:start']],
-            input: false,
-            name: 'start_visit'
         )
     ],
     normalizationContext: ['groups' => ['visit:read']],
     denormalizationContext: ['groups' => ['visit:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: ['customer' => 'exact', 'technician' => 'exact'])]
+#[ApiFilter(BooleanFilter::class, properties: ['closed', 'activated'])]
+#[ApiFilter(DateFilter::class, properties: ['visitedAt'])]
+#[ApiFilter(OrderFilter::class, properties: ['visitedAt' => 'DESC'])]
 class Visit
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -83,61 +78,47 @@ class Visit
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['visit:read', 'visit:write', 'visit:list'])]
+    #[Groups(['visit:read', 'visit:write'])]
     private ?Customer $customer = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['visit:read', 'visit:write', 'visit:list'])]
+    #[Groups(['visit:read', 'visit:write'])]
+    private ?\DateTimeInterface $plannedAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Groups(['visit:read', 'visit:write'])]
     private ?\DateTimeInterface $visitedAt = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['visit:read', 'visit:write', 'visit:list'])]
-    private ?\DateTimeInterface $plannedAt = null;
-
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['visit:read', 'visit:write', 'visit:list'])]
+    #[Groups(['visit:read'])]
     private ?\DateTimeInterface $completedAt = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['visit:read', 'visit:write', 'visit:list'])]
+    #[Groups(['visit:read', 'visit:write'])]
     private ?string $gpsCoordinates = null;
 
     #[ORM\Column(options: ['default' => false])]
-    #[Groups(['visit:read', 'visit:write', 'visit:list'])]
-    private bool $closed = false;
+    #[Groups(['visit:read', 'visit:write'])] 
+    private ?bool $closed = false;
 
     #[ORM\Column(options: ['default' => true])]
-    #[Groups(['visit:read', 'visit:list'])]
-    private bool $activated = true;
+    #[Groups(['visit:read'])] 
+    private ?bool $activated = true;
 
     #[ORM\OneToMany(mappedBy: 'visit', targetEntity: Observation::class, orphanRemoval: true)]
-    #[Groups(['visit:detail'])]
+    #[Groups(['visit:read', 'visit:write'])]
     private Collection $observations;
 
-    #[ORM\OneToMany(mappedBy: 'visit', targetEntity: ObservationPhoto::class, orphanRemoval: true)]
-    #[Groups(['visit:detail'])]
-    private Collection $photos;
-
     #[ORM\Column(type: Types::TEXT)]
-    #[Groups(['visit:read', 'visit:write', 'visit:list'])]
-    #[Assert\NotBlank(message: "L'objectif est obligatoire.")]
-    private string $objective = 'RAS';
-
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['visit:read', 'visit:write', 'visit:detail'])]
-    private ?string $conclusion = null;
-
-    #[ORM\Column(type: Types::JSON, nullable: true)]
-    #[Groups(['visit:read', 'visit:write', 'visit:detail'])]
-    private ?array $metadata = null;
+    #[Groups(['visit:read', 'visit:write'])]
+    #[Assert\NotBlank(message: "L'objectif principal de la visite est obligatoire.")]
+    private ?string $objective = 'RAS';
 
     public function __construct()
     {
         $this->observations = new ArrayCollection();
-        $this->photos = new ArrayCollection();
+        $this->visitedAt = new \DateTime();
     }
-
-    // --- Getters & Setters ---
 
     public function getId(): ?int { return $this->id; }
 
@@ -147,32 +128,43 @@ class Visit
     public function getCustomer(): ?Customer { return $this->customer; }
     public function setCustomer(?Customer $customer): self { $this->customer = $customer; return $this; }
 
-    public function getVisitedAt(): ?\DateTimeInterface { return $this->visitedAt; }
-    public function setVisitedAt(?\DateTimeInterface $visitedAt): self { $this->visitedAt = $visitedAt; return $this; }
-
     public function getPlannedAt(): ?\DateTimeInterface { return $this->plannedAt; }
     public function setPlannedAt(?\DateTimeInterface $plannedAt): self { $this->plannedAt = $plannedAt; return $this; }
+
+    public function getVisitedAt(): ?\DateTimeInterface { return $this->visitedAt; }
+    public function setVisitedAt(\DateTimeInterface $visitedAt): self { $this->visitedAt = $visitedAt; return $this; }
 
     public function getCompletedAt(): ?\DateTimeInterface { return $this->completedAt; }
     public function setCompletedAt(?\DateTimeInterface $completedAt): self { $this->completedAt = $completedAt; return $this; }
 
+    /**
+     * Écart en jours entre la date planifiée et la date réelle de visite.
+     * Retourne null si l'une des deux dates est absente.
+     * 0 = visite faite le jour prévu (on time).
+     */
+    public function getPlanningDeviation(): ?int
+    {
+        if (!$this->plannedAt || !$this->visitedAt) return null;
+        $planned = (new \DateTime($this->plannedAt->format('Y-m-d')));
+        $actual = (new \DateTime($this->visitedAt->format('Y-m-d')));
+        return (int) $planned->diff($actual)->days;
+    }
+
     public function getGpsCoordinates(): ?string { return $this->gpsCoordinates; }
     public function setGpsCoordinates(?string $gpsCoordinates): self { $this->gpsCoordinates = $gpsCoordinates; return $this; }
 
-    public function isClosed(): bool { return $this->closed; }
-    public function setClosed(bool $closed): self { 
-        $this->closed = $closed; 
-        if ($closed && !$this->completedAt) {
-            $this->completedAt = new \DateTime();
-        }
-        return $this; 
-    }
-
-    public function isActivated(): bool { return $this->activated; }
+    public function isClosed(): ?bool { return $this->closed; }
+    public function setClosed(bool $closed): self { $this->closed = $closed; return $this; }
+    public function isActivated(): ?bool { return $this->activated; }
     public function setActivated(bool $activated): self { $this->activated = $activated; return $this; }
-    
+
+    /**
+     * @return Collection<int, Observation>
+     */
     public function getObservations(): Collection { return $this->observations; }
-    public function addObservation(Observation $observation): self {
+
+    public function addObservation(Observation $observation): self
+    {
         if (!$this->observations->contains($observation)) {
             $this->observations->add($observation);
             $observation->setVisit($this);
@@ -180,50 +172,16 @@ class Visit
         return $this;
     }
 
-    public function getPhotos(): Collection { return $this->photos; }
-    public function addPhoto(ObservationPhoto $photo): self {
-        if (!$this->photos->contains($photo)) {
-            $this->photos->add($photo);
-            $photo->setVisit($this);
+    public function removeObservation(Observation $observation): self
+    {
+        if ($this->observations->removeElement($observation)) {
+            if ($observation->getVisit() === $this) {
+                $observation->setVisit(null);
+            }
         }
         return $this;
     }
 
-    public function getObjective(): string { return $this->objective; }
+    public function getObjective(): ?string { return $this->objective; }
     public function setObjective(string $objective): self { $this->objective = $objective; return $this; }
-
-    public function getConclusion(): ?string { return $this->conclusion; }
-    public function setConclusion(?string $conclusion): self { $this->conclusion = $conclusion; return $this; }
-
-    public function getMetadata(): ?array { return $this->metadata; }
-    public function setMetadata(?array $metadata): self { $this->metadata = $metadata; return $this; }
-
-    // --- Virtual Properties (Calculated) ---
-
-    #[Groups(['visit:read', 'visit:list'])]
-    public function getStatus(): string
-    {
-        if (!$this->activated) return 'archived';
-        if ($this->closed || $this->completedAt) return 'completed';
-        if ($this->visitedAt) return 'in_progress';
-        if ($this->plannedAt) return 'planned';
-        return 'draft';
-    }
-
-    #[Groups(['visit:read', 'visit:list'])]
-    public function getPlanningDeviation(): ?int
-    {
-        if (!$this->plannedAt || !$this->visitedAt) return null;
-        $plan = \DateTime::createFromInterface($this->plannedAt)->setTime(0, 0, 0);
-        $real = \DateTime::createFromInterface($this->visitedAt)->setTime(0, 0, 0);
-        $diff = $real->diff($plan);
-        return $diff->days * ($diff->invert ? 1 : -1);
-    }
-
-    #[Groups(['visit:read', 'visit:list'])]
-    public function getDuration(): ?int
-    {
-        if (!$this->visitedAt || !$this->completedAt) return null;
-        return (int)(($this->completedAt->getTimestamp() - $this->visitedAt->getTimestamp()) / 60);
-    }
 }

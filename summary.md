@@ -248,20 +248,30 @@ Chaque visite donne lieu à une check-list d'activités qui alimentent les KPIs 
 
 ## 📊 Modèle de données
 
-### Module Technicien (existant — 18 entités)
+### Entité Customer — client unifié
+
+Un même client peut être **à la fois** éleveur (visité par les techniciens) et gérant de provenderie (visité par les commerciaux). Le champ `type` permet de filtrer sans exclure :
+
+```
+Customer.type ∈ { 'FARM', 'FEED_STORE', 'BOTH', null }
+```
+
+Les champs `buildings` et `speculations` sont utilisés côté ferme ; ils sont simplement vides pour une provenderie pure.
+
+### Module Technicien (19 entités, dont Customer modifié)
 
 ```
 User ──┬── Visit ──── Observation ──┬── Problem (detectedIn)
-       │                            ├── Problem (resolvedIn)
-       │                            ├── ObservationPhoto
-       │                            └── FlockFeedHistory
+       │          (plannedAt,        ├── Problem (resolvedIn)
+       │           completedAt,      ├── ObservationPhoto
+       │           planningDeviation)│── FlockFeedHistory
        ├── UserObjective
        ├── PortfolioHistory
        ├── Prospection
        └── Consultation
 
 Customer ──┬── Building ──── Flock ──┬── Observation
-           │                         ├── FlockFeedHistory
+ (type)    │                         ├── FlockFeedHistory
            │                         ├── Standard
            │                         └── Ticket
            ├── Speculation (ManyToMany)
@@ -277,19 +287,35 @@ Speculation ──┬── Standard
 AuditLog (indépendant, immuable)
 ```
 
-### Module Commercial (à construire)
+**Ajouts récents sur Visit** : `plannedAt`, `completedAt` + getter calculé `getPlanningDeviation()` pour supporter les KPIs JP Adherence et Call Rate des techniciens.
+
+### Module Commercial (8 nouvelles entités)
 
 ```
-User (ROLE_SALES_REP) ──── SalesVisit ──┬── SalesActivity
-                                        ├── PriceAudit
-                                        ├── StockAudit
-                                        ├── QualityAudit
-                                        ├── VisibilityAudit
-                                        └── PreOrder
+User (ROLE_SALES_REP)
+  │
+  └── SalesVisit ──────┬── PriceAudit (0..N)       — relevé prix par produit
+                        ├── StockAudit (0..N)        — état du stock par produit
+                        ├── QualityAudit (0..1)      — évaluation qualité globale
+                        ├── VisibilityAudit (0..1)   — évaluation visibilité globale
+                        ├── PreOrder (0..N)          — précommandes prises
+                        ├── SalesActivity (0..N)     — check-list des tâches
+                        └── SalesPhoto (0..N)        — photos catégorisées
 
-Customer (Provenderie) ──┬── SalesVisit
-                         └── PreOrder
+Customer ──┬── SalesVisit
+ (type)    └── PreOrder
 ```
+
+| Entité | Rôle | KPIs alimentés |
+|--------|------|---------------|
+| `SalesVisit` | Visite commerciale en provenderie | JP Adherence, Call Rate |
+| `PriceAudit` | Relevé prix (nous + 3 concurrents) | RRP Compliance, écart prix |
+| `StockAudit` | Niveau de stock, FIFO, fraîcheur | Assortment, OOS, DN/DV, FIFO |
+| `QualityAudit` | État des sacs, stockage, hygiène | Quality Score, taux d'avaries |
+| `VisibilityAudit` | POSM, affiches, branding, façade | Visibility Score, ratio concurrence |
+| `PreOrder` | Précommande → confirmée → livrée | Strike Rate, panier moyen, CA |
+| `SalesActivity` | Tâche de la check-list visite | Execution, Activation |
+| `SalesPhoto` | Photo catégorisée (prix/stock/qualité/visibilité) | Preuves pour tous les audits |
 
 ---
 
