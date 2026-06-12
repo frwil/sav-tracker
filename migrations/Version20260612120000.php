@@ -16,13 +16,10 @@ final class Version20260612120000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // ─── 1. ALTER TABLE visit — ajout planned_at, completed_at ───
-        $this->addSql('ALTER TABLE visit ADD planned_at DATETIME DEFAULT NULL, ADD completed_at DATETIME DEFAULT NULL');
-
-        // ─── 2. ALTER TABLE customer — ajout type ───
+        // ─── 1. ALTER TABLE customer — ajout type (FARM/FEED_STORE/BOTH) ───
         $this->addSql('ALTER TABLE customer ADD type VARCHAR(20) DEFAULT NULL');
 
-        // ─── 3. CREATE TABLE sales_visit ───
+        // ─── 2. CREATE TABLE sales_visit ───
         $this->addSql('CREATE TABLE sales_visit (
             id INT AUTO_INCREMENT NOT NULL,
             sales_rep_id INT NOT NULL,
@@ -206,6 +203,5 @@ final class Version20260612120000 extends AbstractMigration
         $this->addSql('DROP TABLE sales_visit');
 
         $this->addSql('ALTER TABLE customer DROP COLUMN type');
-        $this->addSql('ALTER TABLE visit DROP COLUMN planned_at, DROP COLUMN completed_at');
     }
 }
