@@ -2,7 +2,16 @@
 
 ## Project Overview
 
-**SAV Tracker** is a comprehensive Progressive Web Application (PWA) for tracking livestock technicians' farm visits, observations, and performance. Built for agricultural/livestock operations (poultry, fish, pigs), it enables offline-first field data collection with automatic synchronization.
+**SAV Tracker** is a comprehensive Progressive Web Application (PWA) for tracking field teams in the livestock industry. It covers two distinct domains:
+
+1. **Suivi des techniciens d'élevage** (existing) — technical advisors visiting **farms** to monitor animal flocks, health, and performance
+2. **Suivi des commerciaux en provenderie** (in development) — sales representatives visiting **feed mills / feed stores** to monitor commercial KPIs
+
+Both modules share the same offline-first PWA architecture for use in rural areas with poor connectivity.
+
+## Maintenance Rule
+
+> **Après chaque modification du code (entités, contrôleurs, fonctionnalités), mettre à jour `summary.md` pour refléter les changements.** Le fichier `summary.md` doit toujours être le reflet exact des fonctionnalités actuellement implémentées.
 
 ## Tech Stack
 
@@ -29,7 +38,7 @@
 
 ```
 ├── src/
-│   ├── Entity/          # Doctrine entities (18 entities)
+│   ├── Entity/          # Doctrine entities
 │   ├── Repository/      # Custom Doctrine repositories
 │   ├── Controller/      # Custom API controllers
 │   ├── State/           # API Platform state processors/providers
@@ -42,17 +51,31 @@
 │   └── ApiPlatform/     # API Platform configuration/extensions
 ├── pwa/
 │   ├── src/app/         # Next.js pages (login, dashboard, settings)
-│   ├── src/components/  # Reusable components (visit, observation, prospection)
-│   ├── src/hooks/       # Custom React hooks (auth, visits, customers, etc.)
+│   ├── src/components/  # Reusable components
+│   ├── src/hooks/       # Custom React hooks
 │   ├── src/services/    # API client and offline storage services
 │   ├── src/providers/   # React context providers
 │   └── src/types/       # TypeScript type definitions
 ├── config/              # Symfony configuration (packages, routes, services)
 ├── migrations/          # Doctrine database migrations
-├── templates/           # Twig templates (admin)
-├── translations/        # Translation files
 └── docker-compose files # Docker orchestration
 ```
+
+## Domain Context
+
+### Module 1 — Techniciens d'élevage (Farm Technicians)
+- **Who**: Veterinary/animal husbandry technicians with technical expertise in livestock
+- **Where**: They visit **farms** (fermes/élevages) directly
+- **What they do**: Monitor animal health, growth curves, mortality, feed consumption, vaccination schedules, detect and resolve health problems
+- **Expertise**: Technical (zootechnics, animal health, nutrition science)
+- **Key entities**: Visit, Observation, Flock, Building, Problem, Standard, ProphylaxisTask
+
+### Module 2 — Commerciaux en provenderie (Sales Representatives)
+- **Who**: Sales representatives with commercial expertise only
+- **Where**: They visit **provenderies** (feed mills / feed stores / points of sale)
+- **What they do**: Monitor brand visibility, pricing compliance, product assortment, stock levels, promotional execution, take orders
+- **Expertise**: Purely commercial (sales, merchandising, negotiation) — **no technical animal husbandry skills**
+- **Key entities (to be built)**: SalesVisit, SalesActivity, PriceAudit, StockAudit, etc.
 
 ## Key Conventions
 
@@ -99,14 +122,16 @@ cd pwa && npm run build           # Build for production
 
 ## Role Hierarchy
 - `ROLE_USER` — base role (all authenticated users)
-- `ROLE_TECHNICIAN` — field technician (can manage their own visits/observations)
+- `ROLE_TECHNICIAN` — field technician visiting farms (technical expertise)
+- `ROLE_SALES_REP` — sales representative visiting provenderies (commercial expertise only)
 - `ROLE_ADMIN` — administrator (manage users, buildings, view audit logs)
 - `ROLE_SUPER_ADMIN` — super admin (can delete entities, switch users)
 
 ## Key Design Decisions
-- **Offline-first**: Technicians work in remote farms with poor connectivity; all core features work offline with background sync
+- **Offline-first**: Field agents work in remote areas with poor connectivity; all core features work offline with background sync
 - **Species-agnostic data model**: JSON `data` field on Observation stores species-specific metrics (weight for poultry, density for fish, etc.), avoiding per-species entity explosion
 - **48-hour edit window**: Technicians can only edit visits/observations within 48 hours — enforced by voters
 - **Soft archiving**: Entities use `activated=false` instead of hard deletion for audit trail integrity
 - **Portfolio history**: Customer-technician assignments are tracked over time via PortfolioHistory
 - **Dual event listeners**: Both EventListener/AuditSubscriber and EventSubscriber/AuditLogSubscriber exist — the EventSubscriber version (#[AsDoctrineListener]) is the active one
+- **Module separation**: Technician module (farms, technical) and Sales Rep module (provenderies, commercial) are distinct domains with different entities, KPIs, and access rules — they share only the authentication layer and common infrastructure
