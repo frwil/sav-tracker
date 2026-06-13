@@ -145,21 +145,40 @@ const StatCard = ({
     value,
     subValue,
     icon,
+    tooltip,
     color,
     loading,
     isPercent,
     alert,
     pending,
-}: any) => (
+}: any) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    return (
     <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between h-full transition-all ${alert ? "bg-red-50 border-red-200" : "bg-white border-gray-100"} break-inside-avoid print:border-gray-300 print:shadow-none`}>
         <div className="flex justify-between items-start mb-2">
             <p className={`text-xs font-bold uppercase tracking-wider ${alert ? "text-red-600" : "text-gray-500 print:text-black"}`}>
                 {label}
             </p>
             {icon && (
-                <span className={`text-lg p-1.5 rounded-lg bg-${color || "gray"}-50 text-${color || "gray"}-600 print:hidden`}>
-                    {icon}
-                </span>
+                <div className="relative print:hidden">
+                    <button
+                        type="button"
+                        onClick={() => setShowTooltip(!showTooltip)}
+                        onBlur={() => setTimeout(() => setShowTooltip(false), 200)}
+                        className={`text-lg p-1.5 rounded-lg bg-${color || "gray"}-50 hover:bg-${color || "gray"}-100 transition-colors cursor-help`}
+                        title={tooltip}
+                        aria-label={tooltip}
+                    >
+                        {icon}
+                    </button>
+                    {showTooltip && (
+                        <div className="absolute right-0 top-full mt-1 w-56 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-top-1">
+                            <div className="absolute -top-1 right-3 w-2 h-2 bg-gray-900 rotate-45"></div>
+                            {tooltip}
+                        </div>
+                    )}
+                </div>
             )}
         </div>
         <div>
@@ -194,7 +213,8 @@ const StatCard = ({
             </div>
         )}
     </div>
-);
+    );
+};
 
 // --- COMPOSANT PAGE ---
 
@@ -690,6 +710,7 @@ export default function DashboardHome() {
                     loading={data.loading}
                     icon="🎯"
                     color="blue"
+                    tooltip="Taux de couverture : pourcentage des clients du portefeuille ayant reçu au moins une visite sur la période. Un taux élevé (>80%) indique une bonne couverture terrain."
                 />
                 <StatCard
                     label="Intensité"
@@ -698,6 +719,7 @@ export default function DashboardHome() {
                     loading={data.loading}
                     icon="🔄"
                     color="purple"
+                    tooltip="Intensité de suivi : nombre moyen de visites par client sur la période. Mesure la fréquence à laquelle chaque éleveur est visité."
                 />
                 <StatCard
                     label="Cheptel Actif"
@@ -707,6 +729,7 @@ export default function DashboardHome() {
                     icon="🐣"
                     color="indigo"
                     pending={data.pendingActive}
+                    tooltip="Cheptel actif : nombre de bandes (lots d'animaux) actuellement en cours d'élevage chez les clients visités. Permet d'estimer le potentiel aliment."
                 />
                 <StatCard
                     label="Alertes Santé"
@@ -717,6 +740,7 @@ export default function DashboardHome() {
                     icon="❤️‍🩹"
                     color={data.healthAlerts > 0 ? "red" : "green"}
                     pending={data.pendingHealthAlerts}
+                    tooltip="Alertes santé : nombre d'observations ayant détecté un problème (mortalité, maladie, baisse de poids). Un chiffre élevé nécessite une attention immédiate."
                 />
             </div>
 
@@ -728,6 +752,7 @@ export default function DashboardHome() {
                     icon="📝"
                     color="gray"
                     pending={data.pendingVisits}
+                    tooltip="Visites totales : nombre de visites réalisées (clôturées) sur la période. Inclut les visites planifiées et spontanées."
                 />
                 <StatCard
                     label="Retards"
@@ -736,6 +761,7 @@ export default function DashboardHome() {
                     alert={data.lateReports > 0}
                     icon="⏰"
                     color={data.lateReports > 0 ? "orange" : "green"}
+                    tooltip="Retards de rapport : visites non clôturées dans les 48h suivant la date de visite. Un retard rend les données inexploitables pour le pilotage."
                 />
                 <div className="col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-center print:bg-white print:border-gray-300">
                     <p className="text-blue-800 text-xs font-bold uppercase mb-1 print:text-black">
