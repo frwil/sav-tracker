@@ -103,9 +103,10 @@ class PriceAudit
     public function setCreatedAtValue(): void
     {
         $this->createdAt = new \DateTimeImmutable();
-        // Auto-déterminer la conformité prix
-        if ($this->expectedPrice !== null && $this->observedPrice !== null) {
-            $this->priceCompliance = abs($this->expectedPrice - $this->observedPrice) < 0.01;
+        // Auto-déterminer la conformité prix (tolérance ±5% du prix attendu)
+        if ($this->expectedPrice !== null && $this->observedPrice !== null && $this->expectedPrice > 0) {
+            $deviation = abs($this->expectedPrice - $this->observedPrice) / $this->expectedPrice;
+            $this->priceCompliance = $deviation <= 0.05;
         }
     }
 
