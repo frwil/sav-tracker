@@ -26,11 +26,18 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post(),
-        new Patch(),
-        new Delete(),
+        new Post(
+            security: "is_granted('ROLE_USER')"
+        ),
+        new Patch(
+            security: "is_granted('SALES_VISIT_EDIT', object)"
+        ),
+        new Delete(
+            security: "is_granted('SALES_VISIT_DELETE', object)"
+        ),
         new Patch(
             uriTemplate: '/sales-visits/{id}/close',
+            security: "is_granted('SALES_VISIT_CLOSE', object)",
             openapi: new \ApiPlatform\OpenApi\Model\Operation(
                 summary: 'Clôturer une visite commerciale',
                 description: 'Marque la visite commerciale comme terminée et verrouille les modifications.',

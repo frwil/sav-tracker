@@ -33,6 +33,8 @@ security:
         - { path: ^/api,       roles: IS_AUTHENTICATED_FULLY }
 
     role_hierarchy:
+        ROLE_TECHNICIAN:  ROLE_USER
+        ROLE_SALES_REP:   ROLE_USER
         ROLE_ADMIN:       ROLE_USER
         ROLE_SUPER_ADMIN: [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH]
 
