@@ -959,8 +959,17 @@ export default function DashboardHome() {
                                                 singleValue: (base) => ({ ...base, color: '#111827' }),
                                                 multiValue: (base) => ({ ...base, backgroundColor: '#e0e7ff' }),
                                                 multiValueLabel: (base) => ({ ...base, color: '#1e40af' }),
+                                                multiValueRemove: (base) => ({ ...base, color: '#1e40af', ':hover': { backgroundColor: '#c7d2fe', color: '#1e3a8a' } }),
                                                 input: (base) => ({ ...base, color: '#111827' }),
                                                 placeholder: (base) => ({ ...base, color: '#9ca3af' }),
+                                                option: (base, state) => ({
+                                                    ...base,
+                                                    color: '#111827',
+                                                    backgroundColor: state.isSelected ? '#e0e7ff' : state.isFocused ? '#f3f4f6' : '#fff',
+                                                    ':active': { backgroundColor: '#e0e7ff' },
+                                                }),
+                                                menu: (base) => ({ ...base, backgroundColor: '#fff', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }),
+                                                noOptionsMessage: (base) => ({ ...base, color: '#6b7280' }),
                                             }}
                                         />
                                     </div>
