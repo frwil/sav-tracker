@@ -214,9 +214,12 @@ export default function DashboardHome() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [isSupport, setIsSupport] = useState(false);
 
-    // Filtres
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
+    // Filtres — initialisés au mois courant
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const [startDate, setStartDate] = useState(monthStart);
+    const [endDate, setEndDate] = useState(monthEnd);
     const [allTechnicians, setAllTechnicians] = useState<UserOption[]>([]);
     const [selectedTechnicians, setSelectedTechnicians] = useState<UserOption[]>([]);
     const [techniciansLoaded, setTechniciansLoaded] = useState(false);
@@ -896,11 +899,14 @@ export default function DashboardHome() {
                                         type="date"
                                         value={startDate}
                                         onChange={(e) => {
-                                            setStartDate(e.target.value);
-                                            // Debounced search
+                                            const val = e.target.value;
+                                            if (!val) return; // ignore les valeurs vides
+                                            setStartDate(val);
                                             const token = localStorage.getItem("sav_token");
                                             if (token) {
-                                                const s = new Date(e.target.value).toISOString();
+                                                const d = new Date(val);
+                                                if (isNaN(d.getTime())) return; // date invalide
+                                                const s = d.toISOString();
                                                 const ed = new Date(endDate);
                                                 ed.setHours(23, 59, 59, 999);
                                                 handleSearch(token, s, ed.toISOString(), true);
@@ -916,13 +922,17 @@ export default function DashboardHome() {
                                         type="date"
                                         value={endDate}
                                         onChange={(e) => {
-                                            setEndDate(e.target.value);
+                                            const val = e.target.value;
+                                            if (!val) return;
+                                            setEndDate(val);
                                             const token = localStorage.getItem("sav_token");
                                             if (token) {
-                                                const s = new Date(startDate).toISOString();
-                                                const ed = new Date(e.target.value);
+                                                const ed = new Date(val);
+                                                if (isNaN(ed.getTime())) return;
+                                                const s = new Date(startDate);
+                                                if (isNaN(s.getTime())) return;
                                                 ed.setHours(23, 59, 59, 999);
-                                                handleSearch(token, s, ed.toISOString(), true);
+                                                handleSearch(token, s.toISOString(), ed.toISOString(), true);
                                             }
                                         }}
                                         className="w-full border p-2 rounded-lg text-sm"
