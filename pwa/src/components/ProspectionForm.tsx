@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import { useSync } from "@/providers/SyncProvider";
 import { compressImage } from "@/utils/imageCompressor";
 import toast from "react-hot-toast";
@@ -33,7 +34,18 @@ export default function ProspectionForm() {
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [newClientData, setNewClientData] = useState({ name: '', phone: '', zone: '', gps: '' });
-    const [isGeolocating, setIsGeolocating] = useState(false);
+
+    const {
+        isLoading: isGeolocating,
+        locate: locateClient,
+    } = useGeolocation({
+        timeout: 8000,
+        onSuccess: (coords) => {
+            setNewClientData(prev => ({ ...prev, gps: coords }));
+            toast.success("GPS trouvé !");
+        },
+        onError: (msg) => toast.error(msg),
+    });
 
     // --- DONNÉES MÉTIER (ÉTAPE 2, 3, 4) ---
     // Note: Les infos nom/tel sont maintenant dans 'selectedCustomer'
@@ -136,19 +148,9 @@ export default function ProspectionForm() {
 
     // Géolocalisation (pour la fiche client)
     const handleGeolocate = () => {
-        setIsGeolocating(true);
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    setNewClientData(prev => ({ ...prev, gps: `${pos.coords.latitude}, ${pos.coords.longitude}` }));
-                    setIsGeolocating(false);
-                    toast.success("GPS trouvé !");
-                },
-                () => { toast.error("Erreur GPS"); setIsGeolocating(false); }
-            );
-        } else {
-            setIsGeolocating(false);
-        }
+        locateClient().then(coords => {
+            if (coords) setNewClientData(prev => ({ ...prev, gps: coords }));
+        });
     };
 
     // --- HANDLERS ÉTAPES SUIVANTES ---

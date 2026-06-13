@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Select from 'react-select';
 import Link from 'next/link';
 import { useCustomers, CustomerOption } from '@/hooks/useCustomers';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { useSync } from '@/providers/SyncProvider';
 import toast from "react-hot-toast";
 
@@ -42,32 +43,40 @@ export default function NewVisitPage() {
 
     // Étape 3
     const [objective, setObjective] = useState('');
-    const [gpsCoordinates, setGpsCoordinates] = useState('');
-    const [isGeolocating, setIsGeolocating] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+
+    // --- GÉOLOCALISATION VISITE (hook partagé) ---
+    const {
+        coordinates: gpsCoordinates,
+        isLoading: isGeolocating,
+        error: gpsError,
+        locate: locateVisit
+    } = useGeolocation({ timeout: 10000 });
 
     // --- ÉTATS POUR LE MODAL NOUVEAU CLIENT ---
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [newClientData, setNewClientData] = useState({ name: '', phone: '', zone: '', gps: '', erpCode: '' });
-    const [isGeolocatingClient, setIsGeolocatingClient] = useState(false);
+
+    // --- GÉOLOCALISATION CLIENT (hook séparé pour le modal) ---
+    const {
+        coordinates: clientGps,
+        isLoading: isGeolocatingClient,
+        locate: locateClient
+    } = useGeolocation({
+        timeout: 8000,
+        onSuccess: (coords) => {
+            setNewClientData(prev => ({ ...prev, gps: coords }));
+            toast.success("Position GPS trouvée !");
+        },
+        onError: (msg) => toast.error(msg),
+    });
 
     // --- LOGIQUE CRÉATION CLIENT ---
     const handleGeolocateClient = () => {
-        setIsGeolocatingClient(true);
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    setNewClientData(prev => ({ ...prev, gps: `${pos.coords.latitude}, ${pos.coords.longitude}` }));
-                    setIsGeolocatingClient(false);
-                    toast.success("Position GPS trouvée !");
-                },
-                () => { toast.error("Erreur GPS"); setIsGeolocatingClient(false); }
-            );
-        } else {
-            toast.error("GPS non supporté");
-            setIsGeolocatingClient(false);
-        }
+        locateClient().then(coords => {
+            if (coords) setNewClientData(prev => ({ ...prev, gps: coords }));
+        });
     };
 
     const handleCreateClient = async (e: React.FormEvent) => {
@@ -165,28 +174,10 @@ export default function NewVisitPage() {
 
     // --- 2. GÉOLOCALISATION VISITE (Étape 3) ---
     useEffect(() => {
-        if (step === 3) {
-            setIsGeolocating(true);
-            setGpsCoordinates('');
-
-            if ('geolocation' in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        setGpsCoordinates(`${position.coords.latitude}, ${position.coords.longitude}`);
-                        setIsGeolocating(false);
-                    },
-                    (err) => {
-                        setGpsCoordinates("Non détecté (Erreur GPS)");
-                        setIsGeolocating(false);
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-                );
-            } else {
-                setGpsCoordinates("GPS non supporté");
-                setIsGeolocating(false);
-            }
+        if (step === 3 && !gpsCoordinates && !isGeolocating) {
+            locateVisit();
         }
-    }, [step]);
+    }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- 3. NAVIGATION ET HISTORIQUE ---
     const handleNextStep = async () => {
@@ -265,7 +256,7 @@ export default function NewVisitPage() {
         const payload = {
             customer: selectedCustomer?.value,
             objective: objective,
-            gpsCoordinates: gpsCoordinates.includes('Erreur') || gpsCoordinates.includes('Non') ? null : gpsCoordinates,
+            gpsCoordinates: gpsCoordinates || null,
             visitedAt: new Date().toISOString(),
             activated: true,
             closed: false
@@ -488,25 +479,31 @@ export default function NewVisitPage() {
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Position GPS</label>
                             <div className="relative">
-                                <input 
-                                    type="text" 
-                                    readOnly 
+                                <input
+                                    type="text"
+                                    readOnly
                                     className={`block w-full rounded-lg border border-gray-300 bg-gray-100 p-2 text-sm pr-10 transition-colors ${
-                                        isGeolocating ? 'text-blue-600 italic' : gpsCoordinates.includes('Non') ? 'text-red-500' : 'text-green-700 font-bold'
+                                        isGeolocating ? 'text-blue-600 italic' : gpsError ? 'text-red-500' : gpsCoordinates ? 'text-green-700 font-bold' : ''
                                     }`}
-                                    value={isGeolocating ? "Localisation en cours..." : gpsCoordinates || "En attente..."} 
+                                    value={isGeolocating ? "Localisation en cours..." : gpsCoordinates || gpsError || "En attente..."}
                                 />
                                 <div className="absolute right-3 top-2">
                                     {isGeolocating ? (
                                         <span className="animate-spin block">⏳</span>
-                                    ) : gpsCoordinates && !gpsCoordinates.includes('Non') ? (
-                                        <span>✅</span>
+                                    ) : gpsCoordinates ? (
+                                        <span title="Position obtenue">✅</span>
+                                    ) : gpsError ? (
+                                        <button type="button" onClick={() => locateVisit()} title="Réessayer la localisation" className="text-orange-500 hover:text-orange-700 font-bold">🔄</button>
                                     ) : (
-                                        <span>❌</span>
+                                        <span>📍</span>
                                     )}
                                 </div>
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">Détectée automatiquement pour valider le passage.</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                                {gpsError
+                                    ? `⚠️ ${gpsError} — Cliquez 🔄 pour réessayer.`
+                                    : 'Détectée automatiquement (fonctionne hors-ligne via GPS).'}
+                            </p>
                         </div>
 
                         <div className="flex justify-between pt-4 border-t border-gray-100">
