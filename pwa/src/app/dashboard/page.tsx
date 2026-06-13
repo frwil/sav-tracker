@@ -215,9 +215,9 @@ export default function DashboardHome() {
     const [isSupport, setIsSupport] = useState(false);
 
     // Filtres — initialisés au mois courant
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const nowRef = useRef(new Date());
+    const monthStart = new Date(nowRef.current.getFullYear(), nowRef.current.getMonth(), 1).toISOString().slice(0, 10);
+    const monthEnd = new Date(nowRef.current.getFullYear(), nowRef.current.getMonth() + 1, 0).toISOString().slice(0, 10);
     const [startDate, setStartDate] = useState(monthStart);
     const [endDate, setEndDate] = useState(monthEnd);
     const [allTechnicians, setAllTechnicians] = useState<UserOption[]>([]);
@@ -251,14 +251,6 @@ export default function DashboardHome() {
                           roles.includes("ROLE_OPERATOR");
             setIsSupport(support);
 
-            // Dates par défaut (mois courant)
-            const now = new Date();
-            const defaultStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-            const defaultEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-            
-            setStartDate(defaultStart);
-            setEndDate(defaultEnd);
-
             // Charger techniciens depuis cache immédiatement
             const cachedTechs = getCachedTechnicians();
             if (cachedTechs) {
@@ -272,8 +264,8 @@ export default function DashboardHome() {
             }
 
             // Charger stats initiales depuis cache ou API
-            const startIso = new Date(defaultStart).toISOString();
-            const endIso = new Date(defaultEnd).toISOString();
+            const startIso = new Date(monthStart).toISOString();
+            const endIso = new Date(monthEnd).toISOString();
             
             loadInitialStats(token, payload, support, startIso, endIso);
 
@@ -324,7 +316,7 @@ export default function DashboardHome() {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
-    }, [router, queue, processQueue, startDate, endDate]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Chargement initial des stats
     const loadInitialStats = async (token: string, user: any, support: boolean, startIso: string, endIso: string) => {
@@ -912,7 +904,7 @@ export default function DashboardHome() {
                                                 handleSearch(token, s, ed.toISOString(), true);
                                             }
                                         }}
-                                        className="w-full border p-2 rounded-lg text-sm"
+                                        className="w-full border p-2 rounded-lg text-sm text-gray-900 bg-white"
                                         disabled={isOfflineMode && !aggregatedStats}
                                     />
                                 </div>
@@ -935,7 +927,7 @@ export default function DashboardHome() {
                                                 handleSearch(token, s.toISOString(), ed.toISOString(), true);
                                             }
                                         }}
-                                        className="w-full border p-2 rounded-lg text-sm"
+                                        className="w-full border p-2 rounded-lg text-sm text-gray-900 bg-white"
                                         disabled={isOfflineMode && !aggregatedStats}
                                     />
                                 </div>
@@ -956,13 +948,20 @@ export default function DashboardHome() {
                                                     const s = new Date(startDate).toISOString();
                                                     const e = new Date(endDate);
                                                     e.setHours(23, 59, 59, 999);
-                                                    // Small delay to let state update
                                                     setTimeout(() => handleSearch(token, s, e.toISOString(), true), 0);
                                                 }
                                             }}
                                             placeholder={isOfflineMode && allTechnicians.length === 0 ? "Offline - données limitées" : "Choisir..."}
                                             className="text-sm"
                                             isDisabled={isOfflineMode && allTechnicians.length === 0}
+                                            styles={{
+                                                control: (base) => ({ ...base, borderColor: '#d1d5db', minHeight: '38px' }),
+                                                singleValue: (base) => ({ ...base, color: '#111827' }),
+                                                multiValue: (base) => ({ ...base, backgroundColor: '#e0e7ff' }),
+                                                multiValueLabel: (base) => ({ ...base, color: '#1e40af' }),
+                                                input: (base) => ({ ...base, color: '#111827' }),
+                                                placeholder: (base) => ({ ...base, color: '#9ca3af' }),
+                                            }}
                                         />
                                     </div>
                                 )}
