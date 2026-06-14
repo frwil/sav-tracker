@@ -11,6 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
+use App\Controller\CloseSalesVisitController;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
@@ -37,7 +38,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Patch(
             uriTemplate: '/sales-visits/{id}/close',
-            security: "is_granted('SALES_VISIT_CLOSE', object)",
+            controller: CloseSalesVisitController::class,
             openapi: new \ApiPlatform\OpenApi\Model\Operation(
                 summary: 'Clôturer une visite commerciale',
                 description: 'Marque la visite commerciale comme terminée et verrouille les modifications.',
