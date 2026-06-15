@@ -261,7 +261,7 @@ export default function SalesDashboard() {
             )}
 
             <div className="text-center">
-                <Link href="/dashboard/visits/new" className="inline-block px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition">
+                <Link href="/dashboard/sales/new" className="inline-block px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition">
                     + Nouvelle visite commerciale
                 </Link>
             </div>
