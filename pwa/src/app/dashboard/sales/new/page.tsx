@@ -14,6 +14,19 @@ interface CustomerData { '@id': string; id: number; name: string; zone: string; 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
+// Checklist par défaut pour une visite commerciale
+const DEFAULT_ACTIVITIES = [
+    { type: 'STOCK_CHECK', label: '📦 Vérification stock', order: 0 },
+    { type: 'PRICE_CHECK', label: '🏷️ Relevé des prix', order: 1 },
+    { type: 'QUALITY_CHECK', label: '✨ Contrôle qualité', order: 2 },
+    { type: 'VISIBILITY_CHECK', label: '👁️ Visibilité marque', order: 3 },
+    { type: 'ORDER_TAKING', label: '📝 Prise de commande', order: 4 },
+    { type: 'MANAGER_INTERVIEW', label: '💬 Entretien gérant', order: 5 },
+    { type: 'MERCHANDISING', label: '📐 Merchandising', order: 6 },
+    { type: 'PROMO_CHECK', label: '🎯 Vérification promo', order: 7 },
+    { type: 'PHOTO_REPORT', label: '📸 Reportage photo', order: 8 },
+];
+
 const selectStyles = {
     control: (b: any) => ({ ...b, borderColor: '#d1d5db', minHeight: '42px', backgroundColor: '#fff' }),
     singleValue: (b: any) => ({ ...b, color: '#111827' }),
@@ -102,6 +115,7 @@ export default function NewSalesVisitPage() {
         };
 
         try {
+            // 1. Créer la visite
             const res = await fetch(`${API_URL}/sales_visits`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/ld+json', Authorization: `Bearer ${token}` },
@@ -113,8 +127,26 @@ export default function NewSalesVisitPage() {
                 throw new Error(err['hydra:description'] || err.detail || 'Erreur création');
             }
 
-            toast.success('Visite commerciale créée !');
-            router.push('/dashboard/sales');
+            const visit = await res.json();
+            const visitId = visit.id;
+
+            // 2. Créer les activités de la check-list
+            const actPromises = DEFAULT_ACTIVITIES.map(act =>
+                fetch(`${API_URL}/sales_activities`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/ld+json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        visit: `/api/sales_visits/${visitId}`,
+                        activityType: act.type,
+                        sortOrder: act.order,
+                        isCompleted: false,
+                    }),
+                })
+            );
+
+            await Promise.all(actPromises);
+            toast.success(`Visite créée avec ${DEFAULT_ACTIVITIES.length} activités !`);
+            router.push(`/dashboard/sales`);
         } catch (err: any) {
             setError(err.message);
             toast.error(err.message);
@@ -204,6 +236,21 @@ export default function NewSalesVisitPage() {
                             <p className="text-[10px] text-gray-400 mt-1">
                                 {gpsError ? `⚠️ ${gpsError}` : 'Détectée via GPS (fonctionne hors-ligne).'}
                             </p>
+                        </div>
+
+                        {/* ── Checklist prévisionnelle ── */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                Check-list d'activités
+                                <span className="text-gray-400 font-normal ml-1">(générée automatiquement)</span>
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-3 grid grid-cols-2 gap-1">
+                                {DEFAULT_ACTIVITIES.map(act => (
+                                    <div key={act.type} className="flex items-center gap-2 text-xs text-gray-600 py-1">
+                                        <span className="text-gray-400">⬜</span> {act.label}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="flex justify-between pt-4 border-t border-gray-100">
