@@ -881,6 +881,13 @@ export default function DashboardHome() {
                             color="pink"
                             description="Analyses, graphiques et exports Excel."
                         />
+                        <MenuCard
+                            title="Performance Comm."
+                            icon="🏪"
+                            href="/dashboard/sales"
+                            color="emerald"
+                            description="KPIs commerciaux : visites, prix, stock, commandes."
+                        />
                         {isSupport && (
                             <MenuCard
                                 title="Utilisateurs"
