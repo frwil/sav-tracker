@@ -260,9 +260,12 @@ export default function SalesDashboard() {
                 </div>
             )}
 
-            <div className="text-center">
+            <div className="flex justify-center gap-4">
+                <Link href="/dashboard/sales/visits" className="inline-block px-6 py-3 bg-white border-2 border-emerald-600 text-emerald-700 font-bold rounded-xl hover:bg-emerald-50 transition">
+                    📋 Voir les visites
+                </Link>
                 <Link href="/dashboard/sales/new" className="inline-block px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition">
-                    + Nouvelle visite commerciale
+                    + Nouvelle visite
                 </Link>
             </div>
         </div>
