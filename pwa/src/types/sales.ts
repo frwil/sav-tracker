@@ -151,6 +151,7 @@ export interface SalesStats {
     activitiesTotal: number;
     activitiesCompleted: number;
     executionRate: number;
+    perfectStoreScore: number;
 }
 
 export interface VisitListItem {

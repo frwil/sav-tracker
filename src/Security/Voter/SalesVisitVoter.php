@@ -58,9 +58,13 @@ class SalesVisitVoter extends Voter
             return false;
         }
 
-        // Fenêtre d'édition de 24h (vs 48h pour les techniciens)
+        // Si visitedAt est null, la visite n'a pas encore démarré → autoriser l'édition
+        // Sinon, fenêtre d'édition de 24h (vs 48h pour les techniciens)
         // Les commerciaux doivent être plus réactifs dans leurs rapports
         if ($attribute === self::EDIT) {
+            if ($visit->getVisitedAt() === null) {
+                return true; // Visite planifiée, pas encore démarrée
+            }
             $now = new \DateTime();
             $interval = $now->diff($visit->getVisitedAt());
             if ($interval->days >= 1) {
@@ -71,6 +75,9 @@ class SalesVisitVoter extends Voter
         // Pour la clôture, on est plus souple (48h)
         // car le commercial peut avoir besoin de finaliser après coup
         if ($attribute === self::CLOSE) {
+            if ($visit->getVisitedAt() === null) {
+                return false; // On ne peut pas clôturer une visite non démarrée
+            }
             $now = new \DateTime();
             $interval = $now->diff($visit->getVisitedAt());
             if ($interval->days >= 2) {

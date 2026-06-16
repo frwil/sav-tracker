@@ -110,4 +110,9 @@ class SalesStats
 
     #[Groups(['sales_stats:read'])]
     public float $executionRate = 0.0; // % activités complétées
+
+    // ─── Perfect Store Score ───
+
+    #[Groups(['sales_stats:read'])]
+    public float $perfectStoreScore = 0.0; // Score composite /100
 }

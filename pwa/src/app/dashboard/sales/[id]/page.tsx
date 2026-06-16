@@ -43,6 +43,11 @@ export default function SalesVisitDetailPage() {
     const [editingStock, setEditingStock] = useState<StockAudit | null>(null);
     const [editingOrder, setEditingOrder] = useState<PreOrder | null>(null);
 
+    // Lightbox
+    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+    const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
+
     const token = typeof window !== 'undefined' ? localStorage.getItem('sav_token') : null;
     const visitIri = `/api/sales_visits/${id}`;
     const customerIri = visit?.customer?.['@id'] || '';
@@ -158,6 +163,66 @@ export default function SalesVisitDetailPage() {
         } catch (err: any) { toast.error(err.message); }
     };
 
+    // ── Order workflow ──
+    const handleOrderAction = async (po: PreOrder, action: 'confirm' | 'deliver' | 'cancel') => {
+        const labels = { confirm: 'confirmer', deliver: 'marquer comme livrée', cancel: 'annuler' };
+        if (!confirm(`Voulez-vous ${labels[action]} cette commande ?`)) return;
+        try {
+            let url = `${API_URL}/pre-orders/${po.id}/${action}`;
+            const body: any = {};
+            if (action === 'cancel') {
+                const reason = prompt('Raison de l\'annulation (optionnel) :');
+                if (reason) body.cancellationReason = reason;
+            }
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/merge-patch+json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Erreur');
+            }
+            toast.success(`Commande ${action === 'confirm' ? 'confirmée' : action === 'deliver' ? 'livrée' : 'annulée'} ✅`);
+            fetchVisit();
+        } catch (err: any) { toast.error(err.message); }
+    };
+
+    // ── Delete photo ──
+    const deletePhoto = async (photo: SalesPhoto) => {
+        if (!confirm('Supprimer cette photo ?')) return;
+        try {
+            const res = await fetch(`${API_URL}/sales_photos/${photo.id}`, {
+                method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Erreur');
+            toast.success('Photo supprimée');
+            fetchVisit();
+        } catch (err: any) { toast.error(err.message); }
+    };
+
+    // ── Démarrage visite ──
+    const handleStart = async () => {
+        if (!confirm('Démarrer cette visite ? L\'heure d\'arrivée sera enregistrée.')) return;
+        setClosing(true);
+        try {
+            const res = await fetch(`${API_URL}/sales-visits/${id}/start`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/merge-patch+json', Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Erreur');
+            }
+            toast.success('Visite démarrée 🚀');
+            fetchVisit();
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setClosing(false);
+        }
+    };
+
     // ── Rendu ──
     if (loading) return <div className="max-w-4xl mx-auto p-6 text-center text-gray-500 animate-pulse">Chargement...</div>;
     if (error || !visit) return <div className="max-w-4xl mx-auto p-6 text-center text-red-500">{error || 'Visite introuvable'}</div>;
@@ -176,8 +241,12 @@ export default function SalesVisitDetailPage() {
                     <div>
                         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                             🏪 Visite commerciale
-                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${visit.closed ? 'bg-gray-200 text-gray-600' : 'bg-emerald-100 text-emerald-700'}`}>
-                                {visit.closed ? '🔒 Clôturée' : '🟢 En cours'}
+                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                                visit.closed ? 'bg-gray-200 text-gray-600' :
+                                visit.visitedAt ? 'bg-emerald-100 text-emerald-700' :
+                                'bg-blue-100 text-blue-700'
+                            }`}>
+                                {visit.closed ? '🔒 Clôturée' : visit.visitedAt ? '🟢 En cours' : '📅 Planifiée'}
                             </span>
                         </h1>
                         <p className="text-sm text-gray-600 mt-1">
@@ -190,7 +259,13 @@ export default function SalesVisitDetailPage() {
                             {visit.gpsCoordinates && <p>📍 {visit.gpsCoordinates}</p>}
                         </div>
                     </div>
-                    {isOpen && (
+                    {isOpen && !visit.visitedAt && (
+                        <button onClick={handleStart} disabled={closing}
+                            className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+                            {closing ? '...' : '🚀 Démarrer la visite'}
+                        </button>
+                    )}
+                    {isOpen && visit.visitedAt && (
                         <button onClick={handleClose} disabled={closing}
                             className="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 disabled:opacity-50">
                             {closing ? '...' : '🔒 Clôturer'}
@@ -476,11 +551,35 @@ export default function SalesVisitDetailPage() {
                                         <div className="text-xs font-bold text-gray-900 mt-0.5">{po.totalValue?.toLocaleString()} FCFA</div>
                                     </div>
                                     {isOpen && (
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-1 flex-wrap">
+                                            {po.status === 'PREORDER' && (
+                                                <>
+                                                    <button onClick={() => handleOrderAction(po, 'confirm')}
+                                                        className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold hover:bg-blue-200">
+                                                        ✅ Confirmer
+                                                    </button>
+                                                    <button onClick={() => handleOrderAction(po, 'cancel')}
+                                                        className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold hover:bg-red-200">
+                                                        ❌ Annuler
+                                                    </button>
+                                                </>
+                                            )}
+                                            {po.status === 'CONFIRMED' && (
+                                                <>
+                                                    <button onClick={() => handleOrderAction(po, 'deliver')}
+                                                        className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold hover:bg-emerald-200">
+                                                        🚚 Livrer
+                                                    </button>
+                                                    <button onClick={() => handleOrderAction(po, 'cancel')}
+                                                        className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold hover:bg-red-200">
+                                                        ❌ Annuler
+                                                    </button>
+                                                </>
+                                            )}
                                             <button onClick={() => setEditingOrder(po)}
-                                                className="text-blue-600 hover:text-blue-800 text-xs">✏️</button>
+                                                className="text-blue-600 hover:text-blue-800 text-xs" title="Modifier">✏️</button>
                                             <button onClick={() => deletePreOrder(po)}
-                                                className="text-red-600 hover:text-red-800 text-xs">🗑️</button>
+                                                className="text-red-600 hover:text-red-800 text-xs" title="Supprimer">🗑️</button>
                                         </div>
                                     )}
                                 </div>
@@ -500,17 +599,39 @@ export default function SalesVisitDetailPage() {
                 {visit.photos.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">
                         {visit.photos.map(photo => (
-                            <div key={photo.id} className="w-24 h-24 rounded-lg overflow-hidden border border-gray-200 relative group">
-                                <img src={photo.contentUrl} alt={photo.caption || 'Photo'}
-                                    className="w-full h-full object-cover" />
+                            <div key={photo.id} className="w-24 h-24 rounded-lg overflow-hidden border border-gray-200 relative group cursor-pointer"
+                                onClick={() => setLightboxUrl(`${BASE_URL}${photo.contentUrl}`)}>
+                                <img src={`${BASE_URL}${photo.contentUrl}`} alt={photo.caption || 'Photo'}
+                                    className="w-full h-full object-cover" loading="lazy" />
                                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] p-0.5 truncate">
                                     {photo.category} {photo.caption ? `• ${photo.caption}` : ''}
                                 </div>
+                                {isOpen && (
+                                    <button onClick={(e) => { e.stopPropagation(); deletePhoto(photo); }}
+                                        className="absolute top-0.5 right-0.5 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                                        title="Supprimer">
+                                        ×
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {/* ── LIGHTBOX ── */}
+            {lightboxUrl && (
+                <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                    onClick={() => setLightboxUrl(null)}>
+                    <button onClick={() => setLightboxUrl(null)}
+                        className="absolute top-4 right-4 text-white text-3xl font-bold hover:text-gray-300 z-50">
+                        ✕
+                    </button>
+                    <img src={lightboxUrl} alt="Photo"
+                        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onClick={e => e.stopPropagation()} />
+                </div>
+            )}
         </div>
     );
 }

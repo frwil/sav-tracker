@@ -14,6 +14,9 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use App\Controller\ConfirmPreOrderController;
+use App\Controller\DeliverPreOrderController;
+use App\Controller\CancelPreOrderController;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity]
@@ -24,7 +27,27 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new GetCollection(),
         new Post(),
         new Patch(),
-        new Delete()
+        new Delete(),
+        new Patch(
+            uriTemplate: '/pre-orders/{id}/confirm',
+            controller: ConfirmPreOrderController::class,
+            denormalizationContext: ['groups' => []],
+            input: false,
+            name: 'confirm_pre_order'
+        ),
+        new Patch(
+            uriTemplate: '/pre-orders/{id}/deliver',
+            controller: DeliverPreOrderController::class,
+            denormalizationContext: ['groups' => []],
+            input: false,
+            name: 'deliver_pre_order'
+        ),
+        new Patch(
+            uriTemplate: '/pre-orders/{id}/cancel',
+            controller: CancelPreOrderController::class,
+            denormalizationContext: ['groups' => []],
+            name: 'cancel_pre_order'
+        ),
     ],
     normalizationContext: ['groups' => ['pre_order:read']],
     denormalizationContext: ['groups' => ['pre_order:write']]

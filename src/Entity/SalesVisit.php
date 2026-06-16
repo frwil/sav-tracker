@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\Controller\CloseSalesVisitController;
+use App\Controller\StartSalesVisitController;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
@@ -54,6 +55,24 @@ use Symfony\Component\Validator\Constraints as Assert;
             denormalizationContext: ['groups' => []],
             input: false,
             name: 'close_sales_visit'
+        ),
+        new Patch(
+            uriTemplate: '/sales-visits/{id}/start',
+            controller: StartSalesVisitController::class,
+            openapi: new \ApiPlatform\OpenApi\Model\Operation(
+                summary: 'Démarrer une visite commerciale',
+                description: 'Enregistre l\'arrivée du commercial sur le point de vente.',
+                requestBody: new \ApiPlatform\OpenApi\Model\RequestBody(
+                    content: new \ArrayObject([
+                        'application/json' => new \ApiPlatform\OpenApi\Model\MediaType(
+                            schema: new \ApiPlatform\OpenApi\Model\Schema()
+                        )
+                    ])
+                )
+            ),
+            denormalizationContext: ['groups' => []],
+            input: false,
+            name: 'start_sales_visit'
         )
     ],
     normalizationContext: ['groups' => ['sales_visit:read']],

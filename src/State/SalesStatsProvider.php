@@ -177,6 +177,9 @@ class SalesStatsProvider implements ProviderInterface
             $s->executionRate = round(($s->activitiesCompleted / $s->activitiesTotal) * 100, 1);
         }
 
+        // Perfect Store Score (moyenne pondérée)
+        $s->perfectStoreScore = $this->computePerfectStoreScore($s);
+
         return $s;
     }
 
@@ -248,7 +251,51 @@ class SalesStatsProvider implements ProviderInterface
         $s->activitiesCompleted = (int)($ed['d']??0);
         if ($s->activitiesTotal > 0) $s->executionRate = round(($s->activitiesCompleted / $s->activitiesTotal)*100, 1);
 
+        // Perfect Store Score (moyenne pondérée)
+        $s->perfectStoreScore = $this->computePerfectStoreScore($s);
+
         return $s;
+    }
+
+    /**
+     * Calcule le Perfect Store Score (/100) — moyenne pondérée des KPIs.
+     */
+    private function computePerfectStoreScore(SalesStats $s): float
+    {
+        $score = 0.0;
+        $totalWeight = 0.0;
+
+        // Price Compliance (25%)
+        $w = 25.0;
+        $score += ($s->priceCompliance * $w / 100.0);
+        $totalWeight += $w;
+
+        // Must Stock Rate (20%)
+        $w = 20.0;
+        $score += ($s->mustStockRate * $w / 100.0);
+        $totalWeight += $w;
+
+        // Quality Score (15%) — normalisé de /5 à %
+        $w = 15.0;
+        $score += (($s->avgQualityScore / 5.0) * 100.0 * $w / 100.0);
+        $totalWeight += $w;
+
+        // Visibility Score (15%) — normalisé de /5 à %
+        $w = 15.0;
+        $score += (($s->avgVisibilityScore / 5.0) * 100.0 * $w / 100.0);
+        $totalWeight += $w;
+
+        // Execution Rate (15%)
+        $w = 15.0;
+        $score += ($s->executionRate * $w / 100.0);
+        $totalWeight += $w;
+
+        // Freshness (10%) — normalisé de /5 à %
+        $w = 10.0;
+        $score += (($s->avgFreshness / 5.0) * 100.0 * $w / 100.0);
+        $totalWeight += $w;
+
+        return round($score, 1);
     }
 
     private function queryScalar(string $sql, array $params = []): mixed

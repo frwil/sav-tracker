@@ -233,6 +233,22 @@ export default function DashboardHome() {
     const [activeTab, setActiveTab] = useState<"menu" | "stats">("menu");
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [isSupport, setIsSupport] = useState(false);
+    const [isSalesRep, setIsSalesRep] = useState(false);
+
+    // ── Charger stats commerciales ──
+    const loadSalesStats = async (authToken: string, start: string, end: string) => {
+        setLoadingSalesStats(true);
+        try {
+            const res = await fetch(`${API_URL}/stats/sales?start=${start}&end=${end}`, {
+                headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSalesStats(data);
+            }
+        } catch { /* silencieux */ }
+        finally { setLoadingSalesStats(false); }
+    };
 
     // Filtres — initialisés au mois courant
     const nowRef = useRef(new Date());
@@ -242,6 +258,10 @@ export default function DashboardHome() {
     const [endDate, setEndDate] = useState(monthEnd);
     const [allTechnicians, setAllTechnicians] = useState<UserOption[]>([]);
     const [selectedTechnicians, setSelectedTechnicians] = useState<UserOption[]>([]);
+
+    // Sales stats for ROLE_SALES_REP
+    const [salesStats, setSalesStats] = useState<any>(null);
+    const [loadingSalesStats, setLoadingSalesStats] = useState(false);
     const [techniciansLoaded, setTechniciansLoaded] = useState(false);
 
     // Données Stats
@@ -266,10 +286,16 @@ export default function DashboardHome() {
             const payload = JSON.parse(atob(token.split(".")[1]));
             setCurrentUser(payload);
             const roles = payload.roles || [];
-            const support = roles.includes("ROLE_ADMIN") || 
-                          roles.includes("ROLE_SUPER_ADMIN") || 
+            const support = roles.includes("ROLE_ADMIN") ||
+                          roles.includes("ROLE_SUPER_ADMIN") ||
                           roles.includes("ROLE_OPERATOR");
             setIsSupport(support);
+            setIsSalesRep(roles.includes("ROLE_SALES_REP"));
+
+            // Charger stats commerciales si ROLE_SALES_REP
+            if (roles.includes("ROLE_SALES_REP")) {
+                loadSalesStats(token, monthStart, monthEnd);
+            }
 
             // Charger techniciens depuis cache immédiatement
             const cachedTechs = getCachedTechnicians();
@@ -839,74 +865,45 @@ export default function DashboardHome() {
 
                 {activeTab === "menu" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-                        <MenuCard
-                            title="Clients"
-                            icon="👥"
-                            href="/dashboard/customers"
-                            color="blue"
-                            description="Gérer le portefeuille client."
-                        />
-                        <MenuCard
-                            title="Visites"
-                            icon="🚜"
-                            href="/dashboard/visits"
-                            color="indigo"
-                            description="Rapports et interventions."
-                        />
-                        <MenuCard
-                            title="Prospections"
-                            icon="🔭"
-                            href="/dashboard/prospections"
-                            color="purple"
-                            description="Suivi des prospects et consultations."
-                        />
-                        <MenuCard
-                            title="Bandes"
-                            icon="🐣"
-                            href="/dashboard/flocks"
-                            color="green"
-                            description="Suivi des lots en cours."
-                        />
-                        <MenuCard
-                            title="Bâtiments"
-                            icon="🏠"
-                            href="/dashboard/buildings"
-                            color="orange"
-                            description="Infrastructures."
-                        />
-                        <MenuCard
-                            title="Rapports"
-                            icon="📈"
-                            href="/dashboard/reports"
-                            color="pink"
-                            description="Analyses, graphiques et exports Excel."
-                        />
-                        <MenuCard
-                            title="Performance Comm."
-                            icon="🏪"
-                            href="/dashboard/sales"
-                            color="emerald"
-                            description="KPIs commerciaux : visites, prix, stock, commandes."
-                        />
-                        {isSupport && (
-                            <MenuCard
-                                title="Utilisateurs"
-                                icon="🔐"
-                                href="/dashboard/users"
-                                color="red"
-                                description="Administration des accès."
-                                disabled={isOfflineMode && !getCachedTechnicians()}
-                            />
+                        {/* Cartes communes à tous les rôles */}
+                        <MenuCard title="Clients" icon="👥" href="/dashboard/customers" color="blue"
+                            description="Gérer le portefeuille client." />
+                        <MenuCard title="Rapports" icon="📈" href="/dashboard/reports" color="pink"
+                            description="Analyses, graphiques et exports Excel." />
+
+                        {/* Cartes Technicien */}
+                        {!isSalesRep && (
+                            <>
+                                <MenuCard title="Visites" icon="🚜" href="/dashboard/visits" color="indigo"
+                                    description="Rapports et interventions." />
+                                <MenuCard title="Prospections" icon="🔭" href="/dashboard/prospections" color="purple"
+                                    description="Suivi des prospects et consultations." />
+                                <MenuCard title="Bandes" icon="🐣" href="/dashboard/flocks" color="green"
+                                    description="Suivi des lots en cours." />
+                                <MenuCard title="Bâtiments" icon="🏠" href="/dashboard/buildings" color="orange"
+                                    description="Infrastructures." />
+                            </>
                         )}
+
+                        {/* Carte Commune — Performance Comm. */}
+                        <MenuCard title="Performance Comm." icon="🏪" href="/dashboard/sales" color="emerald"
+                            description="KPIs commerciaux : visites, prix, stock, commandes." />
+
+                        {/* Cartes Visites (commercial) */}
+                        {isSalesRep && (
+                            <MenuCard title="Visites Commerciales" icon="🏪" href="/dashboard/sales/visits" color="emerald"
+                                description="Planifier et suivre mes visites en provenderie." />
+                        )}
+
+                        {/* Admin */}
                         {isSupport && (
-                            <MenuCard
-                                title="Config"
-                                icon="⚙️"
-                                href="/dashboard/settings"
-                                color="gray"
-                                description="Paramètres globaux."
-                                disabled={isOfflineMode}
-                            />
+                            <>
+                                <MenuCard title="Utilisateurs" icon="🔐" href="/dashboard/users" color="red"
+                                    description="Administration des accès."
+                                    disabled={isOfflineMode && !getCachedTechnicians()} />
+                                <MenuCard title="Config" icon="⚙️" href="/dashboard/settings" color="gray"
+                                    description="Paramètres globaux." disabled={isOfflineMode} />
+                            </>
                         )}
                     </div>
                 ) : (
@@ -1072,6 +1069,31 @@ export default function DashboardHome() {
                                         Connectez-vous pour charger les données initiales
                                     </p>
                                 )}
+                            </div>
+                        )}
+
+                        {/* STATS COMMERCIALES */}
+                        {isSalesRep && salesStats && (
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-200 print:shadow-none print:border-none print:p-0">
+                                <h3 className="text-sm font-bold text-emerald-700 mb-4 flex items-center gap-2">
+                                    🏪 Performance Commerciale
+                                    {loadingSalesStats && <span className="animate-pulse text-xs text-gray-400">...</span>}
+                                </h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <StatCard label="Call Rate" value={`${salesStats.callRate ?? 0}%`}
+                                        subValue={`${salesStats.visitsRealized ?? 0}/${salesStats.visitsPlanned ?? 0} visites`}
+                                        icon="📞" color="blue" isPercent />
+                                    <StatCard label="JP Adherence" value={`${salesStats.jpAdherence ?? 0}%`}
+                                        subValue={`${salesStats.visitsOnTime ?? 0} faites le jour J`}
+                                        icon="📍" color={+(salesStats.jpAdherence ?? 0) < 50 ? 'red' : 'green'} isPercent
+                                        alert={+(salesStats.jpAdherence ?? 0) < 50} />
+                                    <StatCard label="Strike Rate" value={`${salesStats.strikeRate ?? 0}%`}
+                                        subValue={`${salesStats.ordersWon ?? 0}/${salesStats.preOrdersTaken ?? 0} gagnées`}
+                                        icon="🎯" color="emerald" isPercent />
+                                    <StatCard label="Execution" value={`${salesStats.executionRate ?? 0}%`}
+                                        subValue={`${salesStats.activitiesCompleted ?? 0}/${salesStats.activitiesTotal ?? 0} tâches`}
+                                        icon="✅" color={+(salesStats.executionRate ?? 0) < 70 ? 'orange' : 'green'} isPercent />
+                                </div>
                             </div>
                         )}
 

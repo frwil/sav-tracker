@@ -192,15 +192,14 @@ export default function PreOrderForm({ visitId, visitIri, customerIri, existing,
                     <input type="number" value={form.unitPrice} onChange={e => handleChange('unitPrice', e.target.value)}
                         required className="w-full border rounded p-1.5 text-xs bg-white text-gray-900" placeholder="FCFA" />
                 </div>
-                <div>
-                    <label className="text-[10px] text-gray-500 block">Statut</label>
-                    <select value={form.status} onChange={e => handleChange('status', e.target.value)}
-                        className="w-full border rounded p-1.5 text-xs bg-white text-gray-900">
-                        {Object.entries(ORDER_STATUS_LABELS).map(([k, v]) => (
-                            <option key={k} value={k}>{v}</option>
-                        ))}
-                    </select>
-                </div>
+                {isEdit && (
+                    <div>
+                        <label className="text-[10px] text-gray-500 block">Statut</label>
+                        <div className="w-full border rounded p-1.5 text-xs bg-gray-100 text-gray-700 font-bold">
+                            {ORDER_STATUS_LABELS[form.status] || form.status}
+                        </div>
+                    </div>
+                )}
                 <div>
                     <label className="text-[10px] text-gray-500 block">Livraison prévue</label>
                     <input type="date" value={form.expectedDeliveryAt} onChange={e => handleChange('expectedDeliveryAt', e.target.value)}

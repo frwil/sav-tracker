@@ -101,6 +101,26 @@ export default function SalesVisitsListPage() {
     useEffect(() => { fetchVisits(); }, [fetchVisits]);
     useEffect(() => { setPage(1); }, [viewMode, selectedCustomer]);
 
+    // ── Démarrage rapide ──
+    const handleStartVisit = async (e: React.MouseEvent, visitId: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const res = await fetch(`${API_URL}/sales-visits/${visitId}/start`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/merge-patch+json', Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Erreur');
+            }
+            toast.success('Visite démarrée 🚀');
+            fetchVisits();
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
     // ── Stats rapides ──
     const stats = useMemo(() => {
         const total = visits.length;
@@ -222,6 +242,12 @@ export default function SalesVisitsListPage() {
 
                                     {/* Badges */}
                                     <div className="flex flex-col gap-1 text-[10px] shrink-0">
+                                        {!v.closed && !v.visitedAt && (
+                                            <button onClick={(e) => handleStartVisit(e, v.id)}
+                                                className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold hover:bg-emerald-200 transition text-center">
+                                                ▶ Démarrer
+                                            </button>
+                                        )}
                                         {orderCount > 0 && <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold text-center">📝 {orderCount} cmd</span>}
                                         {priceCount > 0 && <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full font-bold text-center">🏷️ {priceCount}</span>}
                                         {stockCount > 0 && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold text-center">📦 {stockCount}</span>}

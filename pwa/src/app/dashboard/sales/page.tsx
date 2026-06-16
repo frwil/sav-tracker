@@ -250,6 +250,34 @@ export default function SalesDashboard() {
                     icon="📋" tooltip="Nombre moyen d'activités réalisées par visite commerciale." />
             </div>
 
+            {/* ── Perfect Store Score ── */}
+            {s && (
+                <div className={`p-6 rounded-xl shadow-sm border text-center ${
+                    (s.perfectStoreScore ?? 0) >= 80 ? 'bg-green-50 border-green-200' :
+                    (s.perfectStoreScore ?? 0) >= 50 ? 'bg-orange-50 border-orange-200' :
+                    'bg-red-50 border-red-200'
+                }`}>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">🏆 Perfect Store Score</div>
+                    <div className={`text-4xl font-black ${
+                        (s.perfectStoreScore ?? 0) >= 80 ? 'text-green-600' :
+                        (s.perfectStoreScore ?? 0) >= 50 ? 'text-orange-500' :
+                        'text-red-500'
+                    }`}>
+                        {s.perfectStoreScore ?? 0}<span className="text-lg">/100</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 mt-3 max-w-md mx-auto">
+                        <div className={`h-3 rounded-full transition-all ${
+                            (s.perfectStoreScore ?? 0) >= 80 ? 'bg-green-500' :
+                            (s.perfectStoreScore ?? 0) >= 50 ? 'bg-orange-400' :
+                            'bg-red-500'
+                        }`} style={{ width: `${Math.min(s.perfectStoreScore ?? 0, 100)}%` }} />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-2">
+                        Moyenne pondérée : Prix (25%) · Stock (20%) · Qualité (15%) · Visibilité (15%) · Exécution (15%) · Fraîcheur (10%)
+                    </p>
+                </div>
+            )}
+
             {/* ── Section visites ── */}
             {s && (
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center text-sm text-gray-500">

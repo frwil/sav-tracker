@@ -112,7 +112,9 @@ Le technicien est un **expert zootechnique**. Il visite les **fermes** pour cons
 
 ---
 
-## 🏪 Module 2 — Suivi des commerciaux en provenderie (en développement)
+## 🏪 Module 2 — Suivi des commerciaux en provenderie (en production ✅)
+
+### Statut : Toutes les fonctionnalités principales sont implémentées (Étapes 6-15 ✅)
 
 ### Rôle : Commercial (ROLE_SALES_REP)
 Le commercial est un **vendeur**, sans expertise technique en élevage. Il visite les **provenderies** (points de vente d'aliments pour animaux) pour développer les ventes, contrôler la présence de la marque et prendre les commandes. **Il ne fait pas de conseil technique** — les réclamations techniques sont escaladées aux techniciens.
@@ -136,6 +138,36 @@ Lors de la visite, le commercial peut enregistrer toutes les données commercial
 | **Photos** | Multi (0..N) | Upload base64 compressé, catégorisé (général/prix/stock/qualité/visibilité) |
 
 Tous les formulaires supportent : création, modification, suppression, mode offline (file d'attente SyncProvider), et verrouillage après clôture de visite.
+
+### Workflow de visite (Étape 10 ✅)
+- Bouton « 🚀 Démarrer la visite » sur la page détail et la liste (check-in GPS)
+- Endpoint dédié `PATCH /sales-visits/{id}/start` avec validation (non archivé, non clôturé, pas déjà démarré)
+- Transition automatique planifiée → en cours
+
+### Affichage des photos (Étape 11 ✅)
+- Miniatures réelles avec lazy loading
+- Lightbox plein écran au clic
+- Suppression par photo (bouton × au survol)
+
+### Dashboard principal enrichi (Étape 12 ✅)
+- Mini-KPIs commerciaux affichés dans le dashboard principal pour les commerciaux
+- Navigation adaptative selon le rôle (technicien vs commercial)
+- Chargement des stats `/stats/sales` intégré au dashboard
+
+### Rapports commerciaux (Étape 13 ✅)
+- Rapport « Performance Commerciale » basé sur `/stats/sales` (données réelles)
+- Graphiques Recharts : KPIs visites, prix/stock, qualité/visibilité, entonnoir de conversion
+- Exports Excel et PDF fonctionnels
+
+### Workflow commandes (Étape 14 ✅)
+- 3 endpoints dédiés : `PATCH /pre-orders/{id}/confirm`, `/deliver`, `/cancel`
+- Validation des transitions d'état (PREORDER → CONFIRMED → DELIVERED, ou annulation)
+- Boutons contextuels dans le détail visite : Confirmer, Livrer, Annuler
+
+### Perfect Store Score (Étape 15 ✅)
+- Score composite /100 calculé dans le backend (SalesStatsProvider)
+- Pondération : Prix (25%) + Stock (20%) + Qualité (15%) + Visibilité (15%) + Exécution (15%) + Fraîcheur (10%)
+- Affichage proéminent dans le dashboard commercial (carte dédiée avec code couleur)
 
 ### Activités de la visite commerciale
 Chaque visite donne lieu à une check-list d'activités qui alimentent les KPIs :
