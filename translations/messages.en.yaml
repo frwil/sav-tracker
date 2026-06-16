@@ -1,0 +1,24 @@
+# SAV Tracker — English messages (backend Symfony)
+
+# ─── Sales Visit ───
+sales.visit.objective_required: 'The sales visit objective is required.'
+sales.visit.closed: 'Sales visit closed successfully.'
+sales.visit.started: 'Sales visit started.'
+sales.visit.archived: 'Visit archived.'
+sales.visit.already_closed: 'Visit already closed.'
+sales.visit.already_started: 'Visit already started.'
+sales.visit.access_denied: 'Access denied.'
+
+# ─── PreOrder ───
+pre_order.confirmed: 'Pre-order confirmed.'
+pre_order.delivered: 'Order delivered.'
+pre_order.cancelled: 'Order cancelled.'
+pre_order.cannot_cancel_delivered: 'Cannot cancel an already delivered order.'
+pre_order.already_cancelled: 'This order is already cancelled.'
+pre_order.cannot_confirm: 'Only a pre-order can be confirmed.'
+pre_order.cannot_deliver: 'Only a confirmed order can be delivered.'
+
+# ─── Audit ───
+audit.created: 'Audit created successfully.'
+audit.updated: 'Audit updated.'
+audit.deleted: 'Audit deleted.'

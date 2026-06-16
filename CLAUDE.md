@@ -106,12 +106,12 @@ Both modules share the same offline-first PWA architecture for use in rural area
 - Entities in French: Visite, Bande (Flock), Bâtiment (Building), Élevage (Speculation), Client (Customer)
 
 ### Multilingual / i18n
-- **L'application est monolingue français.** Aucune bibliothèque i18n (next-intl, react-i18next) n'est installée.
-- Les utilisateurs cibles sont des agents terrain francophones en Afrique de l'Ouest.
-- Toutes les chaînes utilisateur sont en français, codées en dur dans les composants React et les messages de validation backend.
-- L'attribut `<html lang="fr">` est défini dans le layout racine.
-- Le formatage des dates utilise `toLocaleString('fr-FR')`.
-- Si le multilingue devient nécessaire, utiliser `next-intl` pour le frontend Next.js et les fichiers de traduction Symfony pour le backend.
+- **L'application supporte le français (fr) et l'anglais (en).** Le français est la langue par défaut.
+- **Frontend** : `pwa/src/i18n/` contient le provider (`I18nProvider.tsx`), un hook `useTranslation()` et le dictionnaire (`translations.ts`) avec les clés fr/en.
+- Le sélecteur de langue (🇫🇷 FR / 🇬🇧 EN) est dans la barre de navigation du dashboard.
+- La locale est persistée dans `localStorage` (clé `sav_locale`).
+- Les composants utilisent `const { t } = useTranslation()` puis `t('cle.de.traduction')` pour les chaînes utilisateur.
+- **Backend** : Les fichiers `translations/messages.fr.yaml` et `translations/messages.en.yaml` alimentent le `Translator` Symfony pour les messages de validation et contrôleurs.
 
 ## Common Commands
 

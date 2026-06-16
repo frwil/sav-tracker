@@ -1,0 +1,26 @@
+# SAV Tracker — Messages français (backend Symfony)
+# Ce fichier alimente le service Translator de Symfony.
+# Utilisation dans le code : $translator->trans('sales.visit.objective_required')
+
+# ─── Sales Visit ───
+sales.visit.objective_required: "L'objectif de la visite commerciale est obligatoire."
+sales.visit.closed: 'Visite commerciale clôturée avec succès.'
+sales.visit.started: 'Visite commerciale démarrée.'
+sales.visit.archived: 'Visite archivée.'
+sales.visit.already_closed: 'Visite déjà clôturée.'
+sales.visit.already_started: 'Visite déjà démarrée.'
+sales.visit.access_denied: 'Accès refusé.'
+
+# ─── PreOrder ───
+pre_order.confirmed: 'Précommande confirmée.'
+pre_order.delivered: 'Commande livrée.'
+pre_order.cancelled: 'Commande annulée.'
+pre_order.cannot_cancel_delivered: "Impossible d'annuler une commande déjà livrée."
+pre_order.already_cancelled: 'Cette commande est déjà annulée.'
+pre_order.cannot_confirm: "Seule une précommande peut être confirmée."
+pre_order.cannot_deliver: "Seule une commande confirmée peut être livrée."
+
+# ─── Audit ───
+audit.created: 'Audit créé avec succès.'
+audit.updated: 'Audit mis à jour.'
+audit.deleted: 'Audit supprimé.'

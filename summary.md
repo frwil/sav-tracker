@@ -123,6 +123,13 @@ Le technicien est un **expert zootechnique**. Il visite les **fermes** pour cons
 - Les votants garantissent la séparation des rôles technicien vs commercial
 - Le module technicien est protégé contre les accès commerciaux (et vice-versa)
 
+### Multilingue (i18n ✅)
+- Support **français (fr)** et **anglais (en)** — français par défaut
+- Frontend : `I18nProvider` + `useTranslation()` + dictionnaire dans `pwa/src/i18n/`
+- Sélecteur de langue dans la barre de navigation (🇫🇷 FR / 🇬🇧 EN)
+- Backend : fichiers de traduction Symfony dans `translations/messages.{fr,en}.yaml`
+- Les composants du module commercial utilisent `t()` pour les chaînes visibles
+
 ### Rôle : Commercial (ROLE_SALES_REP)
 Le commercial est un **vendeur**, sans expertise technique en élevage. Il visite les **provenderies** (points de vente d'aliments pour animaux) pour développer les ventes, contrôler la présence de la marque et prendre les commandes. **Il ne fait pas de conseil technique** — les réclamations techniques sont escaladées aux techniciens.
 

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useSync } from '@/providers/SyncProvider';
+import { useTranslation } from '@/i18n/I18nProvider';
 import {
     SalesVisit, PriceAudit, StockAudit, QualityAudit, VisibilityAudit,
     PreOrder, SalesActivity, SalesPhoto,
@@ -25,6 +26,7 @@ export default function SalesVisitDetailPage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const { addToQueue } = useSync();
+    const { t } = useTranslation();
 
     const [visit, setVisit] = useState<SalesVisit | null>(null);
     const [loading, setLoading] = useState(true);
@@ -117,7 +119,7 @@ export default function SalesVisitDetailPage() {
 
     // ── Clôturer ──
     const handleClose = async () => {
-        if (!confirm('Clôturer définitivement cette visite ?')) return;
+        if (!confirm(t('detail.close_confirm'))) return;
         setClosing(true);
         try {
             const res = await fetch(`${API_URL}/sales-visits/${id}/close`, {
@@ -128,7 +130,7 @@ export default function SalesVisitDetailPage() {
                 const err = await res.json();
                 throw new Error(err.error || 'Erreur');
             }
-            toast.success('Visite clôturée ✅');
+            toast.success(t('detail.closed_ok'));
             fetchVisit();
         } catch (err: any) {
             toast.error(err.message);
@@ -176,13 +178,22 @@ export default function SalesVisitDetailPage() {
 
     // ── Order workflow ──
     const handleOrderAction = async (po: PreOrder, action: 'confirm' | 'deliver' | 'cancel') => {
-        const labels = { confirm: 'confirmer', deliver: 'marquer comme livrée', cancel: 'annuler' };
-        if (!confirm(`Voulez-vous ${labels[action]} cette commande ?`)) return;
+        const confirmKeys = {
+            confirm: 'order.confirm_confirm' as const,
+            deliver: 'order.deliver_confirm' as const,
+            cancel: 'order.cancel_confirm' as const,
+        };
+        const okKeys = {
+            confirm: 'order.confirmed_ok' as const,
+            deliver: 'order.delivered_ok' as const,
+            cancel: 'order.cancelled_ok' as const,
+        };
+        if (!confirm(t(confirmKeys[action]))) return;
         try {
             let url = `${API_URL}/pre-orders/${po.id}/${action}`;
             const body: any = {};
             if (action === 'cancel') {
-                const reason = prompt('Raison de l\'annulation (optionnel) :');
+                const reason = prompt(t('order.cancel_reason'));
                 if (reason) body.cancellationReason = reason;
             }
             const res = await fetch(url, {
@@ -194,7 +205,7 @@ export default function SalesVisitDetailPage() {
                 const err = await res.json();
                 throw new Error(err.error || 'Erreur');
             }
-            toast.success(`Commande ${action === 'confirm' ? 'confirmée' : action === 'deliver' ? 'livrée' : 'annulée'} ✅`);
+            toast.success(t(okKeys[action]));
             fetchVisit();
         } catch (err: any) { toast.error(err.message); }
     };
@@ -214,7 +225,7 @@ export default function SalesVisitDetailPage() {
 
     // ── Démarrage visite ──
     const handleStart = async () => {
-        if (!confirm('Démarrer cette visite ? L\'heure d\'arrivée sera enregistrée.')) return;
+        if (!confirm(t('detail.start_confirm'))) return;
         setClosing(true);
         try {
             const res = await fetch(`${API_URL}/sales-visits/${id}/start`, {
@@ -225,7 +236,7 @@ export default function SalesVisitDetailPage() {
                 const err = await res.json();
                 throw new Error(err.error || 'Erreur');
             }
-            toast.success('Visite démarrée 🚀');
+            toast.success(t('detail.started'));
             fetchVisit();
         } catch (err: any) {
             toast.error(err.message);
@@ -244,20 +255,20 @@ export default function SalesVisitDetailPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-20">
-            <Link href="/dashboard/sales/visits" className="text-sm text-gray-500 hover:text-gray-700">&larr; Visites commerciales</Link>
+            <Link href="/dashboard/sales/visits" className="text-sm text-gray-500 hover:text-gray-700">&larr; {t('detail.back')}</Link>
 
             {/* ── HEADER ── */}
             <div className={`p-6 rounded-xl shadow-sm border ${visit.closed ? 'bg-gray-50 border-gray-200' : 'bg-white border-emerald-200'}`}>
                 <div className="flex justify-between items-start">
                     <div>
                         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            🏪 Visite commerciale
+                            {t('detail.title')}
                             <span className={`text-xs px-2 py-1 rounded-full font-bold ${
                                 visit.closed ? 'bg-gray-200 text-gray-600' :
                                 visit.visitedAt ? 'bg-emerald-100 text-emerald-700' :
                                 'bg-blue-100 text-blue-700'
                             }`}>
-                                {visit.closed ? '🔒 Clôturée' : visit.visitedAt ? '🟢 En cours' : '📅 Planifiée'}
+                                {visit.closed ? t('detail.closed') : visit.visitedAt ? t('detail.in_progress') : t('detail.planned')}
                             </span>
                         </h1>
                         <p className="text-sm text-gray-600 mt-1">
@@ -273,13 +284,13 @@ export default function SalesVisitDetailPage() {
                     {isOpen && !visit.visitedAt && (
                         <button onClick={handleStart} disabled={closing}
                             className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 disabled:opacity-50">
-                            {closing ? '...' : '🚀 Démarrer la visite'}
+                            {closing ? t('saving') : t('detail.start_btn')}
                         </button>
                     )}
                     {isOpen && visit.visitedAt && (
                         <button onClick={handleClose} disabled={closing}
                             className="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 disabled:opacity-50">
-                            {closing ? '...' : '🔒 Clôturer'}
+                            {closing ? t('saving') : t('detail.close_btn')}
                         </button>
                     )}
                 </div>
@@ -290,8 +301,8 @@ export default function SalesVisitDetailPage() {
             {/* ── ACTIVITIES CHECKLIST ── */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <h2 className="text-sm font-bold text-gray-700 mb-3 flex justify-between">
-                    📋 Check-list
-                    <span className="text-xs text-gray-400 font-normal">{completedActs}/{totalActs} faites</span>
+                    {t('checklist.title')}
+                    <span className="text-xs text-gray-400 font-normal">{t('checklist.progress', { done: completedActs, total: totalActs })}</span>
                 </h2>
                 <div className="space-y-1">
                     {visit.salesActivities.sort((a, b) => a.sortOrder - b.sortOrder).map(act => (
@@ -311,11 +322,11 @@ export default function SalesVisitDetailPage() {
             {/* ── PRICE AUDITS ── */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="flex justify-between items-center mb-3">
-                    <h2 className="text-sm font-bold text-gray-700">🏷️ Relevés Prix ({visit.priceAudits.length})</h2>
+                    <h2 className="text-sm font-bold text-gray-700">{t('price.title')} ({visit.priceAudits.length})</h2>
                     {isOpen && !showPriceForm && !editingPrice && (
                         <button onClick={() => setShowPriceForm(true)}
                             className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700">
-                            + Ajouter
+                            {t('price.add')}
                         </button>
                     )}
                 </div>
@@ -376,11 +387,11 @@ export default function SalesVisitDetailPage() {
             {/* ── STOCK AUDITS ── */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="flex justify-between items-center mb-3">
-                    <h2 className="text-sm font-bold text-gray-700">📦 Contrôles Stock ({visit.stockAudits.length})</h2>
+                    <h2 className="text-sm font-bold text-gray-700">{t('stock.title')} ({visit.stockAudits.length})</h2>
                     {isOpen && !showStockForm && !editingStock && (
                         <button onClick={() => setShowStockForm(true)}
                             className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700">
-                            + Ajouter
+                            {t('stock.add')}
                         </button>
                     )}
                 </div>
@@ -438,7 +449,7 @@ export default function SalesVisitDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* QUALITY */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <h2 className="text-sm font-bold text-gray-700 mb-3">✨ Qualité PDV</h2>
+                    <h2 className="text-sm font-bold text-gray-700 mb-3">{t('quality.title')}</h2>
                     {visit.qualityAudit ? (
                         <div className="text-xs space-y-1">
                             <div className="flex justify-between"><span>Sacs endommagés</span> <span className="font-bold">{visit.qualityAudit.damagedBagsCount ?? 0} ({visit.qualityAudit.damagedBagsRate ?? 0}%)</span></div>
@@ -477,7 +488,7 @@ export default function SalesVisitDetailPage() {
 
                 {/* VISIBILITY */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <h2 className="text-sm font-bold text-gray-700 mb-3">👁️ Visibilité Marque</h2>
+                    <h2 className="text-sm font-bold text-gray-700 mb-3">{t('visibility.title')}</h2>
                     {visit.visibilityAudit ? (
                         <div className="text-xs space-y-1">
                             <div className="flex justify-between"><span>Affiches</span> <span>{visit.visibilityAudit.hasPosters ? '✅' : '❌'}</span></div>
@@ -518,11 +529,11 @@ export default function SalesVisitDetailPage() {
             {/* ── PRE-ORDERS ── */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="flex justify-between items-center mb-3">
-                    <h2 className="text-sm font-bold text-gray-700">📝 Commandes ({visit.preOrders.length})</h2>
+                    <h2 className="text-sm font-bold text-gray-700">{t('order.title')} ({visit.preOrders.length})</h2>
                     {isOpen && !showOrderForm && !editingOrder && (
                         <button onClick={() => setShowOrderForm(true)}
                             className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700">
-                            + Nouvelle commande
+                            {t('order.add')}
                         </button>
                     )}
                 </div>
@@ -602,7 +613,7 @@ export default function SalesVisitDetailPage() {
 
             {/* ── PHOTOS ── */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <h2 className="text-sm font-bold text-gray-700 mb-3">📸 Photos ({visit.photos.length})</h2>
+                <h2 className="text-sm font-bold text-gray-700 mb-3">{t('photo.title')} ({visit.photos.length})</h2>
 
                 <SalesPhotoUpload visitId={visit.id} onPhotoAdded={fetchVisit}
                     disabled={!isOpen} addToQueue={addToQueue} />

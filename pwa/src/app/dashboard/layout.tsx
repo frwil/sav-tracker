@@ -3,11 +3,13 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import CacheWarmer from '@/components/CacheWarmer'; 
+import CacheWarmer from '@/components/CacheWarmer';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const { t, locale, setLocale } = useTranslation();
 
     const handleLogout = () => {
         localStorage.removeItem('sav_token');
@@ -17,13 +19,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-indigo-600 font-bold animate-pulse">Vérification des accès...</div>
+                <div className="text-indigo-600 font-bold animate-pulse">{t('nav.checking')}</div>
             </div>
         );
     }
 
-    // ✅ Construction du nom complet
-    const displayName = user?.firstName && user?.lastName 
+    const displayName = user?.firstName && user?.lastName
         ? `${user.firstName} ${user.lastName}`
         : user?.username;
 
@@ -36,23 +37,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex justify-between h-16">
                         {/* Côté Gauche : Retour Tableau de bord + Nom utilisateur */}
                         <div className="flex items-center gap-4">
-                            <Link 
-                                href="/dashboard" 
+                            <Link
+                                href="/dashboard"
                                 className="flex items-center text-gray-700 hover:text-indigo-600 font-bold transition-colors gap-2"
                             >
-                                <span className="text-xl">🏠</span> 
-                                <span className="hidden sm:inline">Tableau de bord</span>
-                                <span className="sm:hidden">Accueil</span>
+                                <span className="text-xl">🏠</span>
+                                <span className="hidden sm:inline">{t('nav.dashboard')}</span>
                             </Link>
-                            
-                            {/* Affichage du nom de l'utilisateur */}
+
                             {user && (
                                 <div className="hidden md:flex items-center gap-2 pl-4 border-l border-gray-200">
                                     <span className="text-2xl">👤</span>
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-gray-900">
-                                            {displayName}
-                                        </span>
+                                        <span className="text-sm font-bold text-gray-900">{displayName}</span>
                                         {user.email && (
                                             <span className="text-xs text-gray-500">{user.email}</span>
                                         )}
@@ -61,14 +58,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             )}
                         </div>
 
-                        {/* Côté Droit : Déconnexion */}
-                        <div className="flex items-center">
+                        {/* Côté Droit : Langue + Déconnexion */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
+                                className="px-2 py-1 text-xs font-bold rounded border border-gray-200 hover:bg-gray-100 transition"
+                                title={locale === 'fr' ? 'Switch to English' : 'Passer en français'}
+                            >
+                                {locale === 'fr' ? '🇫🇷 FR' : '🇬🇧 EN'}
+                            </button>
                             <button
                                 onClick={handleLogout}
                                 className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100"
-                                title="Se déconnecter"
+                                title={t('nav.logout')}
                             >
-                                <span className="hidden sm:inline">Déconnexion</span>
+                                <span className="hidden sm:inline">{t('nav.logout')}</span>
                                 <span className="text-lg">🚪</span>
                             </button>
                         </div>
