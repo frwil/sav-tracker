@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode'; // npm install jwt-decode
+import { jwtDecode } from 'jwt-decode';
+import { useTranslation } from '@/i18n/I18nProvider';
 import toast from "react-hot-toast";
 
 
@@ -89,6 +90,7 @@ const clearAuthData = () => {
 
 export default function LoginPage() {
     const router = useRouter();
+    const { t } = useTranslation();
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
     // États
@@ -141,7 +143,7 @@ export default function LoginPage() {
                 } else {
                     // Grâce dépassée - doit se reconnecter
                     setAuthStatus('expired');
-                    setError("Votre session a expiré. Connexion requise.");
+                    setError(t('login.session_expired'));
                     clearAuthData();
                     setIsLoading(false);
                 }
@@ -207,10 +209,7 @@ export default function LoginPage() {
         const user = getCachedUser();
         
         if (!user) {
-            setError(
-                "Mode hors ligne. Aucune donnée de connexion disponible. " +
-                "Veuillez vous connecter une fois en ligne pour activer l'accès offline."
-            );
+            setError(t('login.offline_no_data'));
             return;
         }
 
@@ -220,7 +219,7 @@ export default function LoginPage() {
         
         if (lastLoginValid) {
             // Accès offline accordé basé sur la confiance
-            toast.success("Mode hors ligne - Accès basé sur dernière connexion");
+            toast.success(t('login.offline_success'));
             router.push('/dashboard');
         } else {
             setError(

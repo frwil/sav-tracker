@@ -13,6 +13,7 @@ import { SyncTask, ResourceType, RESOURCE_PRIORITY } from "@/types/SyncTask";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNetworkQuality } from "@/hooks/useNetworkQuality";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ export const useSync = () => useContext(SyncContext);
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export default function SyncProvider({ children }: { children: React.ReactNode }) {
+    const { t } = useTranslation();
     const [queue, setQueue] = useState<SyncTask[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -115,18 +117,18 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
         if (isLoaded) {
             syncQueueStorage
                 .setItem("queue", queue)
-                .catch((e) => console.error("Erreur écriture IndexedDB", e));
+                .catch((e) => console.error(t('sync.indexeddb_error'), e));
         }
     }, [queue, isLoaded]);
 
     // ── Rafraîchissement global ──────────────────────────────────────────────
     const refreshAllData = useCallback(async () => {
         if (!navigator.onLine) {
-            toast("Pas de connexion internet pour mettre à jour.", { icon: "📴" });
+            toast(t('sync.no_connection'), { icon: "📴" });
             return;
         }
 
-        const toastId = toast.loading("Mise à jour des données...");
+        const toastId = toast.loading(t('sync.updating'));
 
         try {
             const token = localStorage.getItem("sav_token");
@@ -149,10 +151,10 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
             }
 
             await queryClient.invalidateQueries();
-            toast.success("Données à jour !", { id: toastId });
+            toast.success(t('sync.updated'), { id: toastId });
         } catch (e) {
             console.error("Erreur refreshAllData", e);
-            toast.error("Erreur lors de la mise à jour", { id: toastId });
+            toast.error(t('sync.update_error'), { id: toastId });
         }
     }, [API_URL, queryClient]);
 

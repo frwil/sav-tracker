@@ -112,7 +112,7 @@ export default function SalesVisitDetailPage() {
             });
             if (!res.ok) throw new Error('Échec');
         } catch {
-            toast.error('Erreur mise à jour');
+            toast.error(t('error.save'));
             fetchVisit();
         }
     };
@@ -141,37 +141,37 @@ export default function SalesVisitDetailPage() {
 
     // ── Delete audit ──
     const deletePriceAudit = async (pa: PriceAudit) => {
-        if (!confirm('Supprimer ce relevé prix ?')) return;
+        if (!confirm(t('price.delete_confirm'))) return;
         try {
             const res = await fetch(`${API_URL}/price_audits/${pa.id}`, {
                 method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Erreur');
-            toast.success('Relevé supprimé');
+            toast.success(t('price.deleted'));
             fetchVisit();
         } catch (err: any) { toast.error(err.message); }
     };
 
     const deleteStockAudit = async (sa: StockAudit) => {
-        if (!confirm('Supprimer ce contrôle stock ?')) return;
+        if (!confirm(t('stock.delete_confirm'))) return;
         try {
             const res = await fetch(`${API_URL}/stock_audits/${sa.id}`, {
                 method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Erreur');
-            toast.success('Contrôle supprimé');
+            toast.success(t('stock.deleted'));
             fetchVisit();
         } catch (err: any) { toast.error(err.message); }
     };
 
     const deletePreOrder = async (po: PreOrder) => {
-        if (!confirm('Supprimer cette commande ?')) return;
+        if (!confirm(t('order.delete_confirm'))) return;
         try {
             const res = await fetch(`${API_URL}/pre_orders/${po.id}`, {
                 method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Erreur');
-            toast.success('Commande supprimée');
+            toast.success(t('order.deleted'));
             fetchVisit();
         } catch (err: any) { toast.error(err.message); }
     };
@@ -212,13 +212,13 @@ export default function SalesVisitDetailPage() {
 
     // ── Delete photo ──
     const deletePhoto = async (photo: SalesPhoto) => {
-        if (!confirm('Supprimer cette photo ?')) return;
+        if (!confirm(t('photo.delete_confirm'))) return;
         try {
             const res = await fetch(`${API_URL}/sales_photos/${photo.id}`, {
                 method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) throw new Error('Erreur');
-            toast.success('Photo supprimée');
+            toast.success(t('photo.deleted'));
             fetchVisit();
         } catch (err: any) { toast.error(err.message); }
     };
