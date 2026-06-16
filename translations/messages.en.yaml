@@ -1,24 +1,32 @@
 # SAV Tracker — English messages (backend Symfony)
 
+# ─── Common Errors ───
+error.not_authenticated: 'Not authenticated.'
+error.access_denied: 'Access denied.'
+
 # ─── Sales Visit ───
-sales.visit.objective_required: 'The sales visit objective is required.'
-sales.visit.closed: 'Sales visit closed successfully.'
-sales.visit.started: 'Sales visit started.'
-sales.visit.archived: 'Visit archived.'
-sales.visit.already_closed: 'Visit already closed.'
-sales.visit.already_started: 'Visit already started.'
-sales.visit.access_denied: 'Access denied.'
+sales_visit.objective_required: 'The sales visit objective is required.'
+sales_visit.archived: 'Visit archived.'
+sales_visit.already_closed: 'Visit already closed.'
+sales_visit.already_started: 'Visit already started.'
+sales_visit.closed_success: 'Visit closed successfully.'
+sales_visit.started_success: 'Visit started.'
+
+# ─── Visit (technician) ───
+visit.objective_required: 'The visit objective is required.'
+visit.archived: 'Visit archived.'
+visit.already_closed: 'Visit already closed.'
+visit.already_started: 'Visit already started.'
 
 # ─── PreOrder ───
-pre_order.confirmed: 'Pre-order confirmed.'
-pre_order.delivered: 'Order delivered.'
-pre_order.cancelled: 'Order cancelled.'
+pre_order.confirm_only_from_preorder: 'Only a pre-order can be confirmed (current status: {status}).'
+pre_order.deliver_only_from_confirmed: 'Only a confirmed order can be delivered (current status: {status}).'
 pre_order.cannot_cancel_delivered: 'Cannot cancel an already delivered order.'
 pre_order.already_cancelled: 'This order is already cancelled.'
-pre_order.cannot_confirm: 'Only a pre-order can be confirmed.'
-pre_order.cannot_deliver: 'Only a confirmed order can be delivered.'
 
-# ─── Audit ───
-audit.created: 'Audit created successfully.'
-audit.updated: 'Audit updated.'
-audit.deleted: 'Audit deleted.'
+# ─── Flock ───
+flock.cannot_delete_has_observations: 'Cannot delete flock "{name}" because it has {count} observations. Delete the observations first or archive the flock.'
+flock.cannot_delete_building_archived: 'Cannot delete flock "{name}" because its building "{building}" is archived. Reactivate the building first.'
+
+# ─── Observation ───
+observation.too_old: 'Cannot add an observation older than the visit itself.'

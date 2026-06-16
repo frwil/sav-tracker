@@ -8,37 +8,31 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\AsController;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsController]
 class CancelPreOrderController extends AbstractController
 {
-    public function __invoke(PreOrder $order, Request $request, EntityManagerInterface $em): JsonResponse
+    public function __invoke(PreOrder $order, Request $request, EntityManagerInterface $em, TranslatorInterface $translator): JsonResponse
     {
-        // Auth: admin ou le commercial assigné à la visite parente
         $user = $this->getUser();
         if (!$user) {
-            return new JsonResponse(['error' => 'Non authentifié'], 401);
+            return new JsonResponse(['error' => $translator->trans('error.not_authenticated')], 401);
         }
         $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPER_ADMIN');
         $isAssignedRep = $order->getVisit() && $order->getVisit()->getSalesRep()
             && $order->getVisit()->getSalesRep()->getId() === $user->getId();
         if (!$isAdmin && !$isAssignedRep) {
-            return new JsonResponse(['error' => 'Accès refusé'], 403);
+            return new JsonResponse(['error' => $translator->trans('error.access_denied')], 403);
         }
 
         if ($order->getStatus() === PreOrder::STATUS_DELIVERED) {
-            return new JsonResponse([
-                'error' => 'Impossible d\'annuler une commande déjà livrée.'
-            ], 400);
+            return new JsonResponse(['error' => $translator->trans('pre_order.cannot_cancel_delivered')], 400);
         }
-
         if ($order->getStatus() === PreOrder::STATUS_CANCELLED) {
-            return new JsonResponse([
-                'error' => 'Cette commande est déjà annulée.'
-            ], 400);
+            return new JsonResponse(['error' => $translator->trans('pre_order.already_cancelled')], 400);
         }
 
-        // Optionnel : récupérer la raison d'annulation
         $body = json_decode($request->getContent(), true);
         $reason = $body['cancellationReason'] ?? null;
 
@@ -48,9 +42,6 @@ class CancelPreOrderController extends AbstractController
         }
         $em->flush();
 
-        return new JsonResponse([
-            'id' => $order->getId(),
-            'status' => PreOrder::STATUS_CANCELLED,
-        ]);
+        return new JsonResponse(['id' => $order->getId(), 'status' => PreOrder::STATUS_CANCELLED]);
     }
 }

@@ -10,44 +10,44 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsController]
 class CloseSalesVisitController extends AbstractController
 {
-    public function __construct(private Security $security) {}
+    public function __construct(
+        private Security $security,
+        private TranslatorInterface $translator,
+    ) {}
 
     public function __invoke(SalesVisit $visit, EntityManagerInterface $em): Response
     {
         $user = $this->security->getUser();
 
         if (!$user instanceof User) {
-            return new JsonResponse(['error' => 'Non authentifié.'], 401);
+            return new JsonResponse(['error' => $this->translator->trans('error.not_authenticated')], 401);
         }
 
-        // Admins peuvent tout faire
         $isAdmin = $this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN');
 
         if (!$isAdmin) {
-            // Vérifier que le commercial est bien assigné
             if (!$visit->getSalesRep() || $visit->getSalesRep()->getId() !== $user->getId()) {
-                return new JsonResponse(['error' => 'Vous n\'êtes pas autorisé à clôturer cette visite.'], 403);
+                return new JsonResponse(['error' => $this->translator->trans('error.access_denied')], 403);
             }
 
-            // Vérifier la fenêtre de 48h pour la clôture
             $now = new \DateTime();
             $interval = $now->diff($visit->getVisitedAt());
             if ($interval->days >= 2) {
-                return new JsonResponse(['error' => 'Délai de clôture dépassé (48h). Contactez un administrateur.'], 403);
+                return new JsonResponse(['error' => $this->translator->trans('error.access_denied')], 403);
             }
 
-            // Vérifier que la visite n'est pas archivée
             if (!$visit->isActivated()) {
-                return new JsonResponse(['error' => 'Cette visite est archivée.'], 403);
+                return new JsonResponse(['error' => $this->translator->trans('sales_visit.archived')], 403);
             }
         }
 
         if ($visit->isClosed()) {
-            return new JsonResponse(['error' => 'Cette visite est déjà clôturée.'], 400);
+            return new JsonResponse(['error' => $this->translator->trans('sales_visit.already_closed')], 400);
         }
 
         $visit->setClosed(true);

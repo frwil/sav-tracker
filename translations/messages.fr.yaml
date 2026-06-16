@@ -1,26 +1,33 @@
 # SAV Tracker — Messages français (backend Symfony)
-# Ce fichier alimente le service Translator de Symfony.
-# Utilisation dans le code : $translator->trans('sales.visit.objective_required')
+# Utilisation : $this->translator->trans('key') ou $translator->trans('key', [], 'messages')
+
+# ─── Erreurs communes ───
+error.not_authenticated: 'Non authentifié.'
+error.access_denied: 'Accès refusé.'
 
 # ─── Sales Visit ───
-sales.visit.objective_required: "L'objectif de la visite commerciale est obligatoire."
-sales.visit.closed: 'Visite commerciale clôturée avec succès.'
-sales.visit.started: 'Visite commerciale démarrée.'
-sales.visit.archived: 'Visite archivée.'
-sales.visit.already_closed: 'Visite déjà clôturée.'
-sales.visit.already_started: 'Visite déjà démarrée.'
-sales.visit.access_denied: 'Accès refusé.'
+sales_visit.objective_required: "L'objectif de la visite commerciale est obligatoire."
+sales_visit.archived: 'Visite archivée.'
+sales_visit.already_closed: 'Visite déjà clôturée.'
+sales_visit.already_started: 'Visite déjà démarrée.'
+sales_visit.closed_success: 'Visite clôturée avec succès.'
+sales_visit.started_success: 'Visite démarrée.'
+
+# ─── Visit (technician) ───
+visit.objective_required: "L'objectif principal de la visite est obligatoire."
+visit.archived: 'Visite archivée.'
+visit.already_closed: 'Visite déjà clôturée.'
+visit.already_started: 'Visite déjà démarrée.'
 
 # ─── PreOrder ───
-pre_order.confirmed: 'Précommande confirmée.'
-pre_order.delivered: 'Commande livrée.'
-pre_order.cancelled: 'Commande annulée.'
+pre_order.confirm_only_from_preorder: 'Seule une précommande peut être confirmée (statut actuel: {status}).'
+pre_order.deliver_only_from_confirmed: 'Seule une commande confirmée peut être livrée (statut actuel: {status}).'
 pre_order.cannot_cancel_delivered: "Impossible d'annuler une commande déjà livrée."
 pre_order.already_cancelled: 'Cette commande est déjà annulée.'
-pre_order.cannot_confirm: "Seule une précommande peut être confirmée."
-pre_order.cannot_deliver: "Seule une commande confirmée peut être livrée."
 
-# ─── Audit ───
-audit.created: 'Audit créé avec succès.'
-audit.updated: 'Audit mis à jour.'
-audit.deleted: 'Audit supprimé.'
+# ─── Flock ───
+flock.cannot_delete_has_observations: 'Impossible de supprimer la bande "{name}" car elle contient {count} observations. Vous devez d\'abord supprimer les observations ou archiver la bande.'
+flock.cannot_delete_building_archived: 'Impossible de supprimer la bande "{name}" car son bâtiment "{building}" est archivé. Veuillez réactiver le bâtiment d\'abord.'
+
+# ─── Observation ───
+observation.too_old: "Impossible d'ajouter une observation antérieure à la visite elle-même."
