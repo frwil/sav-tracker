@@ -49,6 +49,17 @@ export default function SalesVisitDetailPage() {
     const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '');
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('sav_token') : null;
+    // Vérifier le rôle
+    useEffect(() => {
+        if (!token) { router.push('/'); return; }
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const roles: string[] = payload.roles || [];
+            if (!roles.includes('ROLE_SALES_REP') && !roles.includes('ROLE_ADMIN') && !roles.includes('ROLE_SUPER_ADMIN')) {
+                router.push('/dashboard');
+            }
+        } catch { router.push('/'); }
+    }, [token, router]);
     const visitIri = `/api/sales_visits/${id}`;
     const customerIri = visit?.customer?.['@id'] || '';
 

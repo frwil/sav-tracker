@@ -116,6 +116,13 @@ Le technicien est un **expert zootechnique**. Il visite les **fermes** pour cons
 
 ### Statut : Toutes les fonctionnalités principales sont implémentées (Étapes 6-15 ✅)
 
+### Sécurité (Audit ✅)
+- Toutes les entités commerciales ont des attributs `security:` sur leurs opérations API Platform
+- Les contrôleurs de workflow commandes vérifient l'assignation du commercial
+- Les pages frontend vérifient `ROLE_SALES_REP` avant d'afficher le contenu
+- Les votants garantissent la séparation des rôles technicien vs commercial
+- Le module technicien est protégé contre les accès commerciaux (et vice-versa)
+
 ### Rôle : Commercial (ROLE_SALES_REP)
 Le commercial est un **vendeur**, sans expertise technique en élevage. Il visite les **provenderies** (points de vente d'aliments pour animaux) pour développer les ventes, contrôler la présence de la marque et prendre les commandes. **Il ne fait pas de conseil technique** — les réclamations techniques sont escaladées aux techniciens.
 

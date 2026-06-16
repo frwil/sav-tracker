@@ -89,6 +89,10 @@ export default function SalesDashboard() {
             setCurrentUser(payload);
             const roles: string[] = payload.roles || [];
             setIsAdmin(roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN'));
+            if (!roles.includes('ROLE_SALES_REP') && !roles.includes('ROLE_ADMIN') && !roles.includes('ROLE_SUPER_ADMIN')) {
+                router.push('/dashboard');
+                return;
+            }
         } catch { router.push('/'); }
     }, [router]);
 

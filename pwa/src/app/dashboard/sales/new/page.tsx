@@ -62,6 +62,14 @@ export default function NewSalesVisitPage() {
     useEffect(() => {
         const token = localStorage.getItem('sav_token');
         if (!token) { router.push('/'); return; }
+        // Vérifier le rôle
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const roles: string[] = payload.roles || [];
+            if (!roles.includes('ROLE_SALES_REP') && !roles.includes('ROLE_ADMIN') && !roles.includes('ROLE_SUPER_ADMIN')) {
+                router.push('/dashboard'); return;
+            }
+        } catch { router.push('/'); return; }
 
         // Charger les provenderies (type = FEED_STORE ou BOTH)
         fetch(`${API_URL}/customers?type=FEED_STORE&activated=true&itemsPerPage=50`, {

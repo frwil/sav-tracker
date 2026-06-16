@@ -47,6 +47,11 @@ class VisitVoter extends Voter
             return false;
         }
 
+        // Seul le technicien assigné peut modifier sa visite
+        if (!$visit->getTechnician() || $visit->getTechnician()->getId() !== $user->getId()) {
+            return false;
+        }
+
         // Règle des 48h
         $now = new \DateTime();
         $interval = $now->diff($visit->getVisitedAt());

@@ -14,6 +14,18 @@ class CancelPreOrderController extends AbstractController
 {
     public function __invoke(PreOrder $order, Request $request, EntityManagerInterface $em): JsonResponse
     {
+        // Auth: admin ou le commercial assigné à la visite parente
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['error' => 'Non authentifié'], 401);
+        }
+        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPER_ADMIN');
+        $isAssignedRep = $order->getVisit() && $order->getVisit()->getSalesRep()
+            && $order->getVisit()->getSalesRep()->getId() === $user->getId();
+        if (!$isAdmin && !$isAssignedRep) {
+            return new JsonResponse(['error' => 'Accès refusé'], 403);
+        }
+
         if ($order->getStatus() === PreOrder::STATUS_DELIVERED) {
             return new JsonResponse([
                 'error' => 'Impossible d\'annuler une commande déjà livrée.'

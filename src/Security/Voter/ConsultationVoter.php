@@ -65,10 +65,8 @@ class ConsultationVoter extends Voter
 
     private function canCreate(User $user): bool
     {
-        // Tout utilisateur authentifié peut créer une consultation
-        // Ou vérifiez un rôle spécifique : ROLE_TECHNICIAN
-        return $this->security->isGranted('ROLE_TECHNICIAN') || 
-               $this->security->isGranted('ROLE_USER');
+        // Seuls les techniciens peuvent créer des consultations
+        return $this->security->isGranted('ROLE_TECHNICIAN');
     }
 
     private function canView(Consultation $consultation, User $user): bool

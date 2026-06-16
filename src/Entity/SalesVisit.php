@@ -27,10 +27,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
+        new Get(security: "is_granted('ROLE_USER')"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
         new Post(
-            security: "is_granted('ROLE_USER')"
+            security: "is_granted('ROLE_SALES_REP')"
         ),
         new Patch(
             security: "is_granted('SALES_VISIT_EDIT', object)"

@@ -105,6 +105,14 @@ Both modules share the same offline-first PWA architecture for use in rural area
 - English for code structure (methods, variables, comments)
 - Entities in French: Visite, Bande (Flock), Bâtiment (Building), Élevage (Speculation), Client (Customer)
 
+### Multilingual / i18n
+- **L'application est monolingue français.** Aucune bibliothèque i18n (next-intl, react-i18next) n'est installée.
+- Les utilisateurs cibles sont des agents terrain francophones en Afrique de l'Ouest.
+- Toutes les chaînes utilisateur sont en français, codées en dur dans les composants React et les messages de validation backend.
+- L'attribut `<html lang="fr">` est défini dans le layout racine.
+- Le formatage des dates utilise `toLocaleString('fr-FR')`.
+- Si le multilingue devient nécessaire, utiliser `next-intl` pour le frontend Next.js et les fichiers de traduction Symfony pour le backend.
+
 ## Common Commands
 
 ```bash

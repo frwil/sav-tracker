@@ -19,11 +19,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post(),
-        new Patch(),
-        new Delete()
+        new Get(security: "is_granted('ROLE_USER')"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Post(security: "is_granted('ROLE_SALES_REP')"),
+        new Patch(security: "is_granted('ROLE_SALES_REP')"),
+        new Delete(security: "is_granted('ROLE_SALES_REP')")
     ],
     normalizationContext: ['groups' => ['sales_activity:read']],
     denormalizationContext: ['groups' => ['sales_activity:write']]

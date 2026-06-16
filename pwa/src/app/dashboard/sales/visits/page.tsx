@@ -53,6 +53,17 @@ export default function SalesVisitsListPage() {
     const { options: customerOptions, loading: custLoading } = useCustomers();
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('sav_token') : null;
+    // Vérifier le rôle
+    useEffect(() => {
+        if (!token) return;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const roles: string[] = payload.roles || [];
+            if (!roles.includes('ROLE_SALES_REP') && !roles.includes('ROLE_ADMIN') && !roles.includes('ROLE_SUPER_ADMIN')) {
+                window.location.href = '/dashboard';
+            }
+        } catch { window.location.href = '/'; }
+    }, [token]);
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
     // ── Charger les visites ──

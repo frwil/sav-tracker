@@ -23,14 +23,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post(),
-        new Patch(),
-        new Delete(),
+        new Get(security: "is_granted('ROLE_USER')"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Post(security: "is_granted('ROLE_SALES_REP')"),
+        new Patch(security: "is_granted('ROLE_SALES_REP')"),
+        new Delete(security: "is_granted('ROLE_SALES_REP')"),
         new Patch(
             uriTemplate: '/pre-orders/{id}/confirm',
             controller: ConfirmPreOrderController::class,
+            security: "is_granted('ROLE_SALES_REP')",
             denormalizationContext: ['groups' => []],
             input: false,
             name: 'confirm_pre_order'
@@ -38,6 +39,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Patch(
             uriTemplate: '/pre-orders/{id}/deliver',
             controller: DeliverPreOrderController::class,
+            security: "is_granted('ROLE_SALES_REP')",
             denormalizationContext: ['groups' => []],
             input: false,
             name: 'deliver_pre_order'
@@ -45,6 +47,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Patch(
             uriTemplate: '/pre-orders/{id}/cancel',
             controller: CancelPreOrderController::class,
+            security: "is_granted('ROLE_SALES_REP')",
             denormalizationContext: ['groups' => []],
             name: 'cancel_pre_order'
         ),
