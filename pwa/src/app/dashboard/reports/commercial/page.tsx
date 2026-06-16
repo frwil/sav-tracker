@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image';
 import jsPDF from "jspdf";
+import { useTranslation } from '@/i18n/I18nProvider';
 import toast from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -14,6 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#3B82F6', '#EC4899'];
 
 export default function CommercialReport() {
+    const { t } = useTranslation();
     const chartRef = useRef<HTMLDivElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);
@@ -146,12 +148,12 @@ export default function CommercialReport() {
     return (
         <div className="max-w-7xl mx-auto p-4 pb-20">
             <h1 className="text-2xl font-black mb-6 flex items-center gap-2">
-                <span className="text-emerald-600">🏪</span> Performance Commerciale
+                <span className="text-emerald-600">🏪</span> {t('report.title')}
             </h1>
 
             <ReportFilters onFilter={loadData} isAdmin={true} />
 
-            {loading && <div className="text-center py-10 animate-pulse text-gray-500">Analyse des performances...</div>}
+            {loading && <div className="text-center py-10 animate-pulse text-gray-500">{t('report.analyzing')}</div>}
 
             {data && (
                 <div className="space-y-6 animate-fade-in">
@@ -172,9 +174,9 @@ export default function CommercialReport() {
                     <div ref={reportRef} className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 space-y-8">
 
                         <div className="text-center border-b pb-4">
-                            <h2 className="text-3xl font-black text-gray-800">Performance Commerciale</h2>
+                            <h2 className="text-3xl font-black text-gray-800">{t('report.title')}</h2>
                             <p className="text-sm text-gray-500 mt-1">
-                                {data.stats.salesRepName || 'Tous les commerciaux'} • Période analysée
+                                {data.stats.salesRepName || 'Tous les commerciaux'} • {t('report.period')}
                             </p>
                         </div>
 

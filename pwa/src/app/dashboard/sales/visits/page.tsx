@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Select from 'react-select';
 import { useCustomers } from '@/hooks/useCustomers';
+import { useTranslation } from '@/i18n/I18nProvider';
 import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ const selectStyles = {
 // ─── Composant ────────────────────────────────────────────────
 
 export default function SalesVisitsListPage() {
+    const { t } = useTranslation();
     const [visits, setVisits] = useState<VisitItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<ViewMode>('planning');
@@ -103,7 +105,7 @@ export default function SalesVisitsListPage() {
             setVisits(data.member || []);
             setTotalItems(data.totalItems || 0);
         } catch {
-            toast.error('Erreur chargement des visites');
+            toast.error(t('error.load_visits'));
         } finally {
             setLoading(false);
         }
@@ -125,7 +127,7 @@ export default function SalesVisitsListPage() {
                 const err = await res.json();
                 throw new Error(err.error || 'Erreur');
             }
-            toast.success('Visite démarrée 🚀');
+            toast.success(t('detail.started'));
             fetchVisits();
         } catch (err: any) {
             toast.error(err.message);
@@ -147,21 +149,21 @@ export default function SalesVisitsListPage() {
         <div className="max-w-5xl mx-auto space-y-6 pb-20">
             <div className="flex justify-between items-center">
                 <div>
-                    <Link href="/dashboard/sales" className="text-sm text-gray-500 hover:text-gray-700">&larr; Dashboard</Link>
-                    <h1 className="text-2xl font-bold text-gray-900">Visites Commerciales</h1>
+                    <Link href="/dashboard/sales" className="text-sm text-gray-500 hover:text-gray-700">&larr; {t('dashboard.title')}</Link>
+                    <h1 className="text-2xl font-bold text-gray-900">{t('visits.title')}</h1>
                 </div>
                 <Link href="/dashboard/sales/new"
                     className="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 shadow">
-                    + Nouvelle
+                    {t('visits.new')}
                 </Link>
             </div>
 
             {/* ── Tabs ── */}
             <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                 {([
-                    ['planning', '📅 Planifiées'],
-                    ['in_progress', '🟢 En cours'],
-                    ['completed', '✅ Terminées'],
+                    ['planning', t('visits.tab_planned')],
+                    ['in_progress', t('visits.tab_in_progress')],
+                    ['completed', t('visits.tab_completed')],
                 ] as [ViewMode, string][]).map(([mode, label]) => (
                     <button key={mode} onClick={() => setViewMode(mode)}
                         className={`flex-1 py-2 rounded-md text-sm font-bold transition ${
@@ -175,15 +177,15 @@ export default function SalesVisitsListPage() {
             {/* ── Filtres ── */}
             <div className="flex gap-4 items-end">
                 <div className="w-72">
-                    <label className="text-[10px] text-gray-500 block mb-1">Client</label>
+                    <label className="text-[10px] text-gray-500 block mb-1">{t('visits.filter_customer')}</label>
                     <Select options={customerOptions} value={selectedCustomer}
                         onChange={v => setSelectedCustomer(v)} isClearable
-                        isLoading={custLoading} placeholder="Tous les clients..."
+                        isLoading={custLoading} placeholder={t('visits.all_customers')}
                         styles={selectStyles} className="text-sm" />
                 </div>
                 <div className="text-[10px] text-gray-400">
                     {stats.total} visites • {stats.withOrders} avec commandes
-                    {stats.totalTasks > 0 && ` • ${stats.completedTasks}/${stats.totalTasks} tâches`}
+                    {stats.totalTasks > 0 && ` • ${t('visits.activities', { done: stats.completedTasks, total: stats.totalTasks })}`}
                 </div>
             </div>
 
@@ -197,9 +199,9 @@ export default function SalesVisitsListPage() {
                     <div className="text-4xl mb-2">🏪</div>
                     <p className="font-bold">Aucune visite trouvée</p>
                     <p className="text-sm mt-1">
-                        {viewMode === 'planning' ? 'Créez une nouvelle visite planifiée.' :
-                         viewMode === 'in_progress' ? 'Démarrez une visite planifiée.' :
-                         'Aucune visite terminée sur cette période.'}
+                        {viewMode === 'planning' ? t('visits.none_planned') :
+                         viewMode === 'in_progress' ? t('visits.none_in_progress') :
+                         t('visits.none_completed')}
                     </p>
                 </div>
             ) : (
@@ -222,19 +224,19 @@ export default function SalesVisitsListPage() {
                                             <h3 className="font-bold text-gray-900 truncate">{v.customer?.name || 'Client'}</h3>
                                             <span className="text-xs text-gray-400">{v.customer?.zone || ''}</span>
                                             {!v.closed && v.visitedAt ? (
-                                                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">🟢 En cours</span>
+                                                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">{t('visits.status_in_progress')}</span>
                                             ) : !v.closed && !v.visitedAt ? (
-                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">📅 Planifiée</span>
+                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{t('visits.status_planned')}</span>
                                             ) : (
-                                                <span className="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">✅ Terminée</span>
+                                                <span className="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-bold">{t('visits.status_completed')}</span>
                                             )}
                                         </div>
 
                                         {v.objective && <p className="text-sm text-gray-600 mt-1 truncate">🎯 {v.objective}</p>}
 
                                         <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-gray-400">
-                                            {v.plannedAt && <span>📅 Prévue {new Date(v.plannedAt).toLocaleDateString('fr-FR')}</span>}
-                                            {v.visitedAt && <span>🚀 Visitée {new Date(v.visitedAt).toLocaleDateString('fr-FR')}</span>}
+                                            {v.plannedAt && <span>📅 {t('visits.planned_label')} {new Date(v.plannedAt).toLocaleDateString('fr-FR')}</span>}
+                                            {v.visitedAt && <span>🚀 {t('visits.visited_label')} {new Date(v.visitedAt).toLocaleDateString('fr-FR')}</span>}
                                             {v.gpsCoordinates && <span>📍 {v.gpsCoordinates.substring(0, 20)}</span>}
                                             {v.salesRep && <span>👤 {v.salesRep.fullname || v.salesRep.username}</span>}
                                         </div>
@@ -256,7 +258,7 @@ export default function SalesVisitsListPage() {
                                         {!v.closed && !v.visitedAt && (
                                             <button onClick={(e) => handleStartVisit(e, v.id)}
                                                 className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold hover:bg-emerald-200 transition text-center">
-                                                ▶ Démarrer
+                                                {t('visits.start')}
                                             </button>
                                         )}
                                         {orderCount > 0 && <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold text-center">📝 {orderCount} cmd</span>}

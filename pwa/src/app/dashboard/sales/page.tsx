@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Select from 'react-select';
+import { useTranslation } from '@/i18n/I18nProvider';
 import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ const formatMoney = (v: number) => {
 
 export default function SalesDashboard() {
     const router = useRouter();
+    const { t } = useTranslation();
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
@@ -133,7 +135,7 @@ export default function SalesDashboard() {
             setStats(data);
         } catch (err: any) {
             setError(err.message || 'Erreur chargement');
-            toast.error('Impossible de charger les statistiques');
+            toast.error(t('error.load_stats'));
         } finally {
             setLoading(false);
         }
@@ -173,29 +175,29 @@ export default function SalesDashboard() {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 pb-20">
-            <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700">&larr; Tableau de bord</Link>
-            <h1 className="text-2xl font-bold text-gray-900">Performance Commerciale</h1>
+            <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700">&larr; {t('dashboard.back_dashboard')}</Link>
+            <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
 
             {/* ── Filtres ── */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end">
                 <div>
-                    <label className="text-[10px] text-gray-500 block mb-1">Du</label>
+                    <label className="text-[10px] text-gray-500 block mb-1">{t('dashboard.from')}</label>
                     <input type="date" value={startDate}
                         onChange={e => { if (!e.target.value) return; setStartDate(e.target.value); fetchStats(e.target.value, endDate); }}
                         className="border p-2 rounded text-sm text-gray-900 bg-white" />
                 </div>
                 <div>
-                    <label className="text-[10px] text-gray-500 block mb-1">Au</label>
+                    <label className="text-[10px] text-gray-500 block mb-1">{t('dashboard.to')}</label>
                     <input type="date" value={endDate}
                         onChange={e => { if (!e.target.value) return; setEndDate(e.target.value); fetchStats(startDate, e.target.value); }}
                         className="border p-2 rounded text-sm text-gray-900 bg-white" />
                 </div>
                 {isAdmin && (
                     <div className="min-w-[250px]">
-                        <label className="text-[10px] text-gray-500 block mb-1">Commerciaux</label>
+                        <label className="text-[10px] text-gray-500 block mb-1">{t('dashboard.sales_reps')}</label>
                         <Select isMulti options={allReps} value={selectedReps}
                             onChange={v => setSelectedReps(v as UserOption[])}
-                            placeholder="Tous les commerciaux..." styles={selectStyles} className="text-sm" />
+                            placeholder={t('dashboard.all_reps')} styles={selectStyles} className="text-sm" />
                     </div>
                 )}
             </div>
@@ -204,54 +206,54 @@ export default function SalesDashboard() {
 
             {/* ── KPIs Visites ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card label="Call Rate" value={`${s?.callRate ?? 0}%`}
+                <Card label={t('kpi.call_rate')} value={`${s?.callRate ?? 0}%`}
                     sub={`${s?.visitsRealized ?? 0}/${s?.visitsPlanned ?? 0} visites`}
-                    icon="📞" tooltip="Taux de visite : visites réalisées / visites planifiées sur la période." percent color="blue" />
-                <Card label="JP Adherence" value={`${s?.jpAdherence ?? 0}%`}
+                    icon="📞" tooltip={t('kpi.call_rate_tip')} percent color="blue" />
+                <Card label={t('kpi.jp_adherence')} value={`${s?.jpAdherence ?? 0}%`}
                     sub={`${s?.visitsOnTime ?? 0}/${s?.visitsRealized ?? 0} faites le jour J`}
-                    icon="📍" tooltip="Adhérence au plan de tournée : % de visites réalisées le jour prévu." percent
+                    icon="📍" tooltip={t('kpi.jp_tip')} percent
                     color={+(s?.jpAdherence ?? 0) < 50 ? 'red' : 'green'} alert={+(s?.jpAdherence ?? 0) < 50} />
-                <Card label="Strike Rate" value={`${s?.strikeRate ?? 0}%`}
+                <Card label={t('kpi.strike_rate')} value={`${s?.strikeRate ?? 0}%`}
                     sub={`${s?.ordersWon ?? 0}/${s?.preOrdersTaken ?? 0} commandes gagnées`}
-                    icon="🎯" tooltip="Taux de conversion : précommandes livrées / précommandes prises." percent
+                    icon="🎯" tooltip={t('kpi.strike_tip')} percent
                     color={+(s?.strikeRate ?? 0) < 50 ? 'orange' : 'green'} />
-                <Card label="Panier Moyen" value={formatMoney(s?.avgOrderValue ?? 0)}
+                <Card label={t('kpi.avg_order')} value={formatMoney(s?.avgOrderValue ?? 0)}
                     sub={`CA total : ${formatMoney(s?.totalRevenue ?? 0)} FCFA`}
-                    icon="💰" tooltip="Panier moyen : chiffre d'affaires total / nombre de commandes livrées." />
+                    icon="💰" tooltip={t('kpi.avg_order_tip')} />
             </div>
 
             {/* ── KPIs Prix & Stock ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card label="Conformité Prix" value={`${s?.priceCompliance ?? 0}%`}
+                <Card label={t('kpi.price_compliance')} value={`${s?.priceCompliance ?? 0}%`}
                     sub={`${s?.priceCompliant ?? 0}/${s?.priceChecksDone ?? 0} relevés conformes`}
-                    icon="🏷️" tooltip="Conformité RRP : % de prix relevés dans la fourchette ±5% du prix recommandé."
+                    icon="🏷️" tooltip={t('kpi.price_tip')}
                     percent color={+(s?.priceCompliance ?? 0) < 60 ? 'red' : 'green'} alert={+(s?.priceCompliance ?? 0) < 60} />
-                <Card label="Must-Stock" value={`${s?.mustStockRate ?? 0}%`}
+                <Card label={t('kpi.must_stock')} value={`${s?.mustStockRate ?? 0}%`}
                     sub={`${s?.mustStockPresent ?? 0} produits obligatoires présents`}
-                    icon="📦" tooltip="Taux Must-Stock : % de SKU obligatoires présents dans le point de vente." percent
+                    icon="📦" tooltip={t('kpi.must_stock_tip')} percent
                     color={+(s?.mustStockRate ?? 0) < 80 ? 'orange' : 'green'} />
-                <Card label="Ruptures (OOS)" value={`${s?.oosRate ?? 0}%`}
+                <Card label={t('kpi.oos')} value={`${s?.oosRate ?? 0}%`}
                     sub={`${s?.outOfStockCount ?? 0}/${s?.stockChecksDone ?? 0} contrôles en rupture`}
-                    icon="🚫" tooltip="Out of Stock : % de contrôles où le produit était en rupture. Un taux élevé = perte de vente." percent
+                    icon="🚫" tooltip={t('kpi.oos_tip')} percent
                     alert={+(s?.oosRate ?? 0) > 5} color={+(s?.oosRate ?? 0) > 5 ? 'red' : 'green'} />
-                <Card label="Fraîcheur" value={`${s?.avgFreshness ?? 0}/5`}
+                <Card label={t('kpi.freshness')} value={`${s?.avgFreshness ?? 0}/5`}
                     sub={`Sur ${s?.stockChecksDone ?? 0} contrôles stock`}
-                    icon="🥬" tooltip="Score fraîcheur moyen (1=périmé, 5=très frais). Mesure la rotation et la gestion des dates." />
+                    icon="🥬" tooltip={t('kpi.freshness_tip')} />
             </div>
 
             {/* ── KPIs Qualité & Exécution ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card label="Qualité PDV" value={`${s?.avgQualityScore ?? 0}/5`}
-                    icon="✨" tooltip="Score qualité moyen du point de vente : état des sacs, stockage, hygiène, nuisibles." />
-                <Card label="Visibilité" value={`${s?.avgVisibilityScore ?? 0}/5`}
-                    icon="👁️" tooltip="Score visibilité moyen : présence d'affiches, banderoles, branding, enseigne." />
-                <Card label="Exécution" value={`${s?.executionRate ?? 0}%`}
+                <Card label={t('kpi.quality')} value={`${s?.avgQualityScore ?? 0}/5`}
+                    icon="✨" tooltip={t('kpi.quality_tip')} />
+                <Card label={t('kpi.visibility')} value={`${s?.avgVisibilityScore ?? 0}/5`}
+                    icon="👁️" tooltip={t('kpi.visibility_tip')} />
+                <Card label={t('kpi.execution')} value={`${s?.executionRate ?? 0}%`}
                     sub={`${s?.activitiesCompleted ?? 0}/${s?.activitiesTotal ?? 0} tâches faites`}
-                    icon="✅" tooltip="Taux d'exécution : % des activités de la check-list complétées lors des visites." percent
+                    icon="✅" tooltip={t('kpi.execution_tip')} percent
                     color={+(s?.executionRate ?? 0) < 70 ? 'red' : 'green'} />
-                <Card label="Act. / Visite" value={s ? (s.activitiesTotal / Math.max(s.visitsRealized, 1)).toFixed(0) : '0'}
+                <Card label={t('kpi.act_per_visit')} value={s ? (s.activitiesTotal / Math.max(s.visitsRealized, 1)).toFixed(0) : '0'}
                     sub={`${s?.activitiesTotal ?? 0} activités sur ${s?.visitsRealized ?? 0} visites`}
-                    icon="📋" tooltip="Nombre moyen d'activités réalisées par visite commerciale." />
+                    icon="📋" tooltip={t('kpi.act_tip')} />
             </div>
 
             {/* ── Perfect Store Score ── */}
@@ -261,7 +263,7 @@ export default function SalesDashboard() {
                     (s.perfectStoreScore ?? 0) >= 50 ? 'bg-orange-50 border-orange-200' :
                     'bg-red-50 border-red-200'
                 }`}>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">🏆 Perfect Store Score</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">{t('kpi.perfect_store')}</div>
                     <div className={`text-4xl font-black ${
                         (s.perfectStoreScore ?? 0) >= 80 ? 'text-green-600' :
                         (s.perfectStoreScore ?? 0) >= 50 ? 'text-orange-500' :
@@ -276,28 +278,23 @@ export default function SalesDashboard() {
                             'bg-red-500'
                         }`} style={{ width: `${Math.min(s.perfectStoreScore ?? 0, 100)}%` }} />
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-2">
-                        Moyenne pondérée : Prix (25%) · Stock (20%) · Qualité (15%) · Visibilité (15%) · Exécution (15%) · Fraîcheur (10%)
-                    </p>
+                    <p className="text-[10px] text-gray-400 mt-2">{t('kpi.perfect_store_weight')}</p>
                 </div>
             )}
 
             {/* ── Section visites ── */}
             {s && (
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 text-center text-sm text-gray-500">
-                    📊 {s.salesRepName || 'Commercial'} — {s.visitsPlanned} visites planifiées,
-                    {s.visitsRealized} réalisées, {s.visitsOnTime} à l'heure •
-                    {s.preOrdersTaken} précommandes, {s.ordersWon} livrées •
-                    {s.priceChecksDone} relevés prix, {s.stockChecksDone} contrôles stock
+                    📊 {t('dashboard.stats_summary', { name: s.salesRepName || 'Commercial', planned: s.visitsPlanned, realized: s.visitsRealized, onTime: s.visitsOnTime, orders: s.preOrdersTaken, won: s.ordersWon, price: s.priceChecksDone, stock: s.stockChecksDone })}
                 </div>
             )}
 
             <div className="flex justify-center gap-4">
                 <Link href="/dashboard/sales/visits" className="inline-block px-6 py-3 bg-white border-2 border-emerald-600 text-emerald-700 font-bold rounded-xl hover:bg-emerald-50 transition">
-                    📋 Voir les visites
+                    {t('dashboard.see_visits')}
                 </Link>
                 <Link href="/dashboard/sales/new" className="inline-block px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition">
-                    + Nouvelle visite
+                    {t('dashboard.new_visit')}
                 </Link>
             </div>
         </div>
