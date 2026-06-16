@@ -19,6 +19,7 @@ use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
@@ -140,7 +141,7 @@ class SalesVisit
     private Collection $salesActivities;
 
     #[ORM\OneToMany(mappedBy: 'visit', targetEntity: SalesPhoto::class, cascade: ['persist', 'remove'])]
-    #[Groups(['sales_visit:read'])]
+    #[Groups(['sales_visit:read', 'sales_visit:write'])]
     private Collection $photos;
 
     public function __construct()
@@ -293,6 +294,36 @@ class SalesVisit
     public function removePhoto(SalesPhoto $photo): self {
         if ($this->photos->removeElement($photo)) {
             if ($photo->getVisit() === $this) { $photo->setVisit(null); }
+        }
+        return $this;
+    }
+
+    /**
+     * Accepte un tableau de photos en base64 et les transforme en entités SalesPhoto.
+     * Miroir de Observation::setNewPhotos().
+     */
+    #[SerializedName('newPhotos')]
+    #[Groups(['sales_visit:write'])]
+    public function setNewPhotos(array $newPhotos): self
+    {
+        foreach ($newPhotos as $photoData) {
+            if (empty($photoData['content'])) continue;
+
+            $data = explode(',', $photoData['content']);
+            $content = base64_decode(end($data));
+
+            $filename = uniqid('sales_') . '.jpg';
+            $path = 'uploads/sales/' . $filename;
+
+            file_put_contents($path, $content);
+
+            $photo = new SalesPhoto();
+            $photo->setContentUrl('/uploads/sales/' . $filename);
+            $photo->setCategory($photoData['category'] ?? 'GENERAL');
+            $photo->setCaption($photoData['caption'] ?? null);
+            $photo->setVisit($this);
+
+            $this->photos->add($photo);
         }
         return $this;
     }

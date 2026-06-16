@@ -30,11 +30,19 @@ const computeIdempotencyKey = (method: string, url: string, body: unknown): stri
 /** Infère le type de ressource depuis l'URL pour le tri par priorité. */
 const inferResourceType = (url: string): ResourceType => {
     if (/\/customers/.test(url)) return 'customer';
+    if (/\/sales_visits|sales-visits/.test(url)) return 'sales_visit';
     if (/\/visits/.test(url)) return 'visit';
     if (/\/buildings/.test(url)) return 'building';
     if (/\/flocks/.test(url)) return 'flock';
     if (/\/observations/.test(url)) return 'observation';
     if (/\/prospections/.test(url)) return 'prospection';
+    if (/\/price_audits/.test(url)) return 'price_audit';
+    if (/\/stock_audits/.test(url)) return 'stock_audit';
+    if (/\/quality_audits/.test(url)) return 'quality_audit';
+    if (/\/visibility_audits/.test(url)) return 'visibility_audit';
+    if (/\/pre_orders/.test(url)) return 'pre_order';
+    if (/\/sales_photos/.test(url)) return 'sales_photo';
+    if (/\/sales_activities/.test(url)) return 'sales_activity';
     return 'other';
 };
 

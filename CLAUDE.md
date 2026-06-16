@@ -9,9 +9,10 @@
 
 Both modules share the same offline-first PWA architecture for use in rural areas with poor connectivity.
 
-## Maintenance Rule
+## Maintenance Rules
 
-> **Après chaque modification du code (entités, contrôleurs, fonctionnalités), mettre à jour `summary.md` pour refléter les changements.** Le fichier `summary.md` doit toujours être le reflet exact des fonctionnalités actuellement implémentées.
+> 1. **Après chaque modification du code (entités, contrôleurs, fonctionnalités), mettre à jour `summary.md` pour refléter les changements.** Le fichier `summary.md` doit toujours être le reflet exact des fonctionnalités actuellement implémentées.
+> 2. **Après chaque validation de plan d'implémentation, sauvegarder le plan** dans un fichier `plans/étape-N.md` (ex: `plans/étape-9.md`) pour conserver la trace de ce qui a été convenu.
 
 ## Tech Stack
 

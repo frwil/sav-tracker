@@ -123,6 +123,20 @@ Le commercial est un **vendeur**, sans expertise technique en élevage. Il visit
 - Saisie des activités réalisées durant la visite
 - Clôture de visite avec rapport
 
+### Saisie des données terrain (Étape 9 ✅)
+Lors de la visite, le commercial peut enregistrer toutes les données commerciales via des formulaires intégrés à la page détail :
+
+| Audit | Type | Données saisies |
+|-------|------|-----------------|
+| **Prix** | Multi (0..N) | Produit, prix attendu/observé, 3 concurrents, promo, conformité ±5% |
+| **Stock** | Multi (0..N) | Produit, quantité, rupture, FIFO, fraîcheur (1-5), emballage |
+| **Qualité** | Unique (0..1) | Sacs endommagés, stockage (palettes/sec/protégé), nuisibles, moisissures, propreté |
+| **Visibilité** | Unique (0..1) | Affiches, banderoles, calendriers, sacs brandés, enseigne, goodies, part visibilité |
+| **Commandes** | Multi (0..N) | Produit, quantité, prix unitaire, statut (précommande/confirmée/livrée/annulée) |
+| **Photos** | Multi (0..N) | Upload base64 compressé, catégorisé (général/prix/stock/qualité/visibilité) |
+
+Tous les formulaires supportent : création, modification, suppression, mode offline (file d'attente SyncProvider), et verrouillage après clôture de visite.
+
 ### Activités de la visite commerciale
 Chaque visite donne lieu à une check-list d'activités qui alimentent les KPIs :
 
