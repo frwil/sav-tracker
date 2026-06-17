@@ -400,7 +400,7 @@ export default function ActivitiesPage() {
                                         <div className="flex gap-2 items-center">
                                             {item.appointmentTaken && (
                                                 <span className="text-[10px] bg-green-100 text-green-800 px-2 py-1 rounded font-bold">
-                                                    📅 RDV : {item.appointmentReason || 'Prévu'+(item.appointmentDate ? ` - (Date ${new Date(item.appointmentDate).toLocaleDateString()})` : ' - Date inconnue')}
+                                                    📅 RDV : {item.appointmentReason || t('common.scheduled')+(item.appointmentDate ? ` - (Date ${new Date(item.appointmentDate).toLocaleDateString()})` : ` - ${t('common.unknown_date')}`)}
                                                 </span>
                                             )}
                                             {item.interventionDone && <span className="text-[10px] bg-orange-100 text-orange-800 px-2 py-1 rounded font-bold">🔧 Interv.</span>}
@@ -462,7 +462,7 @@ export default function ActivitiesPage() {
                                             </div>
                                             <div className="col-span-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase">Localisation</label>
-                                                <p className="font-medium text-gray-800">{contact.zone || 'Non renseignée'}</p>
+                                                <p className="font-medium text-gray-800">{contact.zone || t('common.not_specified')}</p>
                                             </div>
                                         </div>
 

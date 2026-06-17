@@ -493,6 +493,10 @@ export const translations = {
         'reports.col_problems': 'Problèmes Identifiés',
         'reports.col_speculation': 'Spéculation',
         'reports.col_activities': 'Activités',
+        'reports.forecast_title': '🔮 Prévisionnel de Sorties',
+        'common.scheduled': 'Prévu',
+        'common.unknown_date': 'Date inconnue',
+        'common.not_specified': 'Non renseignée',
     },
 
     en: {
@@ -983,5 +987,9 @@ export const translations = {
         'reports.col_problems': 'Identified Problems',
         'reports.col_speculation': 'Speculation',
         'reports.col_activities': 'Activities',
+        'reports.forecast_title': '🔮 Release Forecast',
+        'common.scheduled': 'Scheduled',
+        'common.unknown_date': 'Unknown date',
+        'common.not_specified': 'Not specified',
     },
 } as const;

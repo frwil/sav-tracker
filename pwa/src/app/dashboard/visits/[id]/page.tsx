@@ -4,6 +4,7 @@ import { useEffect, useState, use, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSync } from "@/providers/SyncProvider";
+import { useTranslation } from "@/i18n/I18nProvider";
 import { API_URL, Visit } from "./shared";
 import { NewBuildingForm, NewFlockForm } from "./components/Forms";
 import { FlockItem } from "./components/FlockItem";
@@ -22,6 +23,7 @@ export default function VisitDetailsPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
+    const { t } = useTranslation();
     const { id } = use(params);
     const router = useRouter();
     const { addToQueue, queue, processQueue } = useSync();
@@ -96,7 +98,7 @@ export default function VisitDetailsPage({
             setLoading(false);
             
             if (cached.source === 'fallback') {
-                toast("Données partielles (depuis la liste)", { id: 'partial-data' });
+                toast(t('common.network_error_cache'), { id: 'partial-data' });
             }
         }
 
@@ -104,7 +106,7 @@ export default function VisitDetailsPage({
         if (!navigator.onLine) {
             setIsOffline(true);
             if (!cached) {
-                setError("Données non disponibles hors ligne");
+                setError(t('common.no_data_offline'));
                 setLoading(false);
             }
             return;

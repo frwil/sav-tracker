@@ -5,6 +5,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image'; // ✅ Remplacement de html2canvas
 import jsPDF from "jspdf";
+import { useTranslation } from "@/i18n/I18nProvider";
 import toast from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -21,6 +22,7 @@ const CYCLE_DURATIONS: Record<string, number> = {
 };
 
 export default function ForecastReport() {
+    const { t } = useTranslation();
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);
     const [forecasts, setForecasts] = useState<any[]>([]);
@@ -111,7 +113,7 @@ export default function ForecastReport() {
         const toastId = toast.loading("Génération Excel...");
         try {
             const wb = new ExcelJS.Workbook();
-            const ws = wb.addWorksheet('Prévisions');
+            const ws = wb.addWorksheet(t('reports.sheet_forecast'));
             
             ws.columns = [
                 { header: 'Date Sortie', key: 'date', width: 15 },
@@ -119,7 +121,7 @@ export default function ForecastReport() {
                 { header: 'Client', key: 'client', width: 25 },
                 { header: 'Effectif', key: 'count', width: 10 },
                 { header: 'Lot', key: 'flock', width: 20 },
-                { header: 'Spéculation', key: 'spec', width: 20 },
+                { header: t('reports.col_speculation'), key: 'spec', width: 20 },
                 { header: 'Âge Actuel', key: 'age', width: 10 },
             ];
 
@@ -150,7 +152,7 @@ export default function ForecastReport() {
     return (
         <div className="max-w-7xl mx-auto p-4 pb-20">
             <h1 className="text-2xl font-black mb-6 flex items-center gap-2">
-                <span className="text-indigo-600">🔮</span> Prévisionnel de Sorties
+                <span className="text-indigo-600">🔮</span> {t('reports.forecast_title').replace('🔮 ', '')}
             </h1>
             
             {/* BARRE D'ACTIONS */}

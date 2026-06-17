@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image';
 import jsPDF from "jspdf";
+import { useTranslation } from "@/i18n/I18nProvider";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
@@ -14,6 +15,7 @@ const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function PerformanceReport() {
+    const { t } = useTranslation();
     const reportRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<HTMLDivElement>(null);
     
@@ -127,13 +129,13 @@ export default function PerformanceReport() {
         const toastId = toast.loading("Génération Excel...");
         try {
             const workbook = new ExcelJS.Workbook();
-            const sheet = workbook.addWorksheet('Synthèse');
+            const sheet = workbook.addWorksheet(t('visit.synthesis_sheet'));
             sheet.columns = [
                 { header: 'Technicien', key: 'tech', width: 20 },
                 { header: 'Client', key: 'client', width: 25 },
                 { header: 'Date', key: 'date', width: 15 },
                 { header: 'Statut', key: 'status', width: 15 },
-                { header: 'Détails Lot', key: 'spec', width: 30 },
+                { header: t('reports.col_speculation'), key: 'spec', width: 30 },
                 { header: 'Date Lancement', key: 'startDate', width: 15 },
             ];
             const sortedVisits = [...data.rawVisits].sort((a: any, b: any) => {
@@ -224,7 +226,7 @@ export default function PerformanceReport() {
                     <div ref={reportRef} className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 space-y-8" id="report-content">
                         
                         <div className="text-center border-b pb-4">
-                            <h2 className="text-3xl font-black text-indigo-900 uppercase">Synthèse d'Activité</h2>
+                            <h2 className="text-3xl font-black text-indigo-900 uppercase">{t('visit.synthesis')}</h2>
                             <p className="text-sm text-gray-500 mt-1">Généré le {new Date().toLocaleString()}</p>
                         </div>
 

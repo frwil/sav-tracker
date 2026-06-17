@@ -7,12 +7,14 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image'; // ✅ Remplacement de html2canvas
 import jsPDF from "jspdf";
+import { useTranslation } from "@/i18n/I18nProvider";
 import toast from "react-hot-toast";
 
 const COLORS = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function InterventionsReport() {
+    const { t } = useTranslation();
     const chartRef = useRef<HTMLDivElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);
@@ -99,14 +101,14 @@ export default function InterventionsReport() {
 
         try {
             const wb = new ExcelJS.Workbook();
-            const ws = wb.addWorksheet('Santé');
+            const ws = wb.addWorksheet(t('reports.sheet_health'));
 
             // A. Données Brutes
             ws.columns = [
                 { header: 'Date', key: 'date', width: 15 },
                 { header: 'Client', key: 'client', width: 20 },
                 { header: 'Bande', key: 'flock', width: 15 },
-                { header: 'Problèmes Identifiés', key: 'pbs', width: 40 },
+                { header: t('reports.col_problems'), key: 'pbs', width: 40 },
                 { header: 'Résolutions', key: 'res', width: 40 },
             ];
 

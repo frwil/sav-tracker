@@ -7,12 +7,14 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image'; // ✅ Remplacement de html2canvas
 import jsPDF from "jspdf";
+import { useTranslation } from "@/i18n/I18nProvider";
 import toast from "react-hot-toast";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function VisitsReport() {
+    const { t } = useTranslation();
     const chartRef = useRef<HTMLDivElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);
@@ -101,7 +103,7 @@ export default function VisitsReport() {
                 { header: 'Date', key: 'date', width: 15 },
                 { header: 'Client', key: 'client', width: 25 },
                 { header: 'Lot', key: 'flock', width: 20 },
-                { header: 'Spéculation', key: 'spec', width: 20 },
+                { header: t('reports.col_speculation'), key: 'spec', width: 20 },
                 { header: 'Technicien', key: 'tech', width: 20 },
             ];
 
