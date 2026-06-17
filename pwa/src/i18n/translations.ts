@@ -474,6 +474,25 @@ export const translations = {
         'prospections.convert_error': 'Erreur lors de la conversion.',
         'prospections.search_prospect': 'Nom du prospect...',
         'prospections.search_client': 'Nom du client...',
+
+        // ─── Visite technicien ───
+        'visit.gps_found': 'Position GPS trouvée !',
+        'visit.gps_auto_detected': 'Détectée automatiquement (fonctionne hors-ligne via GPS).',
+        'visit.start_btn': '🚀 DÉMARRER',
+        'visit.create_btn': 'Créer',
+        'visit.severity_critical': 'Critique',
+        'visit.severity_high': 'Élevée',
+        'visit.status_open': 'Ouvert',
+        'visit.status_resolved': 'Résolu',
+        'visit.synthesis': "Synthèse d'Activité",
+        'visit.synthesis_sheet': 'Synthèse',
+
+        // ─── Rapports ───
+        'reports.sheet_health': 'Santé',
+        'reports.sheet_forecast': 'Prévisions',
+        'reports.col_problems': 'Problèmes Identifiés',
+        'reports.col_speculation': 'Spéculation',
+        'reports.col_activities': 'Activités',
     },
 
     en: {
@@ -945,5 +964,23 @@ export const translations = {
         'prospections.convert_error': 'Conversion error.',
         'prospections.search_prospect': 'Prospect name...',
         'prospections.search_client': 'Client name...',
+
+        // ─── Technician Visit ───
+        'visit.gps_found': 'GPS position found!',
+        'visit.gps_auto_detected': 'Automatically detected (works offline via GPS).',
+        'visit.start_btn': '🚀 START',
+        'visit.create_btn': 'Create',
+        'visit.severity_high': 'High',
+        'visit.status_open': 'Open',
+        'visit.status_resolved': 'Resolved',
+        'visit.synthesis': 'Activity Summary',
+        'visit.synthesis_sheet': 'Summary',
+
+        // ─── Reports ───
+        'reports.sheet_health': 'Health',
+        'reports.sheet_forecast': 'Forecast',
+        'reports.col_problems': 'Identified Problems',
+        'reports.col_speculation': 'Speculation',
+        'reports.col_activities': 'Activities',
     },
 } as const;

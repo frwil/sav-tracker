@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Select from 'react-select';
+import { useTranslation } from '@/i18n/I18nProvider';
 import Link from 'next/link';
 import { useCustomers, CustomerOption } from '@/hooks/useCustomers';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -26,6 +27,7 @@ interface LastVisitInfo {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NewVisitPage() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { addToQueue } = useSync();
     const { options: customerOptions, loading: customersLoading, refetch } = useCustomers(); // Supposant que le hook expose refetch
@@ -67,7 +69,7 @@ export default function NewVisitPage() {
         timeout: 8000,
         onSuccess: (coords) => {
             setNewClientData(prev => ({ ...prev, gps: coords }));
-            toast.success("Position GPS trouvée !");
+            toast.success(t('visit.gps_found'));
         },
         onError: (msg) => toast.error(msg),
     });
@@ -82,7 +84,7 @@ export default function NewVisitPage() {
     const handleCreateClient = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newClientData.name || !newClientData.zone) {
-            toast.error("Le Nom et la Zone sont obligatoires.");
+            toast.error(t('common.fill_required'));
             return;
         }
 
@@ -120,13 +122,13 @@ export default function NewVisitPage() {
             // Si possible, on rafraichit la liste en arrière plan
             if (typeof refetch === 'function') refetch();
 
-            toast.success("Client créé et sélectionné !");
+            toast.success(t('prospection.client_created'));
             setIsClientModalOpen(false);
             setNewClientData({ name: '', phone: '', zone: '', gps: '', erpCode: '' });
 
         } catch (e) {
             console.error(e);
-            toast.error("Impossible de créer le client.");
+            toast.error(t('prospection.error_api'));
         }
     };
 
@@ -282,7 +284,7 @@ export default function NewVisitPage() {
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData['hydra:description'] || 'Erreur création');
+                throw new Error(errorData['hydra:description'] || t('new_visit.error'));
             }
 
             router.push('/dashboard/visits');
@@ -502,7 +504,7 @@ export default function NewVisitPage() {
                             <p className="text-xs text-gray-400 mt-1">
                                 {gpsError
                                     ? `⚠️ ${gpsError} — Cliquez 🔄 pour réessayer.`
-                                    : 'Détectée automatiquement (fonctionne hors-ligne via GPS).'}
+                                    : t('visit.gps_auto_detected')}
                             </p>
                         </div>
 
@@ -513,7 +515,7 @@ export default function NewVisitPage() {
                                 disabled={isSubmitting} 
                                 className={`px-8 py-3 rounded-lg font-bold text-white shadow-lg transition transform active:scale-95 ${isSubmitting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                             >
-                                {isSubmitting ? 'Enregistrement...' : '🚀 DÉMARRER'}
+                                {isSubmitting ? t('new_visit.creating') : t('visit.start_btn')}
                             </button>
                         </div>
                     </form>

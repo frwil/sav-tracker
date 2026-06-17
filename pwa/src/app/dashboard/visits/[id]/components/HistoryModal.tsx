@@ -1,12 +1,15 @@
 // HistoryModal.tsx
 "use client";
 
+import { useTranslation } from '@/i18n/I18nProvider';
+
 interface HistoryModalProps {
     history: any;
     onClose: () => void;
 }
 
 export const HistoryModal = ({ history, onClose }: HistoryModalProps) => {
+    const { t } = useTranslation();
     if (!history) return null;
 
     const getSeverityColor = (severity: string) => {
@@ -25,9 +28,9 @@ export const HistoryModal = ({ history, onClose }: HistoryModalProps) => {
     const getSeverityLabel = (severity: string) => {
         switch (severity) {
             case 'critical':
-                return 'Critique';
+                return t('visit.severity_critical');
             case 'high':
-                return 'Élevée';
+                return t('visit.severity_high');
             case 'medium':
                 return 'Moyenne';
             default:
@@ -159,7 +162,7 @@ export const HistoryModal = ({ history, onClose }: HistoryModalProps) => {
                                         </div>
                                         <div className="flex justify-between text-xs text-gray-500 ml-5">
                                             <span>Sévérité: {getSeverityLabel(problem.severity)}</span>
-                                            <span>Statut: {problem.status === 'open' ? 'Ouvert' : 'Résolu'}</span>
+                                            <span>Statut: {problem.status === 'open' ? t('visit.status_open') : t('visit.status_resolved')}</span>
                                         </div>
                                     </li>
                                 ))}

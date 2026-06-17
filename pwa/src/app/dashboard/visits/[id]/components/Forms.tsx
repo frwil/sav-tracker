@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import Select from 'react-select';
 import { useSync } from '@/providers/SyncProvider';
+import { useTranslation } from '@/i18n/I18nProvider';
 import { useCustomers } from '@/hooks/useCustomers';
 import { API_URL } from '../shared';
 import toast from "react-hot-toast";
 
 // --- FORMULAIRE BÂTIMENT ---
 export const NewBuildingForm = ({ customerIri, existingBuildings, onSuccess, onCancel }: any) => {
+    const { t } = useTranslation();
     const { addToQueue } = useSync();
     // On garde le hook pour d'autres usages potentiels, mais on ne s'en sert plus pour bloquer le formulaire
     const { options: customerOptions } = useCustomers(); 
@@ -151,7 +153,7 @@ export const NewBuildingForm = ({ customerIri, existingBuildings, onSuccess, onC
             <div className="flex gap-2 mt-4 justify-end border-t pt-3">
                 <button type="button" onClick={onCancel} className="px-3 py-2 text-gray-500 text-sm font-bold hover:bg-gray-100 rounded">Annuler</button>
                 <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded hover:bg-blue-700 transition">
-                    {loading ? '...' : 'Créer'}
+                    {loading ? '...' : t('visit.create_btn')}
                 </button>
             </div>
         </form>
@@ -169,6 +171,7 @@ export const NewFlockForm = ({
 }: any) => {
     const { addToQueue } = useSync();
     const [loading, setLoading] = useState(false);
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         name: '',
         subjectCount: '',
@@ -319,7 +322,7 @@ export const NewFlockForm = ({
             <div className="flex gap-2 mt-4 justify-end border-t pt-3">
                 <button type="button" onClick={onCancel} className="px-3 py-2 text-gray-500 text-sm font-bold hover:bg-gray-100 rounded">Annuler</button>
                 <button type="submit" disabled={loading} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded hover:bg-indigo-700 transition">
-                    {loading ? '...' : 'Créer'}
+                    {loading ? '...' : t('visit.create_btn')}
                 </button>
             </div>
         </form>
