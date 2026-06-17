@@ -223,8 +223,7 @@ export default function LoginPage() {
             router.push('/dashboard');
         } else {
             setError(
-                "Mode hors ligne - Délai de grâce dépassé. " +
-                "Veuillez vous connecter en ligne pour renouveler votre accès."
+                t('login.offline_grace_expired')
             );
         }
     };
@@ -253,14 +252,14 @@ export default function LoginPage() {
             const token = data.token;
 
             if (!token) {
-                throw new Error('Token manquant dans la réponse');
+                throw new Error(t('login.token_missing'));
             }
 
             // Succès - stockage
             localStorage.setItem(TOKEN_KEY, token);
             cacheUserData(token);
             
-            toast.success("Connexion réussie !");
+            toast.success(t('login.success'));
             router.push('/dashboard');
 
         } catch (err: any) {
@@ -310,8 +309,8 @@ export default function LoginPage() {
                     </h2>
                     <p className="text-gray-600 mb-4">
                     {authStatus === 'offline-valid' 
-                        ? "Mode hors ligne - Accès autorisé" 
-                        : "Connexion validée"}
+                        ? t('login.offline_allowed')
+                        : t('login.validated')}
                 </p>
                 <p className="text-gray-600">
                     {isOffline 
@@ -339,8 +338,8 @@ export default function LoginPage() {
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
                         {isOffline 
-                            ? "Mode hors ligne - Connexion limitée" 
-                            : "Connectez-vous pour gérer vos visites"}
+                            ? t('login.offline_limited')
+                            : t('login.connect_prompt')}
                     </p>
                 </div>
 
@@ -409,7 +408,7 @@ export default function LoginPage() {
                             {isLoading 
                                 ? 'Connexion...' 
                                 : isOffline 
-                                    ? 'Tenter accès offline' 
+                                    ? t('login.emergency_access')
                                     : 'Se connecter'}
                         </button>
 
@@ -418,7 +417,7 @@ export default function LoginPage() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    toast.success("Accès offline d'urgence");
+                                    toast.success(t('login.emergency_success'));
                                     router.push('/dashboard');
                                 }}
                                 className="w-full text-xs text-gray-500 hover:text-gray-700 underline"
