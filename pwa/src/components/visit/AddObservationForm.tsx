@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/i18n/I18nProvider';
 import { useSync } from '@/providers/SyncProvider';
 import { fetchApiClient } from '@/services/api';
 
@@ -13,6 +14,7 @@ interface AddObservationFormProps {
 
 export default function AddObservationForm({ visitId, onSuccess }: AddObservationFormProps) {
     const { addToQueue } = useSync();
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
 
     // États du formulaire
@@ -51,7 +53,7 @@ export default function AddObservationForm({ visitId, onSuccess }: AddObservatio
             });
             
             // Feedback immédiat pour l'utilisateur
-            alert("Connexion absente : Observation sauvegardée localement !");
+            alert(t('observation.offline_saved'));
             resetForm();
             return;
         }
@@ -106,7 +108,7 @@ export default function AddObservationForm({ visitId, onSuccess }: AddObservatio
                         rows={3}
                         value={problems}
                         onChange={e => setProblems(e.target.value)}
-                        placeholder="Ex: Taux de mortalité anormal, respiration difficile..."
+                        placeholder={t('observation.concerns_placeholder')}
                     />
                 </div>
 

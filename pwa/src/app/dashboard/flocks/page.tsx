@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Select from 'react-select'; 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/i18n/I18nProvider';
 import { useCustomers, CustomerOption } from '@/hooks/useCustomers';
 import { useSync } from '@/providers/SyncProvider';
 import toast from "react-hot-toast";
@@ -46,7 +47,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function fetchWithAuth(url: string) {
     const token = localStorage.getItem('sav_token');
-    if (!token) throw new Error("Non authentifié");
+    if (!token) throw new Error(t('flock.not_authenticated'));
     
     const res = await fetch(`${API_URL}${url}`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
@@ -62,6 +63,7 @@ async function fetchWithAuth(url: string) {
 export default function FlocksPage() {
     const queryClient = useQueryClient();
     const { addToQueue, queue } = useSync();
+    const { t } = useTranslation();
     const { options: customerOptions, loading: customersLoading } = useCustomers();
     
     const [selectedCustomerOption, setSelectedCustomerOption] = useState<CustomerOption | null>(null);
@@ -160,7 +162,7 @@ export default function FlocksPage() {
                 subjectCount: item.body.subjectCount,
                 closed: false,
                 activated: true,
-                speculation: { name: specName || "Spéculation..." } as Speculation,
+                speculation: { name: specName || t('common.speculation_placeholder') } as Speculation,
                 standard: stdName ? { name: stdName } as Standard : undefined,
                 building: buildName ? { name: buildName } as Building : undefined,
                 observations: [],
@@ -330,7 +332,7 @@ export default function FlocksPage() {
             });
             return;
         }
-        if (!confirm("Êtes-vous sûr de vouloir effectuer cette action ?")) return;
+        if (!confirm(t('common.delete_confirm'))) return;
 
         let url = `/flocks/${flock.id}`;
         let method = 'DELETE';
@@ -545,7 +547,7 @@ export default function FlocksPage() {
                                         required
                                     >
                                         <option value="">
-                                            {!selectedSpeculation ? 'Sélectionnez d\'abord une spéculation' : '-- Aucun --'}
+                                            {!selectedSpeculation ? t('common.select_speculation_first') : t('common.none')}
                                         </option>
                                         {Array.isArray(filteredStandards) && filteredStandards.map(s => (
                                             <option key={s['@id']} value={s['@id']}>{s.name}</option>
@@ -564,7 +566,7 @@ export default function FlocksPage() {
                                         onChange={e => setSelectedBuilding(e.target.value)}
                                         required
                                     >
-                                        <option value="">-- Aucun --</option>
+                                        <option value="">{t('common.none')}</option>
                                         {Array.isArray(buildings) && buildings.map(b => (
                                             <option key={b['@id']} value={b['@id']}>{b.name}</option>
                                         ))}

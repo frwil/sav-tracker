@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSync } from '@/providers/SyncProvider';
+import { useTranslation } from '@/i18n/I18nProvider';
 import toast from "react-hot-toast";
 import Link from 'next/link';
 
@@ -93,6 +94,7 @@ export default function CustomersPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { addToQueue, queue, processQueue } = useSync();
+    const { t } = useTranslation();
     
     // --- ÉTATS ---
     const [page, setPage] = useState(1);
@@ -225,9 +227,9 @@ export default function CustomersPage() {
                     setPagination(cached.pagination);
                     setCacheAge(Date.now() - cached.timestamp);
                     setIsOfflineMode(true);
-                    toast("Mode hors ligne 📡 (données en cache)", { id: 'offline-toast' });
+                    toast(t('common.network_error_cache'), { id: 'offline-toast' });
                 } else {
-                    toast.error("Impossible de charger les données");
+                    toast.error(t('common.error_loading'));
                     setCustomers([]);
                 }
             }
@@ -236,7 +238,7 @@ export default function CustomersPage() {
             setIsOfflineMode(true);
             if (!cached) {
                 setCustomers([]);
-                toast.error("Aucune donnée disponible hors ligne");
+                toast.error(t('common.no_data_offline'));
             }
         }
 
@@ -277,7 +279,7 @@ export default function CustomersPage() {
     useEffect(() => {
         const handleOnline = async () => {
             setIsOfflineMode(false);
-            toast.success("Connexion rétablie 🌐", { id: 'online-back' });
+            toast.success(t('common.online_restored'), { id: 'online-back' });
 
             // Sync si file d'attente
             if (queue.length > 0 && processQueue) {
@@ -285,7 +287,7 @@ export default function CustomersPage() {
                 toast.loading("Synchronisation...", { id: 'syncing' });
                 try {
                     await processQueue();
-                    toast.success("Synchronisation terminée ✅", { id: 'syncing' });
+                    toast.success(t('common.sync_complete'), { id: 'syncing' });
                     clearCustomersCache(); // Invalider cache après sync
                     fetchCustomers(page, searchTerm, true); // Refresh
                 } catch {
@@ -498,7 +500,7 @@ export default function CustomersPage() {
             clearCustomersCache();
             fetchCustomers(page, searchTerm, true);
             
-            toast.success(editingCustomer ? "Client modifié" : "Client créé");
+            toast.success(editingCustomer ? t('common.updated') : t('common.created'));
             if (prospectionSourceId) router.replace('/dashboard/customers');
             handleClose();
 
@@ -626,7 +628,7 @@ export default function CustomersPage() {
                     <span className="text-xl">🔍</span>
                     <input 
                         type="text" 
-                        placeholder={isOfflineMode ? "Recherche limitée hors ligne..." : "Rechercher par nom..."}
+                        placeholder={isOfflineMode ? t('common.search_offline') : t('common.search')}
                         className="w-full outline-none text-gray-700"
                         value={searchTerm}
                         onChange={(e) => handleSearch(e.target.value)}

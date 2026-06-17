@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Select from 'react-select'; // 👇 Nouveau composant
+import Select from 'react-select';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface Customer {
     '@id': string;
@@ -19,6 +20,7 @@ interface Option {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function CustomerSelector({ onSelect }: { onSelect: (customer: Customer | null) => void }) {
+    const { t } = useTranslation();
     const [options, setOptions] = useState<Option[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -76,7 +78,7 @@ export default function CustomerSelector({ onSelect }: { onSelect: (customer: Cu
                 onChange={handleChange}
                 isLoading={isLoading}
                 placeholder="Rechercher un client..."
-                noOptionsMessage={() => "Aucun client trouvé"}
+                noOptionsMessage={() => t('common.no_results')}
                 isClearable
                 classNames={{
                     control: (state) => 

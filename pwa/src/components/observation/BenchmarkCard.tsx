@@ -1,8 +1,10 @@
 // pwa/src/components/observation/BenchmarkCard.tsx
 
 import React from 'react';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 export const BenchmarkCard = ({ benchmark }: { benchmark: any }) => {
+    const { t } = useTranslation();
     if (benchmark.weightStatus === 'unknown' || !benchmark.targetWeight) return null;
 
     const isGood = benchmark.weightStatus === 'good';
@@ -37,7 +39,7 @@ export const BenchmarkCard = ({ benchmark }: { benchmark: any }) => {
             {/* Petit conseil automatique */}
             {!isGood && (
                 <p className="mt-2 text-xs border-t border-current pt-1 opacity-90">
-                    {isWarn ? "Léger retard de croissance. Vérifier l'accès à l'aliment." : "Retard critique ! Vérifier sanitaire et qualité aliment."}
+                    {isWarn ? t('observation.growth_warning') : t('observation.growth_critical')}
                 </p>
             )}
         </div>

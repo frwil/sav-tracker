@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
+import { useTranslation } from "@/i18n/I18nProvider";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useSync } from "@/providers/SyncProvider";
 import { compressImage } from "@/utils/imageCompressor";
@@ -21,6 +22,7 @@ interface Customer {
 }
 
 export default function ProspectionForm() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { addToQueue } = useSync();
     
@@ -85,7 +87,7 @@ export default function ProspectionForm() {
     // 2. CRÉATION CLIENT / PROSPECT (MODAL)
     const handleCreateClient = async () => {
         if (!newClientData.name || !newClientData.phone || !newClientData.zone) {
-            toast.error("Veuillez remplir Nom, Téléphone et Zone.");
+            toast.error(t('common.fill_required'));
             return;
         }
 
@@ -119,7 +121,7 @@ export default function ProspectionForm() {
                 })
             });
 
-            if (!res.ok) throw new Error("Erreur création fiche");
+            if (!res.ok) throw new Error(t('prospection.error_create'));
             
             const createdClient = await res.json();
             
@@ -139,10 +141,10 @@ export default function ProspectionForm() {
             setSelectedCustomer({ value: newObj['@id'], label: `${newObj.name} (${newObj.phoneNumber})`, customer: newObj });
             setIsClientModalOpen(false);
             setNewClientData({ name: '', phone: '', zone: '', gps: '' });
-            toast.success("Fiche créée et sélectionnée !");
+            toast.success(t('prospection.client_created'));
 
         } catch (e) {
-            toast.error("Impossible de créer la fiche (Erreur API)");
+            toast.error(t('prospection.error_api'));
         }
     };
 
@@ -157,7 +159,7 @@ export default function ProspectionForm() {
     const addActivity = () => {
         setActivities([...activities, tempAct]);
         setTempAct({ spec: "Poulet de Chair", bat: 1, eff: 1000 });
-        toast.success("Activité ajoutée");
+        toast.success(t('prospection.activity_added'));
     };
     const removeActivity = (idx: number) => setActivities(activities.filter((_, i) => i !== idx));
 
@@ -249,7 +251,7 @@ export default function ProspectionForm() {
                 throw new Error(err['hydra:description'] || err.message || `Erreur ${res.status}`);
             }
 
-            toast.success(mode === 'CONSULTATION' ? "Consultation enregistrée !" : "Prospection créée !");
+            toast.success(mode === 'CONSULTATION' ? t('prospection.consultation_created') : t('prospection.created'));
             router.push("/dashboard");
 
         } catch (e: any) {
@@ -277,7 +279,7 @@ export default function ProspectionForm() {
                     </h3>
                     <div className="space-y-3 flex-1 overflow-y-auto">
                         <input className="w-full border p-3 rounded" placeholder="Nom complet *" value={newClientData.name} onChange={e => setNewClientData({...newClientData, name: e.target.value})} />
-                        <input className="w-full border p-3 rounded" placeholder="Téléphone *" type="tel" value={newClientData.phone} onChange={e => setNewClientData({...newClientData, phone: e.target.value})} />
+                        <input className="w-full border p-3 rounded" placeholder={t('prospection.phone')} type="tel" value={newClientData.phone} onChange={e => setNewClientData({...newClientData, phone: e.target.value})} />
                         <input className="w-full border p-3 rounded" placeholder="Zone / Quartier *" value={newClientData.zone} onChange={e => setNewClientData({...newClientData, zone: e.target.value})} />
                         <div className="flex gap-2">
                             <input className="flex-1 border p-3 rounded bg-gray-50" placeholder="GPS" readOnly value={newClientData.gps} />
@@ -320,7 +322,7 @@ export default function ProspectionForm() {
                                 options={customers.map(c => ({ value: c['@id'], label: `${c.name} (${c.phoneNumber})`, customer: c }))}
                                 value={selectedCustomer}
                                 onChange={setSelectedCustomer}
-                                placeholder="Rechercher nom ou numéro..."
+                                placeholder={t('prospection.search_placeholder')}
                                 className={`text-sm ${mode === 'PROSPECTION' ? 'hidden' : 'block'}`} // En prospection, on cache le select pour forcer la création d'un prospect
                                 isClearable
                             />

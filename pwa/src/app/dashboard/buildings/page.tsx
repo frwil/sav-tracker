@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Select from 'react-select';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/i18n/I18nProvider';
 import { useCustomers, CustomerOption } from '@/hooks/useCustomers';
 import { useSync } from '@/providers/SyncProvider';
 import toast from "react-hot-toast";
@@ -28,7 +29,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 // Fonction de fetch (Lecture seule)
 async function fetchBuildings(customerId: string) {
     const token = localStorage.getItem('sav_token');
-    if (!token) throw new Error("Non authentifié");
+    if (!token) throw new Error(t('building.not_authenticated'));
 
     const res = await fetch(`${API_URL}/buildings?customer=${customerId}`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
@@ -41,7 +42,8 @@ async function fetchBuildings(customerId: string) {
 
 export default function BuildingsPage() {
     const queryClient = useQueryClient();
-    const { addToQueue, queue } = useSync(); // ✅ Récupération Queue
+    const { addToQueue, queue } = useSync();
+    const { t } = useTranslation();
     const { options: customerOptions, loading: customersLoading } = useCustomers();
 
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
@@ -138,7 +140,7 @@ export default function BuildingsPage() {
 
     const handleEdit = (building: Building) => {
         if (building.__isPending) {
-            toast("Veuillez attendre la synchronisation avant de modifier ce bâtiment.", {
+            toast(t('sync.wait_sync'), {
                 icon: "⚠️",
                 style: {
                     borderRadius: "10px",
@@ -278,7 +280,7 @@ export default function BuildingsPage() {
     };
 
     const handleDelete = async (id: number | string) => {
-        if (!confirm("Êtes-vous sûr de vouloir supprimer ce bâtiment ?")) return;
+        if (!confirm(t('common.delete_confirm'))) return;
 
         const url = `/buildings/${id}`;
         const method = 'DELETE';
@@ -334,7 +336,7 @@ export default function BuildingsPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative">
                         <button onClick={handleClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-                        <h2 className="text-xl font-bold mb-4">{editingBuilding ? 'Modifier le bâtiment' : 'Nouveau Bâtiment'}</h2>
+                        <h2 className="text-xl font-bold mb-4">{editingBuilding ? t('common.edit_building') : t('common.new_building')}</h2>
                         
                         <form onSubmit={handleSubmit} className="space-y-4">
                             
@@ -358,7 +360,7 @@ export default function BuildingsPage() {
                                     type="text" 
                                     required
                                     className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="Ex: Bâtiment A, Serre 1..."
+                                    placeholder={t('building.name_placeholder')}
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
@@ -448,7 +450,7 @@ export default function BuildingsPage() {
                                     </h3>
                                     <div className="text-sm text-gray-600 mt-1 space-y-0.5">
                                         <p>📏 Surface : <strong>{building.surface} m²</strong></p>
-                                        <p>🐔 Capacité : <strong>{building.maxCapacity || 'Non définie'}</strong></p>
+                                        <p>🐔 Capacité : <strong>{building.maxCapacity || t('common.not_defined')}</strong></p>
                                         <p className="text-xs text-gray-400 mt-1">{building.flocks ? `${building.flocks.length} bandes associées` : 'Aucune bande'}</p>
                                     </div>
                                 </div>

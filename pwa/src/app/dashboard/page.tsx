@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Select from "react-select";
 import { useSync } from "@/providers/SyncProvider";
+import { useTranslation } from "@/i18n/I18nProvider";
 import toast from "react-hot-toast";
 
 // --- TYPES ---
@@ -222,6 +223,7 @@ export default function DashboardHome() {
     const router = useRouter();
     const printRef = useRef<HTMLDivElement>(null);
     const { queue, processQueue } = useSync();
+    const { t } = useTranslation();
     const preloadRef = useRef<Set<string>>(new Set());
 
     // États réseau
@@ -323,14 +325,14 @@ export default function DashboardHome() {
         // Listeners online/offline
         const handleOnline = async () => {
             setIsOfflineMode(false);
-            toast.success("Connexion rétablie 🌐", { id: 'online-back' });
+            toast.success(t('common.online_restored'), { id: 'online-back' });
 
             if (queue.length > 0 && processQueue) {
                 setIsSyncing(true);
                 toast.loading("Synchronisation...", { id: 'syncing' });
                 try {
                     await processQueue();
-                    toast.success("Synchronisation terminée ✅", { id: 'syncing' });
+                    toast.success(t('common.sync_complete'), { id: 'syncing' });
                     clearStatsCache();
                     // Refresh stats après sync
                     const token = localStorage.getItem("sav_token");
