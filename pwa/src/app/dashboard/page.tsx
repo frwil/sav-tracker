@@ -193,7 +193,7 @@ const StatCard = ({
                         </h4>
                         {pending > 0 && (
                             <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-full font-bold border border-yellow-200 animate-pulse print:hidden"
-                                title="Données en attente de synchronisation">
+                                title={t('tech.pending_data')}>
                                 +{pending} ⏳
                             </span>
                         )}
@@ -487,7 +487,7 @@ export default function DashboardHome() {
 
             // Vérifier erreurs
             if (!visitsRes.ok || !flocksRes.ok || !portfolioRes.ok || !lateRes.ok || !healthRes.ok) {
-                throw new Error("Une ou plusieurs requêtes ont échoué");
+                throw new Error(t('tech.request_failed'));
             }
 
             const [visitsData, flocksData, portfolioData, lateData, healthData] = await Promise.all([
@@ -752,23 +752,23 @@ export default function DashboardHome() {
                 <StatCard
                     label="Cheptel Actif"
                     value={data.activeFlocks.toString()}
-                    subValue="Lots en cours"
+                    subValue={t('tech.active_flocks_sub')}
                     loading={data.loading}
                     icon="🐣"
                     color="indigo"
                     pending={data.pendingActive}
-                    tooltip="Cheptel actif : nombre de bandes (lots d'animaux) actuellement en cours d'élevage chez les clients visités. Permet d'estimer le potentiel aliment."
+                    tooltip={t('tech.active_flocks_tip')}
                 />
                 <StatCard
                     label="Alertes Santé"
                     value={data.healthAlerts.toString()}
-                    subValue="Observations avec problèmes"
+                    subValue={t('tech.health_alerts_sub')}
                     loading={data.loading}
                     alert={data.healthAlerts > 0}
                     icon="❤️‍🩹"
                     color={data.healthAlerts > 0 ? "red" : "green"}
                     pending={data.pendingHealthAlerts}
-                    tooltip="Alertes santé : nombre d'observations ayant détecté un problème (mortalité, maladie, baisse de poids). Un chiffre élevé nécessite une attention immédiate."
+                    tooltip={t('tech.health_alerts_tip')}
                 />
             </div>
 
@@ -780,7 +780,7 @@ export default function DashboardHome() {
                     icon="📝"
                     color="gray"
                     pending={data.pendingVisits}
-                    tooltip="Visites totales : nombre de visites réalisées (clôturées) sur la période. Inclut les visites planifiées et spontanées."
+                    tooltip={t('tech.total_visits_tip')}
                 />
                 <StatCard
                     label="Retards"
@@ -789,7 +789,7 @@ export default function DashboardHome() {
                     alert={data.lateReports > 0}
                     icon="⏰"
                     color={data.lateReports > 0 ? "orange" : "green"}
-                    tooltip="Retards de rapport : visites non clôturées dans les 48h suivant la date de visite. Un retard rend les données inexploitables pour le pilotage."
+                    tooltip={t('tech.late_reports_tip')}
                 />
                 <div className="col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-center print:bg-white print:border-gray-300">
                     <p className="text-blue-800 text-xs font-bold uppercase mb-1 print:text-black">
@@ -983,7 +983,7 @@ export default function DashboardHome() {
                                                     setTimeout(() => handleSearch(token, s, e.toISOString(), true), 0);
                                                 }
                                             }}
-                                            placeholder={isOfflineMode && allTechnicians.length === 0 ? "Offline - données limitées" : "Choisir..."}
+                                            placeholder={isOfflineMode && allTechnicians.length === 0 ? t('tech.offline_limited_data') : t('tech.filter_placeholder')}
                                             className="text-sm"
                                             isDisabled={isOfflineMode && allTechnicians.length === 0}
                                             styles={{
