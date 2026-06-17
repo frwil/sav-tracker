@@ -970,6 +970,7 @@ export const translations = {
         'visit.gps_auto_detected': 'Automatically detected (works offline via GPS).',
         'visit.start_btn': '🚀 START',
         'visit.create_btn': 'Create',
+        'visit.severity_critical': 'Critical',
         'visit.severity_high': 'High',
         'visit.status_open': 'Open',
         'visit.status_resolved': 'Resolved',
