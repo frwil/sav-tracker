@@ -74,7 +74,7 @@ export default function AddObservationForm({ visitId, onSuccess }: AddObservatio
             console.error("Erreur envoi observation", error);
             
             // Filet de sécurité : Si l'envoi échoue (ex: micro-coupure), on sauvegarde en local
-            const saveLocal = confirm("L'envoi a échoué. Sauvegarder en mode hors ligne ?");
+            const saveLocal = confirm(t('observation.save_offline_confirm'));
             if (saveLocal) {
                 addToQueue({ url, method, body: payload });
                 resetForm();

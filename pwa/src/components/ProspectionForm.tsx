@@ -44,7 +44,7 @@ export default function ProspectionForm() {
         timeout: 8000,
         onSuccess: (coords) => {
             setNewClientData(prev => ({ ...prev, gps: coords }));
-            toast.success("GPS trouvé !");
+            toast.success(t('visit.gps_found'));
         },
         onError: (msg) => toast.error(msg),
     });

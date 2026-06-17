@@ -182,7 +182,7 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
         if (currentQueue.length === 0 || isSyncingRef.current || !navigator.onLine) return;
 
         if (networkQuality === 'slow') {
-            toast("⚠️ Connexion instable détectée. Synchronisation prudente...", { duration: 3000 });
+            toast(t('sync.unstable_detected'), { duration: 3000 });
         }
 
         setIsSyncing(true);
@@ -241,14 +241,14 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
                         toRemove.push(item.id);
                     } else {
                         const delay = computeNextRetryDelay(newRetryCount);
-                        toast(`🔁 Erreur serveur sur ${item.url}. Nouvel essai dans ${Math.round(delay / 1000)}s`, { duration: 4000 });
+                        toast(t('sync.server_error_retry', { url: item.url, delay: Math.round(delay / 1000) }), { duration: 4000 });
                         toUpdate.push({ id: item.id, retryCount: newRetryCount, nextRetryAt: Date.now() + delay });
                     }
                 } else {
                     // Erreur client 4xx → échec permanent, on abandonne
                     const errorJson = await res.json().catch(() => ({}));
                     const errorMsg = errorJson["hydra:description"] || errorJson.detail || `Erreur ${res.status}`;
-                    toast.error(`❌ Échec définitif sur ${item.url} (${res.status})`);
+                    toast.error(t('sync.permanent_failure', { url: item.url, status: res.status }));
                     console.error(`❌ Erreur API (${res.status}) sur ${item.url} - Abandon.`);
                     logSyncError(item, `Status ${res.status}: ${errorMsg}`, token).catch(console.error);
                     toRemove.push(item.id);
@@ -257,7 +257,7 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
                 // Erreur réseau → retry avec backoff
                 const newRetryCount = item.retryCount + 1;
                 if (newRetryCount > item.maxRetries) {
-                    toast.error(`❌ Abandon de ${item.url} après ${item.maxRetries} erreurs réseau`);
+                    toast.error(t('sync.network_abandon', { url: item.url, retries: item.maxRetries }));
                     logSyncError(item, 'Max network retries atteint', token).catch(console.error);
                     toRemove.push(item.id);
                 } else {
@@ -299,13 +299,13 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
     // ── Gestion événements réseau ────────────────────────────────────────────
     useEffect(() => {
         const handleOnline = () => {
-            toast.success("🟢 Connexion rétablie !");
+            toast.success(t('sync.online_restored'));
             processQueue();
             refreshAllData();
         };
 
         const handleOffline = () => {
-            toast("📴 Mode hors ligne activé");
+            toast(t('sync.offline_activated'));
         };
 
         window.addEventListener("online", handleOnline);
@@ -324,7 +324,7 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
     // ── Alerte connexion instable ────────────────────────────────────────────
     useEffect(() => {
         if (networkQuality === 'slow' && isOnline) {
-            toast("⚠️ Connexion instable détectée. Les données peuvent être partielles.", {
+            toast(t('sync.unstable_partial'), {
                 icon: "📶",
                 duration: 5000,
                 id: "network-slow",
@@ -340,7 +340,7 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
         const resourceType = inferResourceType(taskData.url);
 
         if (queueRef.current.some((t) => t.idempotencyKey === idempotencyKey)) {
-            toast("⚠️ Cette action est déjà en attente de synchronisation.", { duration: 3000 });
+            toast(t('sync.already_queued'), { duration: 3000 });
             return;
         }
 
@@ -356,7 +356,7 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
         };
 
         setQueue((prev) => [...prev, newTask]);
-        toast("💾 Action sauvegardée localement.", {
+        toast(t('sync.saved_locally'), {
             icon: "💾",
             style: { background: "#e4c61c", color: "#000" },
             duration: 3000,

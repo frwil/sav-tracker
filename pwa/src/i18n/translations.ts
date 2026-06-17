@@ -378,6 +378,15 @@ export const translations = {
         'sync.updated': 'Données à jour !',
         'sync.update_error': 'Erreur lors de la mise à jour',
         'sync.wait_sync': 'Veuillez attendre la synchronisation avant de modifier.',
+        'sync.online_restored': '🟢 Connexion rétablie !',
+        'sync.offline_activated': '📴 Mode hors ligne activé',
+        'sync.unstable_detected': '⚠️ Connexion instable détectée. Synchronisation prudente...',
+        'sync.unstable_partial': '⚠️ Connexion instable détectée. Les données peuvent être partielles.',
+        'sync.saved_locally': '💾 Action sauvegardée localement.',
+        'sync.already_queued': '⚠️ Cette action est déjà en attente de synchronisation.',
+        'sync.server_error_retry': '🔁 Erreur serveur sur {url}. Nouvel essai dans {delay}s',
+        'sync.permanent_failure': '❌ Échec définitif sur {url} ({status})',
+        'sync.network_abandon': '❌ Abandon de {url} après {retries} erreurs réseau',
 
         // ─── Commun (actions, confirmations) ───
         'common.edit_building': 'Modifier le bâtiment',
@@ -450,6 +459,7 @@ export const translations = {
 
         // ─── Observation ───
         'observation.offline_saved': 'Connexion absente : Observation sauvegardée localement !',
+        'observation.save_offline_confirm': "L'envoi a échoué. Sauvegarder en mode hors ligne ?",
         'observation.concerns_placeholder': 'Ex: Taux de mortalité anormal, respiration difficile...',
         'observation.growth_warning': 'Léger retard de croissance. Vérifier l\'accès à l\'aliment.',
         'observation.growth_critical': 'Retard critique ! Vérifier sanitaire et qualité aliment.',
@@ -872,6 +882,15 @@ export const translations = {
         'sync.updated': 'Data up to date!',
         'sync.update_error': 'Update error',
         'sync.wait_sync': 'Please wait for sync before modifying.',
+        'sync.online_restored': '🟢 Connection restored!',
+        'sync.offline_activated': '📴 Offline mode activated',
+        'sync.unstable_detected': '⚠️ Unstable connection detected. Syncing cautiously...',
+        'sync.unstable_partial': '⚠️ Unstable connection detected. Data may be partial.',
+        'sync.saved_locally': '💾 Action saved locally.',
+        'sync.already_queued': '⚠️ This action is already pending sync.',
+        'sync.server_error_retry': '🔁 Server error on {url}. Retrying in {delay}s',
+        'sync.permanent_failure': '❌ Permanent failure on {url} ({status})',
+        'sync.network_abandon': '❌ Abandoning {url} after {retries} network errors',
 
         // ─── Common ───
         'common.edit_building': 'Edit Building',
@@ -944,6 +963,7 @@ export const translations = {
 
         // ─── Observation ───
         'observation.offline_saved': 'No connection: Observation saved locally!',
+        'observation.save_offline_confirm': 'Send failed. Save in offline mode?',
         'observation.concerns_placeholder': 'E.g.: Abnormal mortality rate, difficulty breathing...',
         'observation.growth_warning': 'Slight growth delay. Check feed access.',
         'observation.growth_critical': 'Critical delay! Check health and feed quality.',
