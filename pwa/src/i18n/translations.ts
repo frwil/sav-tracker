@@ -452,6 +452,27 @@ export const translations = {
         'observation.concerns_placeholder': 'Ex: Taux de mortalité anormal, respiration difficile...',
         'observation.growth_warning': 'Léger retard de croissance. Vérifier l\'accès à l\'aliment.',
         'observation.growth_critical': 'Retard critique ! Vérifier sanitaire et qualité aliment.',
+
+        // ─── Users ───
+        'users.mass_updated': 'Objectifs de masse mis à jour',
+        'users.objective_updated': 'Objectif utilisateur mis à jour',
+        'users.update_error': 'Erreur lors de la mise à jour',
+        'users.delete_confirm': 'Supprimer cet utilisateur ?',
+        'users.deleted': 'Utilisateur supprimé',
+        'users.save_error': "Erreur lors de l'enregistrement",
+
+        // ─── Prospections ───
+        'prospections.report_generating': 'Génération du rapport complet...',
+        'prospections.no_data': 'Aucune donnée à exporter.',
+        'prospections.export_done': 'Export Excel complet téléchargé !',
+        'prospections.export_error': "Erreur lors de l'export.",
+        'prospections.delete_confirm': 'Supprimer cet élément définitivement ?',
+        'prospections.pending_delete': "Impossible de supprimer une donnée en cours d'envoi.",
+        'prospections.delete_error': 'Erreur lors de la suppression',
+        'prospections.converted': 'Félicitations ! Contact converti en Client 🚀',
+        'prospections.convert_error': 'Erreur lors de la conversion.',
+        'prospections.search_prospect': 'Nom du prospect...',
+        'prospections.search_client': 'Nom du client...',
     },
 
     en: {
@@ -901,5 +922,26 @@ export const translations = {
         'observation.concerns_placeholder': 'E.g.: Abnormal mortality rate, difficulty breathing...',
         'observation.growth_warning': 'Slight growth delay. Check feed access.',
         'observation.growth_critical': 'Critical delay! Check health and feed quality.',
+
+        // ─── Users ───
+        'users.mass_updated': 'Mass objectives updated',
+        'users.objective_updated': 'User objective updated',
+        'users.update_error': 'Update error',
+        'users.delete_confirm': 'Delete this user?',
+        'users.deleted': 'User deleted',
+        'users.save_error': 'Save error',
+
+        // ─── Prospections ───
+        'prospections.report_generating': 'Generating full report...',
+        'prospections.no_data': 'No data to export.',
+        'prospections.export_done': 'Excel export complete!',
+        'prospections.export_error': 'Export error.',
+        'prospections.delete_confirm': 'Delete this item permanently?',
+        'prospections.pending_delete': 'Cannot delete pending data.',
+        'prospections.delete_error': 'Delete error',
+        'prospections.converted': 'Congratulations! Contact converted to Client 🚀',
+        'prospections.convert_error': 'Conversion error.',
+        'prospections.search_prospect': 'Prospect name...',
+        'prospections.search_client': 'Client name...',
     },
 } as const;

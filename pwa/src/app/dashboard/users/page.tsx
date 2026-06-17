@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/i18n/I18nProvider';
 import toast from 'react-hot-toast';
 
 interface User {
@@ -30,6 +31,7 @@ const BASE_ROLE_OPTIONS = [
 ];
 
 export default function UsersPage() {
+    const { t } = useTranslation();
     const { user: currentUser } = useAuth();
     const isCurrentUserSuperAdmin = currentUser?.roles.includes('ROLE_SUPER_ADMIN') || false;
 
@@ -66,7 +68,7 @@ export default function UsersPage() {
             if (res.ok) setUsers(await res.json());
         } catch (error) {
             console.error(error);
-            toast.error("Erreur chargement utilisateurs");
+            toast.error(t('error.load_stats'));
         } finally {
             setLoading(false);
         }
@@ -106,15 +108,15 @@ export default function UsersPage() {
             });
 
             if (res.ok) {
-                toast.success(isMassUpdate ? "Objectifs de masse mis à jour" : "Objectif utilisateur mis à jour");
+                toast.success(isMassUpdate ? t('users.mass_updated') : t('users.objective_updated'));
                 setShowObjModal(false);
                 fetchUsers(); // Rafraîchir pour voir les nouvelles valeurs actuelles
             } else {
                 const err = await res.json();
-                toast.error(err.error || "Erreur lors de la mise à jour");
+                toast.error(err.error || t('users.update_error'));
             }
         } catch (e) {
-            toast.error("Erreur technique");
+            toast.error(t('error.generic'));
         }
     };
 
@@ -132,11 +134,11 @@ export default function UsersPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Supprimer cet utilisateur ?')) return;
+        if (!confirm(t('users.delete_confirm'))) return;
         const token = localStorage.getItem('sav_token');
         await fetch(`${API_URL}/users/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
         setUsers(users.filter(u => u.id !== id));
-        toast.success("Utilisateur supprimé");
+        toast.success(t('users.deleted'));
     };
 
     const handleArchive = async (user: User) => {
@@ -171,9 +173,9 @@ export default function UsersPage() {
         if (res.ok) {
             setShowForm(false);
             fetchUsers();
-            toast.success(editingUser ? "Modifié" : "Créé");
+            toast.success(editingUser ? t('common.updated') : t('common.created'));
         } else {
-            toast.error("Erreur lors de l'enregistrement");
+            toast.error(t('users.save_error'));
         }
     };
 
@@ -212,7 +214,7 @@ export default function UsersPage() {
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex gap-4">
                 <input 
                     type="text" 
-                    placeholder="Rechercher un utilisateur..." 
+                    placeholder={t('common.search')} 
                     className="flex-1 border-gray-200 rounded-lg"
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}

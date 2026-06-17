@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/i18n/I18nProvider";
 import { useSync } from "@/providers/SyncProvider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -75,6 +76,7 @@ async function fetchAllForExport(endpoint: string) {
 }
 
 export default function ActivitiesPage() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { queue, addToQueue } = useSync();
     const queryClient = useQueryClient();
@@ -139,7 +141,7 @@ export default function ActivitiesPage() {
     // --- ACTIONS ---
 
     const handleGlobalExport = async () => {
-        const loadingToast = toast.loading("Génération du rapport complet (Prospections + Consultations)...");
+        const loadingToast = toast.loading(t('prospections.report_generating'));
 
         try {
             // 1. Récupération parallèle des deux sources de données
@@ -152,7 +154,7 @@ export default function ActivitiesPage() {
 
             if (prospectionsData.length === 0 && consultationsData.length === 0) {
                 toast.dismiss(loadingToast);
-                toast.error("Aucune donnée à exporter.");
+                toast.error(t('prospections.no_data'));
                 return;
             }
 
@@ -203,18 +205,18 @@ export default function ActivitiesPage() {
             saveAs(new Blob([buffer]), fileName);
 
             toast.dismiss(loadingToast);
-            toast.success("Export Excel complet téléchargé !");
+            toast.success(t('prospections.export_done'));
 
         } catch (error) {
             console.error(error);
             toast.dismiss(loadingToast);
-            toast.error("Erreur lors de l'export.");
+            toast.error(t('prospections.export_error'));
         }
     };
 
     const handleDelete = async (item: CommonItem) => {
-        if (!confirm("Supprimer cet élément définitivement ?")) return;
-        if (item.isPending) return toast.error("Impossible de supprimer une donnée en cours d'envoi.");
+        if (!confirm(t('prospections.delete_confirm'))) return;
+        if (item.isPending) return toast.error(t('prospections.pending_delete'));
 
         const url = `/${activeTab}/${item.id}`;
         
@@ -231,17 +233,17 @@ export default function ActivitiesPage() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (!res.ok) throw new Error("Erreur suppression");
-            toast.success("Supprimé avec succès");
+            toast.success(t('common.deleted'));
             queryClient.invalidateQueries({ queryKey: [activeTab] });
         } catch (e) {
-            toast.error("Erreur lors de la suppression");
+            toast.error(t('prospections.delete_error'));
         }
     };
 
     const handleConvert = async (item: CommonItem) => {
         const contact = getContact(item);
-        if (item.isPending) return toast.error("Attendez la synchronisation.");
-        if (!contact['@id']) return toast.error("Erreur: Contact introuvable.");
+        if (item.isPending) return toast.error(t('sync.wait_sync'));
+        if (!contact['@id']) return toast.error(t('error.not_found'));
 
         const token = localStorage.getItem("sav_token");
         
@@ -279,7 +281,7 @@ export default function ActivitiesPage() {
                 body: JSON.stringify(payloadCustomer)
             });
 
-            if (!resCust.ok) throw new Error("Erreur mise à jour contact");
+            if (!resCust.ok) throw new Error(t('error.save'));
 
             // B. Mise à jour de l'item (Uniquement si c'est une prospection pour le passer en CONVERTED)
             if (activeTab === 'prospections') {
@@ -290,13 +292,13 @@ export default function ActivitiesPage() {
                 });
             }
 
-            toast.success("Félicitations ! Contact converti en Client 🚀");
+            toast.success(t('prospections.converted'));
             queryClient.invalidateQueries({ queryKey: [activeTab] });
             setSelectedItem(null);
 
         } catch (e) {
             console.error(e);
-            toast.error("Erreur lors de la conversion.");
+            toast.error(t('prospections.convert_error'));
         }
     };
 
@@ -340,7 +342,7 @@ export default function ActivitiesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Rechercher</label>
-                        <input type="text" className="w-full border p-2 rounded-lg text-sm" placeholder={activeTab === 'prospections' ? "Nom du prospect..." : "Nom du client..."} value={searchName} onChange={e => { setSearchName(e.target.value); setPage(1); }} />
+                        <input type="text" className="w-full border p-2 rounded-lg text-sm" placeholder={activeTab === 'prospections' ? t('prospections.search_prospect') : t('prospections.search_client')} value={searchName} onChange={e => { setSearchName(e.target.value); setPage(1); }} />
                     </div>
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Du</label>

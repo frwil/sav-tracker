@@ -731,23 +731,23 @@ export default function DashboardHome() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <StatCard
-                    label="Taux Couv."
+                    label={t('tech.coverage_rate')}
                     value={`${data.visitRate}%`}
                     subValue={`${data.uniqueVisited}/${data.portfolioSize} clients`}
                     isPercent={true}
                     loading={data.loading}
                     icon="🎯"
                     color="blue"
-                    tooltip="Taux de couverture : pourcentage des clients du portefeuille ayant reçu au moins une visite sur la période. Un taux élevé (>80%) indique une bonne couverture terrain."
+                    tooltip={t('tech.coverage_tip')}
                 />
                 <StatCard
-                    label="Intensité"
+                    label={t('tech.intensity')}
                     value={data.visitFrequency}
-                    subValue="Visites / Client / Période"
+                    subValue={t('tech.intensity_sub')}
                     loading={data.loading}
                     icon="🔄"
                     color="purple"
-                    tooltip="Intensité de suivi : nombre moyen de visites par client sur la période. Mesure la fréquence à laquelle chaque éleveur est visité."
+                    tooltip={t('tech.intensity_tip')}
                 />
                 <StatCard
                     label="Cheptel Actif"
