@@ -915,7 +915,7 @@ export default function DashboardHome() {
                         {/* BARRE DE FILTRES */}
                         <div className="print:hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
                             <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">
-                                Filtrer les rapports {cacheAge && `• Cache ${Math.round(cacheAge / 60000)}min`}
+                                {t('tech.filter_reports')}{cacheAge && ` • ${t('tech.cache_age').replace('{min}', String(Math.round(cacheAge / 60000)))}`}
                             </h3>
                             <div className="flex flex-col md:flex-row gap-4 items-end">
                                 <div className="w-full md:w-1/4">

@@ -438,6 +438,8 @@ export const translations = {
         'tech.filter_placeholder': 'Choisir...',
         'tech.pending_data': 'Données en attente de synchronisation',
         'tech.request_failed': 'Une ou plusieurs requêtes ont échoué',
+        'tech.filter_reports': 'Filtrer les rapports',
+        'tech.cache_age': 'Cache {min}min',
 
         // ─── Bâtiments ───
         'building.title': 'Bâtiments',
@@ -944,6 +946,8 @@ export const translations = {
         'tech.filter_placeholder': 'Choose...',
         'tech.pending_data': 'Data pending sync',
         'tech.request_failed': 'One or more requests failed',
+        'tech.filter_reports': 'Filter reports',
+        'tech.cache_age': 'Cache {min}min',
 
         // ─── Buildings ───
         'building.title': 'Buildings',
