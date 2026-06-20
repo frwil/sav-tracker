@@ -26,25 +26,25 @@ interface Building {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Fonction de fetch (Lecture seule)
-async function fetchBuildings(customerId: string) {
-    const token = localStorage.getItem('sav_token');
-    if (!token) throw new Error(t('building.not_authenticated'));
-
-    const res = await fetch(`${API_URL}/buildings?customer=${customerId}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
-    });
-
-    if (!res.ok) throw new Error(`Erreur ${res.status}`);
-    const data = await res.json();
-    return data['hydra:member'] || data['member'] || [];
-}
-
 export default function BuildingsPage() {
     const queryClient = useQueryClient();
     const { addToQueue, queue } = useSync();
     const { t } = useTranslation();
     const { options: customerOptions, loading: customersLoading } = useCustomers();
+
+    // Fonction de fetch (Lecture seule)
+    async function fetchBuildings(customerId: string) {
+        const token = localStorage.getItem('sav_token');
+        if (!token) throw new Error(t('building.not_authenticated'));
+
+        const res = await fetch(`${API_URL}/buildings?customer=${customerId}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
+        });
+
+        if (!res.ok) throw new Error(`Erreur ${res.status}`);
+        const data = await res.json();
+        return data['hydra:member'] || data['member'] || [];
+    }
 
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);

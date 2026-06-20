@@ -36,6 +36,7 @@ interface SalesStats {
     activitiesTotal: number;
     activitiesCompleted: number;
     executionRate: number;
+    perfectStoreScore: number;
 }
 
 interface UserOption { value: string; label: string; }

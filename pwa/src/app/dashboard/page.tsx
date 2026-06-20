@@ -153,6 +153,7 @@ const StatCard = ({
     alert,
     pending,
 }: any) => {
+    const { t } = useTranslation();
     const [showTooltip, setShowTooltip] = useState(false);
 
     return (

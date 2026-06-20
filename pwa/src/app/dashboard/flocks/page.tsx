@@ -45,26 +45,26 @@ interface Flock {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-async function fetchWithAuth(url: string) {
-    const token = localStorage.getItem('sav_token');
-    if (!token) throw new Error(t('flock.not_authenticated'));
-    
-    const res = await fetch(`${API_URL}${url}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
-    });
-    
-    if (!res.ok) throw new Error(`Erreur ${res.status}`);
-    const data = await res.json();
-    
-    const collection = data['hydra:member'] || data['member'] || data;
-    return Array.isArray(collection) ? collection : [];
-}
-
 export default function FlocksPage() {
     const queryClient = useQueryClient();
     const { addToQueue, queue } = useSync();
     const { t } = useTranslation();
     const { options: customerOptions, loading: customersLoading } = useCustomers();
+
+    async function fetchWithAuth(url: string) {
+        const token = localStorage.getItem('sav_token');
+        if (!token) throw new Error(t('flock.not_authenticated'));
+
+        const res = await fetch(`${API_URL}${url}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/ld+json' }
+        });
+
+        if (!res.ok) throw new Error(`Erreur ${res.status}`);
+        const data = await res.json();
+
+        const collection = data['hydra:member'] || data['member'] || data;
+        return Array.isArray(collection) ? collection : [];
+    }
     
     const [selectedCustomerOption, setSelectedCustomerOption] = useState<CustomerOption | null>(null);
 

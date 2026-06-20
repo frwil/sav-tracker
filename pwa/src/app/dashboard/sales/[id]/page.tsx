@@ -27,6 +27,7 @@ export default function SalesVisitDetailPage() {
     const router = useRouter();
     const { addToQueue } = useSync();
     const { t } = useTranslation();
+    const addToQueueForm = addToQueue as (task: { url: string; method: string; body: any }) => void;
 
     const [visit, setVisit] = useState<SalesVisit | null>(null);
     const [loading, setLoading] = useState(true);
@@ -335,14 +336,14 @@ export default function SalesVisitDetailPage() {
                     <PriceAuditForm visitId={visit.id} visitIri={visitIri}
                         onSaved={() => { setShowPriceForm(false); fetchVisit(); }}
                         onCancel={() => setShowPriceForm(false)}
-                        disabled={!isOpen} addToQueue={addToQueue} />
+                        disabled={!isOpen} addToQueue={addToQueueForm} />
                 )}
 
                 {editingPrice && (
                     <PriceAuditForm visitId={visit.id} visitIri={visitIri} existing={editingPrice}
                         onSaved={() => { setEditingPrice(null); fetchVisit(); }}
                         onCancel={() => setEditingPrice(null)}
-                        disabled={!isOpen} addToQueue={addToQueue} />
+                        disabled={!isOpen} addToQueue={addToQueueForm} />
                 )}
 
                 {visit.priceAudits.length > 0 && (
@@ -400,14 +401,14 @@ export default function SalesVisitDetailPage() {
                     <StockAuditForm visitId={visit.id} visitIri={visitIri}
                         onSaved={() => { setShowStockForm(false); fetchVisit(); }}
                         onCancel={() => setShowStockForm(false)}
-                        disabled={!isOpen} addToQueue={addToQueue} />
+                        disabled={!isOpen} addToQueue={addToQueueForm} />
                 )}
 
                 {editingStock && (
                     <StockAuditForm visitId={visit.id} visitIri={visitIri} existing={editingStock}
                         onSaved={() => { setEditingStock(null); fetchVisit(); }}
                         onCancel={() => setEditingStock(null)}
-                        disabled={!isOpen} addToQueue={addToQueue} />
+                        disabled={!isOpen} addToQueue={addToQueueForm} />
                 )}
 
                 {visit.stockAudits.length > 0 && (
@@ -481,7 +482,7 @@ export default function SalesVisitDetailPage() {
                             <QualityAuditForm visitId={visit.id} visitIri={visitIri} existing={visit.qualityAudit}
                                 onSaved={() => { setShowQualityForm(false); fetchVisit(); }}
                                 onCancel={() => setShowQualityForm(false)}
-                                disabled={!isOpen} addToQueue={addToQueue} />
+                                disabled={!isOpen} addToQueue={addToQueueForm} />
                         </div>
                     )}
                 </div>
@@ -520,7 +521,7 @@ export default function SalesVisitDetailPage() {
                             <VisibilityAuditForm visitId={visit.id} visitIri={visitIri} existing={visit.visibilityAudit}
                                 onSaved={() => { setShowVisibilityForm(false); fetchVisit(); }}
                                 onCancel={() => setShowVisibilityForm(false)}
-                                disabled={!isOpen} addToQueue={addToQueue} />
+                                disabled={!isOpen} addToQueue={addToQueueForm} />
                         </div>
                     )}
                 </div>
@@ -542,14 +543,14 @@ export default function SalesVisitDetailPage() {
                     <PreOrderForm visitId={visit.id} visitIri={visitIri} customerIri={customerIri}
                         onSaved={() => { setShowOrderForm(false); fetchVisit(); }}
                         onCancel={() => setShowOrderForm(false)}
-                        disabled={!isOpen} addToQueue={addToQueue} />
+                        disabled={!isOpen} addToQueue={addToQueueForm} />
                 )}
 
                 {editingOrder && (
                     <PreOrderForm visitId={visit.id} visitIri={visitIri} customerIri={customerIri} existing={editingOrder}
                         onSaved={() => { setEditingOrder(null); fetchVisit(); }}
                         onCancel={() => setEditingOrder(null)}
-                        disabled={!isOpen} addToQueue={addToQueue} />
+                        disabled={!isOpen} addToQueue={addToQueueForm} />
                 )}
 
                 {visit.preOrders.length > 0 && (
@@ -616,7 +617,7 @@ export default function SalesVisitDetailPage() {
                 <h2 className="text-sm font-bold text-gray-700 mb-3">{t('photo.title')} ({visit.photos.length})</h2>
 
                 <SalesPhotoUpload visitId={visit.id} onPhotoAdded={fetchVisit}
-                    disabled={!isOpen} addToQueue={addToQueue} />
+                    disabled={!isOpen} addToQueue={addToQueueForm} />
 
                 {visit.photos.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">

@@ -198,6 +198,8 @@ export const translations = {
         'stock.unit_kg': 'Kg',
         'stock.unit_tonne': 'Tonne',
         'stock.unit_palette': 'Palette',
+        'stock.comment': 'Commentaire',
+        'stock.comment_ph': 'Observations...',
 
         // ─── Audit Qualité ───
         'quality.title': '✨ Qualité PDV',
@@ -702,6 +704,8 @@ export const translations = {
         'stock.unit_kg': 'Kg',
         'stock.unit_tonne': 'Ton',
         'stock.unit_palette': 'Pallet',
+        'stock.comment': 'Comment',
+        'stock.comment_ph': 'Observations...',
 
         // ─── Quality Audit ───
         'quality.title': '✨ POS Quality',

@@ -207,7 +207,7 @@ export default function CommercialReport() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                                         <YAxis domain={[0, 100]} unit="%" />
-                                        <Tooltip formatter={(v: number) => `${v.toFixed(0)}%`} />
+                                        <Tooltip formatter={(v: number | undefined) => `${(v ?? 0).toFixed(0)}%`} />
                                         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                                             {data.charts.visits.map((_: any, i: number) => (
                                                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -225,7 +225,7 @@ export default function CommercialReport() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                                         <YAxis domain={[0, 100]} unit="%" />
-                                        <Tooltip formatter={(v: number) => `${v.toFixed(0)}%`} />
+                                        <Tooltip formatter={(v: number | undefined) => `${(v ?? 0).toFixed(0)}%`} />
                                         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                                             {data.charts.priceStock.map((entry: any, i: number) => (
                                                 <Cell key={i} fill={entry.fill} />
@@ -243,7 +243,7 @@ export default function CommercialReport() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis domain={[0, 100]} unit="%" type="number" />
                                         <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
-                                        <Tooltip formatter={(v: number) => `${v.toFixed(0)}%`} />
+                                        <Tooltip formatter={(v: number | undefined) => `${(v ?? 0).toFixed(0)}%`} />
                                         <Bar dataKey="score" radius={[0, 4, 4, 0]}>
                                             {data.charts.qualityVis.map((_: any, i: number) => (
                                                 <Cell key={i} fill={COLORS[i + 3]} />
