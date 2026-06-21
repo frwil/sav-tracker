@@ -915,7 +915,8 @@ export default function DashboardHome() {
                 ) : (
                     <div ref={printRef} className="space-y-8 animate-fade-in print:w-full print:bg-white">
                         
-                        {/* BARRE DE FILTRES */}
+                        {/* BARRE DE FILTRES (technicien uniquement) */}
+                        {!isSalesRep && (
                         <div className="print:hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
                             <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">
                                 {t('tech.filter_reports')}{cacheAge && ` • ${t('tech.cache_age').replace('{min}', String(Math.round(cacheAge / 60000)))}`}
@@ -1038,6 +1039,7 @@ export default function DashboardHome() {
                                 </p>
                             )}
                         </div>
+                        )}
 
                         {/* ENTÊTE D'IMPRESSION */}
                         <div className="hidden print:flex flex-row justify-between items-end mb-8 border-b-2 border-black pb-4 pt-4">
@@ -1056,55 +1058,120 @@ export default function DashboardHome() {
                             </div>
                         </div>
 
-                        {/* STATS PRINCIPALES */}
-                        {displayedStats ? (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-none print:p-0">
-                                {renderStatsSection(displayedStats, true)}
-                            </div>
-                        ) : loadingStats ? (
-                            <div className="text-center py-12 text-gray-500 animate-pulse">
-                                <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-                                <p>Chargement des statistiques...</p>
-                            </div>
-                        ) : (
-                            <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-200">
-                                <div className="text-4xl mb-4">📊</div>
-                                <p className="text-gray-500 font-medium">Aucune statistique disponible</p>
-                                {isOfflineMode && (
-                                    <p className="text-sm text-gray-400 mt-2">
-                                        Connectez-vous pour charger les données initiales
-                                    </p>
-                                )}
-                            </div>
+                        {/* STATS PRINCIPALES (masquées pour les commerciaux) */}
+                        {!isSalesRep && (
+                            displayedStats ? (
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 print:shadow-none print:border-none print:p-0">
+                                    {renderStatsSection(displayedStats, true)}
+                                </div>
+                            ) : loadingStats ? (
+                                <div className="text-center py-12 text-gray-500 animate-pulse">
+                                    <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                    <p>Chargement des statistiques...</p>
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-200">
+                                    <div className="text-4xl mb-4">📊</div>
+                                    <p className="text-gray-500 font-medium">Aucune statistique disponible</p>
+                                    {isOfflineMode && (
+                                        <p className="text-sm text-gray-400 mt-2">
+                                            Connectez-vous pour charger les données initiales
+                                        </p>
+                                    )}
+                                </div>
+                            )
                         )}
 
                         {/* STATS COMMERCIALES */}
                         {isSalesRep && salesStats && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-200 print:shadow-none print:border-none print:p-0">
-                                <h3 className="text-sm font-bold text-emerald-700 mb-4 flex items-center gap-2">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-200 print:shadow-none print:border-none print:p-0 space-y-6">
+                                <h3 className="text-sm font-bold text-emerald-700 flex items-center gap-2">
                                     🏪 Performance Commerciale
                                     {loadingSalesStats && <span className="animate-pulse text-xs text-gray-400">...</span>}
                                 </h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <StatCard label="Call Rate" value={`${salesStats.callRate ?? 0}%`}
-                                        subValue={`${salesStats.visitsRealized ?? 0}/${salesStats.visitsPlanned ?? 0} visites`}
-                                        icon="📞" color="blue" isPercent />
-                                    <StatCard label="JP Adherence" value={`${salesStats.jpAdherence ?? 0}%`}
-                                        subValue={`${salesStats.visitsOnTime ?? 0} faites le jour J`}
-                                        icon="📍" color={+(salesStats.jpAdherence ?? 0) < 50 ? 'red' : 'green'} isPercent
-                                        alert={+(salesStats.jpAdherence ?? 0) < 50} />
-                                    <StatCard label="Strike Rate" value={`${salesStats.strikeRate ?? 0}%`}
-                                        subValue={`${salesStats.ordersWon ?? 0}/${salesStats.preOrdersTaken ?? 0} gagnées`}
-                                        icon="🎯" color="emerald" isPercent />
-                                    <StatCard label="Execution" value={`${salesStats.executionRate ?? 0}%`}
-                                        subValue={`${salesStats.activitiesCompleted ?? 0}/${salesStats.activitiesTotal ?? 0} tâches`}
-                                        icon="✅" color={+(salesStats.executionRate ?? 0) < 70 ? 'orange' : 'green'} isPercent />
+
+                                {/* Rangée 1 : Visites */}
+                                <div>
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">📋 Visites</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                        <StatCard label="Call Rate" value={`${salesStats.callRate ?? 0}%`}
+                                            subValue={`${salesStats.visitsRealized ?? 0}/${salesStats.visitsPlanned ?? 0} visites`}
+                                            icon="📞" color="blue" isPercent />
+                                        <StatCard label="JP Adherence" value={`${salesStats.jpAdherence ?? 0}%`}
+                                            subValue={`${salesStats.visitsOnTime ?? 0} faites le jour J`}
+                                            icon="📍" color={+(salesStats.jpAdherence ?? 0) < 50 ? 'red' : 'green'} isPercent
+                                            alert={+(salesStats.jpAdherence ?? 0) < 50} />
+                                        <StatCard label="Visites Planifiées" value={salesStats.visitsPlanned ?? 0}
+                                            icon="📋" color="gray" />
+                                        <StatCard label="Visites Réalisées" value={salesStats.visitsRealized ?? 0}
+                                            icon="✅" color="blue" />
+                                        <StatCard label="Visites Jour J" value={salesStats.visitsOnTime ?? 0}
+                                            icon="🎯" color="indigo" />
+                                    </div>
+                                </div>
+
+                                {/* Rangée 2 : Commandes & CA */}
+                                <div>
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">🛒 Commandes & Chiffre d&apos;Affaires</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                        <StatCard label="Strike Rate" value={`${salesStats.strikeRate ?? 0}%`}
+                                            subValue={`${salesStats.ordersWon ?? 0}/${salesStats.preOrdersTaken ?? 0} gagnées`}
+                                            icon="🎯" color="emerald" isPercent />
+                                        <StatCard label="Précommandes" value={salesStats.preOrdersTaken ?? 0}
+                                            icon="📝" color="indigo" />
+                                        <StatCard label="Commandes Gagnées" value={salesStats.ordersWon ?? 0}
+                                            icon="🏆" color="green" />
+                                        <StatCard label="CA Total" value={`${((salesStats.totalRevenue ?? 0) / 1000000).toFixed(1)} M`}
+                                            subValue={`${(salesStats.totalRevenue ?? 0).toLocaleString()} FCFA`}
+                                            icon="💰" color="blue" />
+                                        <StatCard label="Panier Moyen" value={`${((salesStats.avgOrderValue ?? 0) / 1000).toFixed(0)} K`}
+                                            subValue={`${(salesStats.avgOrderValue ?? 0).toLocaleString()} FCFA`}
+                                            icon="🧾" color="gray" />
+                                    </div>
+                                </div>
+
+                                {/* Rangée 3 : Prix, Stock, Qualité */}
+                                <div>
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">💲 Prix, Stock & Qualité</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                        <StatCard label="Conformité Prix" value={`${salesStats.priceCompliance ?? 0}%`}
+                                            subValue={`${salesStats.priceCompliant ?? 0}/${salesStats.priceChecksDone ?? 0}`}
+                                            icon="💲" color={+(salesStats.priceCompliance ?? 0) < 90 ? 'red' : 'green'} isPercent
+                                            alert={+(salesStats.priceCompliance ?? 0) > 0 && +(salesStats.priceCompliance ?? 0) < 70} />
+                                        <StatCard label="Must-Stock" value={`${salesStats.mustStockRate ?? 0}%`}
+                                            subValue={`${salesStats.mustStockPresent ?? 0}/${salesStats.stockChecksDone ?? 0}`}
+                                            icon="📦" color={+(salesStats.mustStockRate ?? 0) < 85 ? 'red' : 'green'} isPercent
+                                            alert={+(salesStats.mustStockRate ?? 0) > 0 && +(salesStats.mustStockRate ?? 0) < 50} />
+                                        <StatCard label="Taux Rupture" value={`${salesStats.oosRate ?? 0}%`}
+                                            subValue={`${salesStats.outOfStockCount ?? 0} ruptures`}
+                                            icon="🚫" color={+(salesStats.oosRate ?? 0) > 10 ? 'red' : 'green'} isPercent
+                                            alert={+(salesStats.oosRate ?? 0) > 10} />
+                                        <StatCard label="Score Qualité" value={`${(salesStats.avgQualityScore ?? 0).toFixed(1)}/5`}
+                                            icon="🏅" color={+(salesStats.avgQualityScore ?? 0) < 3 ? 'red' : 'green'} />
+                                        <StatCard label="Score Visibilité" value={`${(salesStats.avgVisibilityScore ?? 0).toFixed(1)}/5`}
+                                            icon="👁️" color={+(salesStats.avgVisibilityScore ?? 0) < 3 ? 'red' : 'green'} />
+                                    </div>
+                                </div>
+
+                                {/* Rangée 4 : Exécution, Fraîcheur, Perfect Store */}
+                                <div>
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">⭐ Exécution & Score Global</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                        <StatCard label="Taux Exécution" value={`${salesStats.executionRate ?? 0}%`}
+                                            subValue={`${salesStats.activitiesCompleted ?? 0}/${salesStats.activitiesTotal ?? 0} tâches`}
+                                            icon="📊" color={+(salesStats.executionRate ?? 0) < 80 ? 'orange' : 'green'} isPercent
+                                            alert={+(salesStats.executionRate ?? 0) > 0 && +(salesStats.executionRate ?? 0) < 50} />
+                                        <StatCard label="Fraîcheur" value={`${(salesStats.avgFreshness ?? 0).toFixed(1)}/5`}
+                                            icon="🥬" color={+(salesStats.avgFreshness ?? 0) < 3.5 ? 'yellow' : 'green'} />
+                                        <StatCard label="Perfect Store" value={`${(salesStats.perfectStoreScore ?? 0).toFixed(0)}/100`}
+                                            icon="⭐" color={+(salesStats.perfectStoreScore ?? 0) < 70 ? 'yellow' : 'green'} />
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* STATS PAR TECHNICIEN */}
-                        {technicianStatsList.length > 0 && (
+                        {/* STATS PAR TECHNICIEN (masquées pour les commerciaux) */}
+                        {!isSalesRep && technicianStatsList.length > 0 && (
                             <div className="mt-8">
                                 <h3 className="text-gray-500 font-bold uppercase text-xs mb-4 border-b pb-2 print:text-black print:border-black">
                                     Détail par Technicien

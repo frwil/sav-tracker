@@ -9,6 +9,7 @@ import { toPng } from 'html-to-image';
 import jsPDF from "jspdf";
 import toast from "react-hot-toast";
 import { useAuthContext } from '@/providers/AuthProvider';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -35,6 +36,7 @@ interface TechnicianStats {
 export default function AdherenceReportPage() {
     const router = useRouter();
     const reportRef = useRef<HTMLDivElement>(null);
+    const { t } = useTranslation();
     const { isAdmin, isTech } = useAuthContext();
 
     useEffect(() => {
@@ -134,9 +136,11 @@ export default function AdherenceReportPage() {
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                toast.success("Excel téléchargé");
+                toast.success(t('report.excel_ready'));
+            } else if (response.status === 403) {
+                toast.error(t('report.excel_admin_only'));
             } else {
-                toast.error("Erreur génération Excel");
+                toast.error(t('report.excel_error'));
             }
             toast.dismiss(loadToast);
         } catch (e) {
