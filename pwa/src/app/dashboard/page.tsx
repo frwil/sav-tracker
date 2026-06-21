@@ -761,7 +761,7 @@ export default function DashboardHome() {
                     tooltip={t('tech.active_flocks_tip')}
                 />
                 <StatCard
-                    label="Alertes Santé"
+                    label={t('tech.health_alerts')}
                     value={data.healthAlerts.toString()}
                     subValue={t('tech.health_alerts_sub')}
                     loading={data.loading}
