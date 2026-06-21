@@ -1096,17 +1096,22 @@ export default function DashboardHome() {
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <StatCard label="Call Rate" value={`${salesStats.callRate ?? 0}%`}
                                             subValue={`${salesStats.visitsRealized ?? 0}/${salesStats.visitsPlanned ?? 0} visites`}
-                                            icon="📞" color="blue" isPercent />
+                                            icon="📞" color="blue" isPercent
+                                            tooltip="% de visites planifiées effectivement réalisées sur la période" />
                                         <StatCard label="JP Adherence" value={`${salesStats.jpAdherence ?? 0}%`}
                                             subValue={`${salesStats.visitsOnTime ?? 0} faites le jour J`}
                                             icon="📍" color={+(salesStats.jpAdherence ?? 0) < 50 ? 'red' : 'green'} isPercent
-                                            alert={+(salesStats.jpAdherence ?? 0) < 50} />
+                                            alert={+(salesStats.jpAdherence ?? 0) < 50}
+                                            tooltip="% de visites réalisées le jour exact prévu au planning (Jour J)" />
                                         <StatCard label="Visites Planifiées" value={salesStats.visitsPlanned ?? 0}
-                                            icon="📋" color="gray" />
+                                            icon="📋" color="gray"
+                                            tooltip="Nombre total de visites inscrites à l'agenda sur la période" />
                                         <StatCard label="Visites Réalisées" value={`${salesStats.visitsRealized ?? 0} (${salesStats.callRate ?? 0}%)`}
-                                            icon="✅" color="blue" />
+                                            icon="✅" color="blue"
+                                            tooltip="Nombre de visites effectivement complétées sur le terrain" />
                                         <StatCard label="Visites Jour J" value={`${salesStats.visitsOnTime ?? 0} (${salesStats.jpAdherence ?? 0}%)`}
-                                            icon="🎯" color="indigo" />
+                                            icon="🎯" color="indigo"
+                                            tooltip="Nombre de visites faites exactement le jour prévu au planning" />
                                     </div>
                                 </div>
 
@@ -1116,17 +1121,22 @@ export default function DashboardHome() {
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <StatCard label="Strike Rate" value={`${salesStats.strikeRate ?? 0}%`}
                                             subValue={`${salesStats.ordersWon ?? 0}/${salesStats.preOrdersTaken ?? 0} gagnées`}
-                                            icon="🎯" color="emerald" isPercent />
+                                            icon="🎯" color="emerald" isPercent
+                                            tooltip="% de précommandes converties en commandes livrées (taux de transformation)" />
                                         <StatCard label="Précommandes" value={salesStats.preOrdersTaken ?? 0}
-                                            icon="📝" color="indigo" />
+                                            icon="📝" color="indigo"
+                                            tooltip="Nombre total de précommandes enregistrées lors des visites" />
                                         <StatCard label="Commandes Gagnées" value={salesStats.ordersWon ?? 0}
-                                            icon="🏆" color="green" />
+                                            icon="🏆" color="green"
+                                            tooltip="Nombre de commandes effectivement livrées et facturées" />
                                         <StatCard label="CA Total" value={`${((salesStats.totalRevenue ?? 0) / 1000000).toFixed(1)} M`}
                                             subValue={`${(salesStats.totalRevenue ?? 0).toLocaleString()} FCFA`}
-                                            icon="💰" color="blue" />
+                                            icon="💰" color="blue"
+                                            tooltip="Chiffre d'affaires total généré par les commandes livrées sur la période" />
                                         <StatCard label="Panier Moyen" value={`${((salesStats.avgOrderValue ?? 0) / 1000).toFixed(0)} K`}
                                             subValue={`${(salesStats.avgOrderValue ?? 0).toLocaleString()} FCFA`}
-                                            icon="🧾" color="gray" />
+                                            icon="🧾" color="gray"
+                                            tooltip="Valeur moyenne d'une commande (CA total ÷ nombre de commandes gagnées)" />
                                     </div>
                                 </div>
 
@@ -1137,19 +1147,24 @@ export default function DashboardHome() {
                                         <StatCard label="Conformité Prix" value={`${salesStats.priceCompliance ?? 0}%`}
                                             subValue={`${salesStats.priceCompliant ?? 0}/${salesStats.priceChecksDone ?? 0}`}
                                             icon="💲" color={+(salesStats.priceCompliance ?? 0) < 90 ? 'red' : 'green'} isPercent
-                                            alert={+(salesStats.priceCompliance ?? 0) > 0 && +(salesStats.priceCompliance ?? 0) < 70} />
+                                            alert={+(salesStats.priceCompliance ?? 0) > 0 && +(salesStats.priceCompliance ?? 0) < 70}
+                                            tooltip="% de produits dont le prix en rayon correspond au prix de référence attendu" />
                                         <StatCard label="Must-Stock" value={`${salesStats.mustStockRate ?? 0}%`}
                                             subValue={`${salesStats.mustStockPresent ?? 0}/${salesStats.stockChecksDone ?? 0}`}
                                             icon="📦" color={+(salesStats.mustStockRate ?? 0) < 85 ? 'red' : 'green'} isPercent
-                                            alert={+(salesStats.mustStockRate ?? 0) > 0 && +(salesStats.mustStockRate ?? 0) < 50} />
+                                            alert={+(salesStats.mustStockRate ?? 0) > 0 && +(salesStats.mustStockRate ?? 0) < 50}
+                                            tooltip="% de références obligatoires (must-stock) effectivement présentes en rayon" />
                                         <StatCard label="Taux Rupture" value={`${salesStats.oosRate ?? 0}%`}
                                             subValue={`${salesStats.outOfStockCount ?? 0} ruptures`}
                                             icon="🚫" color={+(salesStats.oosRate ?? 0) > 10 ? 'red' : 'green'} isPercent
-                                            alert={+(salesStats.oosRate ?? 0) > 10} />
+                                            alert={+(salesStats.oosRate ?? 0) > 10}
+                                            tooltip="% de produits en rupture de stock parmi les références contrôlées" />
                                         <StatCard label="Score Qualité" value={`${(salesStats.avgQualityScore ?? 0).toFixed(1)}/5`}
-                                            icon="🏅" color={+(salesStats.avgQualityScore ?? 0) < 3 ? 'red' : 'green'} />
+                                            icon="🏅" color={+(salesStats.avgQualityScore ?? 0) < 3 ? 'red' : 'green'}
+                                            tooltip="Note moyenne de qualité du point de vente (propreté, agencement, conformité)" />
                                         <StatCard label="Score Visibilité" value={`${(salesStats.avgVisibilityScore ?? 0).toFixed(1)}/5`}
-                                            icon="👁️" color={+(salesStats.avgVisibilityScore ?? 0) < 3 ? 'red' : 'green'} />
+                                            icon="👁️" color={+(salesStats.avgVisibilityScore ?? 0) < 3 ? 'red' : 'green'}
+                                            tooltip="Note moyenne de visibilité des produits et de la marque en magasin" />
                                     </div>
                                 </div>
 
@@ -1160,11 +1175,14 @@ export default function DashboardHome() {
                                         <StatCard label="Taux Exécution" value={`${salesStats.executionRate ?? 0}%`}
                                             subValue={`${salesStats.activitiesCompleted ?? 0}/${salesStats.activitiesTotal ?? 0} tâches`}
                                             icon="📊" color={+(salesStats.executionRate ?? 0) < 80 ? 'orange' : 'green'} isPercent
-                                            alert={+(salesStats.executionRate ?? 0) > 0 && +(salesStats.executionRate ?? 0) < 50} />
+                                            alert={+(salesStats.executionRate ?? 0) > 0 && +(salesStats.executionRate ?? 0) < 50}
+                                            tooltip="% d'activités planifiées qui ont été complétées (mise en avant, audits, relevés)" />
                                         <StatCard label="Fraîcheur" value={`${(salesStats.avgFreshness ?? 0).toFixed(1)}/5`}
-                                            icon="🥬" color={+(salesStats.avgFreshness ?? 0) < 3.5 ? 'yellow' : 'green'} />
+                                            icon="🥬" color={+(salesStats.avgFreshness ?? 0) < 3.5 ? 'yellow' : 'green'}
+                                            tooltip="Note moyenne de fraîcheur des produits en rayon (dates de péremption, état)" />
                                         <StatCard label="Perfect Store" value={`${(salesStats.perfectStoreScore ?? 0).toFixed(0)}/100`}
-                                            icon="⭐" color={+(salesStats.perfectStoreScore ?? 0) < 70 ? 'yellow' : 'green'} />
+                                            icon="⭐" color={+(salesStats.perfectStoreScore ?? 0) < 70 ? 'yellow' : 'green'}
+                                            tooltip="Score composite /100 agrégé à partir de tous les indicateurs ci-dessus" />
                                     </div>
                                 </div>
                             </div>
