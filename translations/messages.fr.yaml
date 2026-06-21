@@ -26,8 +26,8 @@ pre_order.cannot_cancel_delivered: "Impossible d'annuler une commande déjà liv
 pre_order.already_cancelled: 'Cette commande est déjà annulée.'
 
 # ─── Flock ───
-flock.cannot_delete_has_observations: 'Impossible de supprimer la bande "{name}" car elle contient {count} observations. Vous devez d\'abord supprimer les observations ou archiver la bande.'
-flock.cannot_delete_building_archived: 'Impossible de supprimer la bande "{name}" car son bâtiment "{building}" est archivé. Veuillez réactiver le bâtiment d\'abord.'
+flock.cannot_delete_has_observations: 'Impossible de supprimer la bande "{name}" car elle contient {count} observations. Vous devez d''abord supprimer les observations ou archiver la bande.'
+flock.cannot_delete_building_archived: 'Impossible de supprimer la bande "{name}" car son bâtiment "{building}" est archivé. Veuillez réactiver le bâtiment d''abord.'
 
 # ─── Observation ───
 observation.too_old: "Impossible d'ajouter une observation antérieure à la visite elle-même."
