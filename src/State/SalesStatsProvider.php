@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class SalesStatsProvider implements ProviderInterface
 {
@@ -36,6 +37,12 @@ class SalesStatsProvider implements ProviderInterface
         $end = $endStr . ' 23:59:59';
 
         $isAdmin = $this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN');
+        $isSalesRep = $this->security->isGranted('ROLE_SALES_REP');
+
+        // Vérification d'accès : seuls les commerciaux et admins peuvent voir ces stats
+        if (!$isAdmin && !$isSalesRep) {
+            throw new AccessDeniedException('Accès réservé aux commerciaux et administrateurs.');
+        }
 
         // 2. Sélection des commerciaux — si non-admin, forcer le commercial connecté
         if (!$isAdmin) {

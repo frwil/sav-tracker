@@ -18,6 +18,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Serializer\Attribute\SerializedName;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -88,6 +90,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private ?bool $activated = true;
 
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: UserObjective::class, orphanRemoval: true)]
+    private Collection $objectives;
+
+    public function __construct()
+    {
+        $this->objectives = new ArrayCollection();
+    }
+
     public function getId(): ?int { return $this->id; }
 
     public function getUsername(): ?string { return $this->username; }
@@ -131,4 +141,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function isActivated(): ?bool { return $this->activated; }
     public function setActivated(bool $activated): self { $this->activated = $activated; return $this; }
+
+    /** @return Collection<int, UserObjective> */
+    public function getObjectives(): Collection { return $this->objectives; }
+
+    public function addObjective(UserObjective $objective): self
+    {
+        if (!$this->objectives->contains($objective)) {
+            $this->objectives[] = $objective;
+            $objective->setUser($this);
+        }
+        return $this;
+    }
+
+    public function removeObjective(UserObjective $objective): self
+    {
+        if ($this->objectives->removeElement($objective)) {
+            if ($objective->getUser() === $this) {
+                $objective->setUser(null);
+            }
+        }
+        return $this;
+    }
 }

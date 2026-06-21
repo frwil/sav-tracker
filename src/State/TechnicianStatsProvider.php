@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class TechnicianStatsProvider implements ProviderInterface
 {
@@ -32,6 +33,12 @@ class TechnicianStatsProvider implements ProviderInterface
         $end = new \DateTime($endStr . ' 23:59:59');
 
         $isAdmin = $this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN');
+        $isTechnician = $this->security->isGranted('ROLE_TECHNICIAN');
+
+        // Vérification d'accès : seuls les techniciens et admins peuvent voir ces stats
+        if (!$isAdmin && !$isTechnician) {
+            throw new AccessDeniedException('Accès réservé aux techniciens et administrateurs.');
+        }
 
         // 2. Techniciens — si non-admin, forcer le technicien connecté
         if (!$isAdmin) {

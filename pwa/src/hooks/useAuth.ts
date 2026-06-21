@@ -35,7 +35,9 @@ export function useAuth() {
             // 1. Décodage local (Toujours possible)
             let payload;
             try {
-                payload = JSON.parse(atob(token.split('.')[1]));
+                let raw = token.split('.')[1] || "";
+                raw = raw.replace(/-/g, '+').replace(/_/g, '/');
+                payload = JSON.parse(atob(raw));
                 const now = Math.floor(Date.now() / 1000);
 
                 if (payload.exp < now) {
