@@ -872,43 +872,43 @@ export default function DashboardHome() {
                 {activeTab === "menu" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
                         {/* Cartes communes à tous les rôles */}
-                        <MenuCard title="Clients" icon="👥" href="/dashboard/customers" color="blue"
-                            description="Gérer le portefeuille client." />
-                        <MenuCard title="Rapports" icon="📈" href="/dashboard/reports" color="pink"
-                            description="Analyses, graphiques et exports Excel." />
+                        <MenuCard title={t('dashboard.menu.customers')} icon="👥" href="/dashboard/customers" color="blue"
+                            description={t('dashboard.menu.customers_desc')} />
+                        <MenuCard title={t('dashboard.menu.reports')} icon="📈" href="/dashboard/reports" color="pink"
+                            description={t('dashboard.menu.reports_desc')} />
 
                         {/* Cartes Technicien */}
                         {!isSalesRep && (
                             <>
-                                <MenuCard title="Visites" icon="🚜" href="/dashboard/visits" color="indigo"
-                                    description="Rapports et interventions." />
-                                <MenuCard title="Prospections" icon="🔭" href="/dashboard/prospections" color="purple"
-                                    description="Suivi des prospects et consultations." />
-                                <MenuCard title="Bandes" icon="🐣" href="/dashboard/flocks" color="green"
-                                    description="Suivi des lots en cours." />
-                                <MenuCard title="Bâtiments" icon="🏠" href="/dashboard/buildings" color="orange"
-                                    description="Infrastructures." />
+                                <MenuCard title={t('dashboard.menu.visits')} icon="🚜" href="/dashboard/visits" color="indigo"
+                                    description={t('dashboard.menu.visits_desc')} />
+                                <MenuCard title={t('dashboard.menu.prospections')} icon="🔭" href="/dashboard/prospections" color="purple"
+                                    description={t('dashboard.menu.prospections_desc')} />
+                                <MenuCard title={t('dashboard.menu.flocks')} icon="🐣" href="/dashboard/flocks" color="green"
+                                    description={t('dashboard.menu.flocks_desc')} />
+                                <MenuCard title={t('dashboard.menu.buildings')} icon="🏠" href="/dashboard/buildings" color="orange"
+                                    description={t('dashboard.menu.buildings_desc')} />
                             </>
                         )}
 
                         {/* Carte Commune — Performance Comm. */}
-                        <MenuCard title="Performance Comm." icon="🏪" href="/dashboard/sales" color="emerald"
-                            description="KPIs commerciaux : visites, prix, stock, commandes." />
+                        <MenuCard title={t('dashboard.menu.performance')} icon="🏪" href="/dashboard/sales" color="emerald"
+                            description={t('dashboard.menu.performance_desc')} />
 
                         {/* Cartes Visites (commercial) */}
                         {isSalesRep && (
-                            <MenuCard title="Visites Commerciales" icon="🏪" href="/dashboard/sales/visits" color="emerald"
-                                description="Planifier et suivre mes visites en provenderie." />
+                            <MenuCard title={t('dashboard.menu.sales_visits')} icon="🏪" href="/dashboard/sales/visits" color="emerald"
+                                description={t('dashboard.menu.sales_visits_desc')} />
                         )}
 
                         {/* Admin */}
                         {isSupport && (
                             <>
-                                <MenuCard title="Utilisateurs" icon="🔐" href="/dashboard/users" color="red"
-                                    description="Administration des accès."
+                                <MenuCard title={t('dashboard.menu.users')} icon="🔐" href="/dashboard/users" color="red"
+                                    description={t('dashboard.menu.users_desc')}
                                     disabled={isOfflineMode && !getCachedTechnicians()} />
-                                <MenuCard title="Config" icon="⚙️" href="/dashboard/settings" color="gray"
-                                    description="Paramètres globaux." disabled={isOfflineMode} />
+                                <MenuCard title={t('dashboard.menu.settings')} icon="⚙️" href="/dashboard/settings" color="gray"
+                                    description={t('dashboard.menu.settings_desc')} disabled={isOfflineMode} />
                             </>
                         )}
                     </div>
@@ -922,7 +922,7 @@ export default function DashboardHome() {
                             </h3>
                             <div className="flex flex-col md:flex-row gap-4 items-end">
                                 <div className="w-full md:w-1/4">
-                                    <label className="text-xs text-gray-500 block mb-1">Du</label>
+                                    <label className="text-xs text-gray-500 block mb-1">{t('dashboard.from')}</label>
                                     <input
                                         type="date"
                                         value={startDate}
@@ -945,7 +945,7 @@ export default function DashboardHome() {
                                     />
                                 </div>
                                 <div className="w-full md:w-1/4">
-                                    <label className="text-xs text-gray-500 block mb-1">Au</label>
+                                    <label className="text-xs text-gray-500 block mb-1">{t('dashboard.to')}</label>
                                     <input
                                         type="date"
                                         value={endDate}
