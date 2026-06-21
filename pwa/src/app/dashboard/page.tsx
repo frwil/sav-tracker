@@ -152,8 +152,8 @@ const StatCard = ({
     isPercent,
     alert,
     pending,
+    pendingTitle,
 }: any) => {
-    const { t } = useTranslation();
     const [showTooltip, setShowTooltip] = useState(false);
 
     return (
@@ -194,7 +194,7 @@ const StatCard = ({
                         </h4>
                         {pending > 0 && (
                             <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-full font-bold border border-yellow-200 animate-pulse print:hidden"
-                                title={t('tech.pending_data')}>
+                                title={pendingTitle || 'Data pending sync'}>
                                 +{pending} ⏳
                             </span>
                         )}
@@ -758,6 +758,7 @@ export default function DashboardHome() {
                     icon="🐣"
                     color="indigo"
                     pending={data.pendingActive}
+                    pendingTitle={t('tech.pending_data')}
                     tooltip={t('tech.active_flocks_tip')}
                 />
                 <StatCard
@@ -769,6 +770,7 @@ export default function DashboardHome() {
                     icon="❤️‍🩹"
                     color={data.healthAlerts > 0 ? "red" : "green"}
                     pending={data.pendingHealthAlerts}
+                    pendingTitle={t('tech.pending_data')}
                     tooltip={t('tech.health_alerts_tip')}
                 />
             </div>
@@ -781,6 +783,7 @@ export default function DashboardHome() {
                     icon="📝"
                     color="gray"
                     pending={data.pendingVisits}
+                    pendingTitle={t('tech.pending_data')}
                     tooltip={t('tech.total_visits_tip')}
                 />
                 <StatCard
