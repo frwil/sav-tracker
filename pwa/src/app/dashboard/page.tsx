@@ -159,7 +159,7 @@ const StatCard = ({
     return (
     <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-between h-full transition-all ${alert ? "bg-red-50 border-red-200" : "bg-white border-gray-100"} break-inside-avoid print:border-gray-300 print:shadow-none`}>
         <div className="flex justify-between items-start mb-2">
-            <p className={`text-xs font-bold uppercase tracking-wider ${alert ? "text-red-600" : "text-gray-500 print:text-black"}`}>
+            <p className={`text-xs font-bold uppercase tracking-wider ${alert ? "text-red-600" : "text-gray-600 print:text-black"}`}>
                 {label}
             </p>
             {icon && (
@@ -203,7 +203,7 @@ const StatCard = ({
                 {alert && !loading && <span className="text-lg print:hidden">⚠️</span>}
             </div>
             {subValue && (
-                <p className={`text-[10px] ${alert ? "text-red-500" : "text-gray-400 print:text-gray-600"}`}>
+                <p className={`text-[10px] ${alert ? "text-red-500" : "text-gray-500 print:text-gray-600"}`}>
                     {subValue}
                 </p>
             )}
@@ -1065,14 +1065,14 @@ export default function DashboardHome() {
                                     {renderStatsSection(displayedStats, true)}
                                 </div>
                             ) : loadingStats ? (
-                                <div className="text-center py-12 text-gray-500 animate-pulse">
+                                <div className="text-center py-12 text-gray-600 animate-pulse">
                                     <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
                                     <p>Chargement des statistiques...</p>
                                 </div>
                             ) : (
                                 <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-200">
                                     <div className="text-4xl mb-4">📊</div>
-                                    <p className="text-gray-500 font-medium">Aucune statistique disponible</p>
+                                    <p className="text-gray-600 font-medium">Aucune statistique disponible</p>
                                     {isOfflineMode && (
                                         <p className="text-sm text-gray-400 mt-2">
                                             Connectez-vous pour charger les données initiales
@@ -1092,7 +1092,7 @@ export default function DashboardHome() {
 
                                 {/* Rangée 1 : Visites */}
                                 <div>
-                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">📋 Visites</h4>
+                                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b pb-2">📋 Visites</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <StatCard label="Call Rate" value={`${salesStats.callRate ?? 0}%`}
                                             subValue={`${salesStats.visitsRealized ?? 0}/${salesStats.visitsPlanned ?? 0} visites`}
@@ -1117,7 +1117,7 @@ export default function DashboardHome() {
 
                                 {/* Rangée 2 : Commandes & CA */}
                                 <div>
-                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">🛒 Commandes & Chiffre d&apos;Affaires</h4>
+                                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b pb-2">🛒 Commandes & Chiffre d&apos;Affaires</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <StatCard label="Strike Rate" value={`${salesStats.strikeRate ?? 0}%`}
                                             subValue={`${salesStats.ordersWon ?? 0}/${salesStats.preOrdersTaken ?? 0} gagnées`}
@@ -1142,7 +1142,7 @@ export default function DashboardHome() {
 
                                 {/* Rangée 3 : Prix, Stock, Qualité */}
                                 <div>
-                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">💲 Prix, Stock & Qualité</h4>
+                                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b pb-2">💲 Prix, Stock & Qualité</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <StatCard label="Conformité Prix" value={`${salesStats.priceCompliance ?? 0}%`}
                                             subValue={`${salesStats.priceCompliant ?? 0}/${salesStats.priceChecksDone ?? 0}`}
@@ -1170,7 +1170,7 @@ export default function DashboardHome() {
 
                                 {/* Rangée 4 : Exécution, Fraîcheur, Perfect Store */}
                                 <div>
-                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">⭐ Exécution & Score Global</h4>
+                                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 border-b pb-2">⭐ Exécution & Score Global</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                         <StatCard label="Taux Exécution" value={`${salesStats.executionRate ?? 0}%`}
                                             subValue={`${salesStats.activitiesCompleted ?? 0}/${salesStats.activitiesTotal ?? 0} tâches`}
