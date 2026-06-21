@@ -751,7 +751,7 @@ export default function DashboardHome() {
                     tooltip={t('tech.intensity_tip')}
                 />
                 <StatCard
-                    label="Cheptel Actif"
+                    label={t('tech.active_flocks')}
                     value={data.activeFlocks.toString()}
                     subValue={t('tech.active_flocks_sub')}
                     loading={data.loading}
@@ -800,7 +800,7 @@ export default function DashboardHome() {
                         {data.loading ? "..." : `~ ${data.estimatedFeedTonnage} T`}
                     </h4>
                     <p className="text-[10px] text-blue-600 mt-1 print:text-gray-600">
-                        Estimation sur cheptel actif
+                        {t('tech.feed_estimate')}
                     </p>
                 </div>
             </div>
