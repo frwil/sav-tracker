@@ -15,7 +15,6 @@ class ProphylaxisTask
 
     #[ORM\ManyToOne(inversedBy: 'prophylaxisTasks')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['prophy:read', 'speculation:read', 'flock:read','visit:read'])]
     private ?Speculation $speculation = null;
 
     #[ORM\Column]

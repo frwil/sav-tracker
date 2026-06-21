@@ -1,99 +1,14 @@
 <?php
-
 namespace App\Repository;
 
-use App\Entity\User;
 use App\Entity\Customer;
-use Doctrine\ORM\QueryBuilder;
-use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Bundle\SecurityBundle\Security;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Customer>
- */
 class CustomerRepository extends ServiceEntityRepository
 {
-    public function __construct(
-        ManagerRegistry $registry,
-        private Security $security
-    ) {
+    public function __construct(ManagerRegistry $registry)
+    {
         parent::__construct($registry, Customer::class);
-    }
-
-    /**
-     * Récupère tous les customers pour l'utilisateur courant
-     * - Admin : voit tout
-     * - User : voit ses clients affectés + clients non affectés
-     */
-    public function findForCurrentUser(): array
-    {
-        if ($this->isAdmin()) {
-            return $this->findAll();
-        }
-
-        $user = $this->security->getUser();
-        if (!$user instanceof User) {
-            return [];
-        }
-
-        return $this->createQueryBuilder('c')
-            ->leftJoin('c.affectedTo', 'u')
-            ->where('u.id = :userId OR u.id IS NULL')
-            ->setParameter('userId', $user->getId())
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
-     * Crée un QueryBuilder filtré pour l'utilisateur courant
-     */
-    public function createQueryBuilderForUser(string $alias = 'c'): QueryBuilder
-    {
-        $qb = $this->createQueryBuilder($alias);
-
-        if ($this->isAdmin()) {
-            return $qb;
-        }
-
-        $user = $this->security->getUser();
-        if ($user instanceof User) {
-            $qb->leftJoin("$alias.affectedTo", 'u')
-               ->andWhere('u.id = :userId OR u.id IS NULL')
-               ->setParameter('userId', $user->getId());
-        }
-
-        return $qb;
-    }
-
-    /**
-     * Récupère un customer par ID si accessible par l'utilisateur courant
-     */
-    public function findOneForCurrentUser(int $id): ?Customer
-    {
-        if ($this->isAdmin()) {
-            return $this->find($id);
-        }
-
-        $user = $this->security->getUser();
-        if (!$user instanceof User) {
-            return null;
-        }
-
-        return $this->createQueryBuilder('c')
-            ->leftJoin('c.affectedTo', 'u')
-            ->where('c.id = :id')
-            ->andWhere('u.id = :userId OR u.id IS NULL')
-            ->setParameter('id', $id)
-            ->setParameter('userId', $user->getId())
-            ->getQuery()
-            ->getOneOrNullResult();
-    }
-
-    private function isAdmin(): bool
-    {
-        return $this->security->isGranted('ROLE_ADMIN') || 
-               $this->security->isGranted('ROLE_SUPER_ADMIN') ||
-               $this->security->isGranted('ROLE_OPERATOR');
     }
 }

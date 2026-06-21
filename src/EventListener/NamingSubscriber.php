@@ -83,7 +83,7 @@ class NamingSubscriber
             'ÿ' => 'y'
         );
 
-        $string = 'BATIMENT ' . substr(strtoupper($building->getCustomer()->getName()), 0, 10) . $building->getCustomer()->getId() ;
+        $string = 'BATIMENT ' . mb_substr(strtoupper($building->getCustomer()->getName()), 0, 10) . $building->getCustomer()->getId() ;
 
         // Remplacement des caractères accentués
         $string = strtr($string, $unwanted_array);
