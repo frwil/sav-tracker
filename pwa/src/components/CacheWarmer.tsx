@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cleanupExpiredCaches, registerCacheWrite } from "@/services/storage";
+import { decodeJwtPayload, getUserRolesFromToken } from "@/utils/jwt";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -37,11 +38,8 @@ const ADMIN_ROUTES = [
 const CACHE_TTL = 1000 * 60 * 60 * 24;
 
 function decodeTokenRoles(token: string): string[] {
-    try {
-        return JSON.parse(atob(token.split('.')[1])).roles || [];
-    } catch {
-        return [];
-    }
+    const payload = decodeJwtPayload<{ roles?: string[] }>(token);
+    return payload?.roles || [];
 }
 
 /** Préchauffe les données API clients (nécessaires pour tous les formulaires). */
