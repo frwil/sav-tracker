@@ -1103,9 +1103,9 @@ export default function DashboardHome() {
                                             alert={+(salesStats.jpAdherence ?? 0) < 50} />
                                         <StatCard label="Visites Planifiées" value={salesStats.visitsPlanned ?? 0}
                                             icon="📋" color="gray" />
-                                        <StatCard label="Visites Réalisées" value={salesStats.visitsRealized ?? 0}
+                                        <StatCard label="Visites Réalisées" value={`${salesStats.visitsRealized ?? 0} (${salesStats.callRate ?? 0}%)`}
                                             icon="✅" color="blue" />
-                                        <StatCard label="Visites Jour J" value={salesStats.visitsOnTime ?? 0}
+                                        <StatCard label="Visites Jour J" value={`${salesStats.visitsOnTime ?? 0} (${salesStats.jpAdherence ?? 0}%)`}
                                             icon="🎯" color="indigo" />
                                     </div>
                                 </div>
