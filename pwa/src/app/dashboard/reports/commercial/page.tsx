@@ -9,32 +9,23 @@ import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image';
 import jsPDF from "jspdf";
 import { useTranslation } from '@/i18n/I18nProvider';
+import { useAuthContext } from '@/providers/AuthProvider';
 import toast from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#3B82F6', '#EC4899'];
 
-function getRoles(): string[] {
-    try {
-        const token = localStorage.getItem("sav_token");
-        if (!token) return [];
-        return JSON.parse(atob(token.split('.')[1])).roles || [];
-    } catch { return []; }
-}
-
 export default function CommercialReport() {
     const { t } = useTranslation();
     const router = useRouter();
+    const { isAdmin, isSalesRep } = useAuthContext();
 
     useEffect(() => {
-        const roles = getRoles();
-        const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
-        const isSalesRep = roles.includes("ROLE_SALES_REP");
         if (!isAdmin && !isSalesRep) {
             router.replace("/dashboard/reports");
         }
-    }, [router]);
+    }, [router, isAdmin, isSalesRep]);
     const chartRef = useRef<HTMLDivElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);

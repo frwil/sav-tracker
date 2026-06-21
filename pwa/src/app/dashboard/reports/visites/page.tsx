@@ -10,30 +10,21 @@ import { toPng } from 'html-to-image'; // ✅ Remplacement de html2canvas
 import jsPDF from "jspdf";
 import { useTranslation } from "@/i18n/I18nProvider";
 import toast from "react-hot-toast";
+import { useAuthContext } from '@/providers/AuthProvider';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-function getRoles(): string[] {
-    try {
-        const token = localStorage.getItem("sav_token");
-        if (!token) return [];
-        return JSON.parse(atob(token.split('.')[1])).roles || [];
-    } catch { return []; }
-}
-
 export default function VisitsReport() {
     const { t } = useTranslation();
     const router = useRouter();
+    const { isAdmin, isTech } = useAuthContext();
 
     useEffect(() => {
-        const roles = getRoles();
-        const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
-        const isTech = roles.includes("ROLE_TECHNICIAN");
         if (!isAdmin && !isTech) {
             router.replace("/dashboard/reports");
         }
-    }, [router]);
+    }, [router, isAdmin, isTech]);
     const chartRef = useRef<HTMLDivElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);
