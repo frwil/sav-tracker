@@ -2,14 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-
-function getRoles(): string[] {
-    try {
-        const token = localStorage.getItem("sav_token");
-        if (!token) return [];
-        return JSON.parse(atob(token.split('.')[1])).roles || [];
-    } catch { return []; }
-}
+import { useAuthContext } from "@/providers/AuthProvider";
 
 type ReportRole = "all" | "tech" | "sales";
 
@@ -88,10 +81,7 @@ const REPORTS: {
 ];
 
 export default function ReportsMenu() {
-    const roles = useMemo(() => getRoles(), []);
-    const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
-    const isSalesRep = roles.includes("ROLE_SALES_REP");
-    const isTech = roles.includes("ROLE_TECHNICIAN");
+    const { isAdmin, isSalesRep, isTech } = useAuthContext();
 
     const visibleReports = REPORTS.filter((r) => {
         if (isAdmin) return true;

@@ -1,13 +1,21 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { AuthProvider, useAuthContext } from '@/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CacheWarmer from '@/components/CacheWarmer';
 import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const { user, loading } = useAuth();
+    return (
+        <AuthProvider>
+            <DashboardContent>{children}</DashboardContent>
+        </AuthProvider>
+    );
+}
+
+function DashboardContent({ children }: { children: React.ReactNode }) {
+    const { user, loading } = useAuthContext();
     const router = useRouter();
     const { t, locale, setLocale } = useTranslation();
 

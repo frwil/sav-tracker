@@ -8,6 +8,7 @@ import { saveAs } from 'file-saver';
 import { toPng } from 'html-to-image';
 import jsPDF from "jspdf";
 import { useTranslation } from "@/i18n/I18nProvider";
+import { useAuthContext } from "@/providers/AuthProvider";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
@@ -22,44 +23,8 @@ export default function PerformanceReport() {
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<any>(null);
 
-    // ── Détection du rôle (synchrone via lazy initializer + fallback useEffect) ──
-    const [userRole, setUserRole] = useState<string>(() => {
-        if (typeof window === 'undefined') return "";
-        try {
-            const token = localStorage.getItem("sav_token");
-            if (!token) return "";
-            // Support base64url (JWT standard) vers base64 (atob)
-            let payload = token.split('.')[1] || "";
-            payload = payload.replace(/-/g, '+').replace(/_/g, '/');
-            const json = JSON.parse(atob(payload));
-            const roles: string[] = json.roles || [];
-            if (roles.includes('ROLE_SALES_REP')) return 'ROLE_SALES_REP';
-            if (roles.includes('ROLE_TECHNICIAN')) return 'ROLE_TECHNICIAN';
-            if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')) return 'ROLE_ADMIN';
-            return "";
-        } catch { return ""; }
-    });
-
-    // Fallback: si le lazy initializer n'a pas trouvé le rôle (ex: token stocké après init),
-    // on réessaie au montage
-    useEffect(() => {
-        if (userRole) return;
-        const token = localStorage.getItem("sav_token");
-        if (!token) return;
-        try {
-            let payload = token.split('.')[1] || "";
-            payload = payload.replace(/-/g, '+').replace(/_/g, '/');
-            const json = JSON.parse(atob(payload));
-            const roles: string[] = json.roles || [];
-            if (roles.includes('ROLE_SALES_REP')) setUserRole('ROLE_SALES_REP');
-            else if (roles.includes('ROLE_TECHNICIAN')) setUserRole('ROLE_TECHNICIAN');
-            else if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')) setUserRole('ROLE_ADMIN');
-        } catch {}
-    }, []);
-
-    const isSalesRep = userRole === 'ROLE_SALES_REP';
-    const isTech = userRole === 'ROLE_TECHNICIAN';
-    const isAdmin = userRole === 'ROLE_ADMIN';
+    // ── Rôle depuis le contexte d'authentification (partagé avec le layout) ──
+    const { isSalesRep, isTech, isAdmin, loading: authLoading } = useAuthContext();
 
     // ─── CHARGEMENT COMMERCIAL ────────────────────────────────────
 
@@ -283,7 +248,8 @@ export default function PerformanceReport() {
 
     // ── Auto-load selon le rôle ──
     useEffect(() => {
-        if (!userRole) return;
+        if (authLoading) return;
+        if (!isSalesRep && !isTech && !isAdmin) return;
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
         const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
@@ -291,12 +257,12 @@ export default function PerformanceReport() {
             loadCommercialData({ start, end });
         }
         // Les admins/techs utilisent ReportFilters pour déclencher le chargement
-    }, [userRole]);
+    }, [authLoading, isSalesRep, isTech, isAdmin]);
 
     // ══════════════════════════════════════════════════════════════
-    // ÉTAT INITIAL : rôle non encore détecté → loader
+    // ÉTAT INITIAL : auth encore en chargement → loader
     // ══════════════════════════════════════════════════════════════
-    if (!userRole) {
+    if (authLoading) {
         return (
             <div className="max-w-7xl mx-auto p-4 pb-20 flex items-center justify-center min-h-[50vh]">
                 <div className="text-center animate-pulse">

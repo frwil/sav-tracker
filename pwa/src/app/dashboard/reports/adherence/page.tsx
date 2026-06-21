@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { toPng } from 'html-to-image';
 import jsPDF from "jspdf";
 import toast from "react-hot-toast";
+import { useAuthContext } from '@/providers/AuthProvider';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -19,14 +20,6 @@ const COLORS = {
     planned: '#E5E7EB',     // Gris
     pie: ['#3B82F6', '#E5E7EB']
 };
-
-function getRoles(): string[] {
-    try {
-        const token = localStorage.getItem("sav_token");
-        if (!token) return [];
-        return JSON.parse(atob(token.split('.')[1])).roles || [];
-    } catch { return []; }
-}
 
 interface TechnicianStats {
     technicianName: string;
@@ -42,15 +35,13 @@ interface TechnicianStats {
 export default function AdherenceReportPage() {
     const router = useRouter();
     const reportRef = useRef<HTMLDivElement>(null);
+    const { isAdmin, isTech } = useAuthContext();
 
     useEffect(() => {
-        const roles = getRoles();
-        const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
-        const isTech = roles.includes("ROLE_TECHNICIAN");
         if (!isAdmin && !isTech) {
             router.replace("/dashboard/reports");
         }
-    }, [router]);
+    }, [router, isAdmin, isTech]);
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<TechnicianStats | null>(null);
     const [currentRange, setCurrentRange] = useState<{start: string, end: string} | null>(null);
