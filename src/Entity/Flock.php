@@ -34,8 +34,8 @@ use Symfony\Component\Serializer\Attribute\SerializedName;
     normalizationContext: ['groups' => ['flock:read']],
     denormalizationContext: ['groups' => ['flock:write']],
     operations: [
-        new Get(),
-        new GetCollection(),
+        new Get(security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new GetCollection(security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
         new Post(),
         new Patch(),
         // Notre nouvelle opération de clôture :

@@ -1,47 +1,71 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 
-const REPORTS = [
-    { 
-        id: "performance", 
-        title: "Performance Globale", 
-        icon: "🚀", 
-        desc: "Taux de couverture, intensité de visite et répartition du portefeuille.", 
+function getRoles(): string[] {
+    try {
+        const token = localStorage.getItem("sav_token");
+        if (!token) return [];
+        return JSON.parse(atob(token.split('.')[1])).roles || [];
+    } catch { return []; }
+}
+
+type ReportRole = "all" | "tech" | "sales";
+
+const REPORTS: {
+    id: string;
+    title: string;
+    icon: string;
+    desc: string;
+    color: string;
+    href: string;
+    role: ReportRole;
+}[] = [
+    {
+        id: "performance",
+        title: "Performance Globale",
+        icon: "🚀",
+        desc: "Taux de couverture, intensité de visite et répartition du portefeuille.",
         color: "blue",
-        href: "/dashboard/reports/performance"
+        href: "/dashboard/reports/performance",
+        role: "all",
     },
-    { 
-        id: "interventions", 
-        title: "Santé & Pathologies", 
-        icon: "❤️‍🩹", 
-        desc: "Top maladies, taux de résolution et récurrence des problèmes.", 
+    {
+        id: "interventions",
+        title: "Santé & Pathologies",
+        icon: "❤️‍🩹",
+        desc: "Top maladies, taux de résolution et récurrence des problèmes.",
         color: "red",
-        href: "/dashboard/reports/interventions" // À créer plus tard
+        href: "/dashboard/reports/interventions",
+        role: "tech",
     },
-    { 
-        id: "visites", 
-        title: "Analyse des Visites", 
-        icon: "🚜", 
-        desc: "Caractéristiques des lots visités (Ages, Spéculations).", 
+    {
+        id: "visites",
+        title: "Analyse des Visites",
+        icon: "🚜",
+        desc: "Caractéristiques des lots visités (Ages, Spéculations).",
         color: "green",
-        href: "/dashboard/reports/visites"
+        href: "/dashboard/reports/visites",
+        role: "tech",
     },
-    { 
-        id: "commercial", 
-        title: "Entonnoir Commercial", 
-        icon: "🔭", 
-        desc: "Prospections, Conversions et Taux de transformation.", 
+    {
+        id: "commercial",
+        title: "Entonnoir Commercial",
+        icon: "🔭",
+        desc: "Prospections, Conversions et Taux de transformation.",
         color: "purple",
-        href: "/dashboard/reports/commercial"
+        href: "/dashboard/reports/commercial",
+        role: "sales",
     },
-    { 
-        id: "forecast", 
-        title: "Prévisionnel Sorties", 
-        icon: "🔮", 
-        desc: "Calendrier prévisionnel des ventes (Basé sur l'âge).", 
+    {
+        id: "forecast",
+        title: "Prévisionnel Sorties",
+        icon: "🔮",
+        desc: "Calendrier prévisionnel des ventes (Basé sur l'âge).",
         color: "indigo",
-        href: "/dashboard/reports/forecast"
+        href: "/dashboard/reports/forecast",
+        role: "tech",
     },
     {
         id: "aliment",
@@ -49,19 +73,34 @@ const REPORTS = [
         icon: "🌽",
         desc: "Analyse des coûts alimentaires et Indices de Consommation.",
         color: "orange",
-        href: "/dashboard/reports/aliment"
+        href: "/dashboard/reports/aliment",
+        role: "tech",
     },
-    { 
-        id: "adherence", 
-        title: "Adhérence & Planning", 
-        icon: "🎯", 
-        desc: "Analyse de la ponctualité et du respect des tournées.", 
+    {
+        id: "adherence",
+        title: "Adhérence & Planning",
+        icon: "🎯",
+        desc: "Analyse de la ponctualité et du respect des tournées.",
         color: "teal",
-        href: "/dashboard/reports/adherence"
-    }
+        href: "/dashboard/reports/adherence",
+        role: "tech",
+    },
 ];
 
 export default function ReportsMenu() {
+    const roles = useMemo(() => getRoles(), []);
+    const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
+    const isSalesRep = roles.includes("ROLE_SALES_REP");
+    const isTech = roles.includes("ROLE_TECHNICIAN");
+
+    const visibleReports = REPORTS.filter((r) => {
+        if (isAdmin) return true;
+        if (r.role === "all") return true;
+        if (r.role === "sales") return isSalesRep;
+        if (r.role === "tech") return isTech;
+        return false;
+    });
+
     return (
         <div className="max-w-6xl mx-auto p-4 pb-20">
             <div className="mb-8">
@@ -70,9 +109,9 @@ export default function ReportsMenu() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {REPORTS.map((report) => (
-                    <Link 
-                        key={report.id} 
+                {visibleReports.map((report) => (
+                    <Link
+                        key={report.id}
                         href={report.href}
                         className={`group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-${report.color}-200 transition-all cursor-pointer`}
                     >

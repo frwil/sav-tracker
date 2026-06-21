@@ -8,13 +8,15 @@ use Doctrine\DBAL\Connection;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Bundle\SecurityBundle\Security;
 
 class SalesStatsProvider implements ProviderInterface
 {
     public function __construct(
         private Connection $connection,
         private UserRepository $userRepository,
-        private RequestStack $requestStack
+        private RequestStack $requestStack,
+        private Security $security
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
@@ -33,17 +35,25 @@ class SalesStatsProvider implements ProviderInterface
         $start = $startStr . ' 00:00:00';
         $end = $endStr . ' 23:59:59';
 
-        // 2. Sélection des commerciaux
-        $repIdsInput = $request->query->all()['sales_reps'] ?? [];
-        if (is_string($repIdsInput)) $repIdsInput = [$repIdsInput];
+        $isAdmin = $this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN');
 
-        if (empty($repIdsInput)) {
-            $allReps = $this->userRepository->findAll();
-            $reps = array_values(array_filter($allReps, fn($u) => in_array('ROLE_SALES_REP', $u->getRoles())));
+        // 2. Sélection des commerciaux — si non-admin, forcer le commercial connecté
+        if (!$isAdmin) {
+            $currentUser = $this->security->getUser();
+            if (!$currentUser) return null;
+            $reps = [$currentUser];
         } else {
-            $reps = $this->userRepository->findBy(['id' => $repIdsInput]);
-            // Filtrer pour ne garder que les commerciaux
-            $reps = array_values(array_filter($reps, fn($u) => in_array('ROLE_SALES_REP', $u->getRoles())));
+            $repIdsInput = $request->query->all()['sales_reps'] ?? [];
+            if (is_string($repIdsInput)) $repIdsInput = [$repIdsInput];
+
+            if (empty($repIdsInput)) {
+                $allReps = $this->userRepository->findAll();
+                $reps = array_values(array_filter($allReps, fn($u) => in_array('ROLE_SALES_REP', $u->getRoles())));
+            } else {
+                $reps = $this->userRepository->findBy(['id' => $repIdsInput]);
+                // Filtrer pour ne garder que les commerciaux
+                $reps = array_values(array_filter($reps, fn($u) => in_array('ROLE_SALES_REP', $u->getRoles())));
+            }
         }
 
         if (empty($reps)) return null;

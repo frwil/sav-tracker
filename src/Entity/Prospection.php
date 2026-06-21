@@ -21,8 +21,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Entity]
 #[ApiResource(
     operations: [
-        new Get(provider: ProspectionProvider::class), // Créez ce provider si vous voulez un comportement spécifique
-        new GetCollection(provider: ProspectionProvider::class),
+        new Get(provider: ProspectionProvider::class, security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new GetCollection(provider: ProspectionProvider::class, security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
         new Post(
             processor: ProspectionProcessor::class,
             securityPostDenormalize: "is_granted('PROSPECTION_CREATE', object)"

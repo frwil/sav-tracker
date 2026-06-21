@@ -8,13 +8,15 @@ use App\Repository\VisitRepository;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Bundle\SecurityBundle\Security;
 
 class TechnicianStatsProvider implements ProviderInterface
 {
     public function __construct(
         private VisitRepository $visitRepository,
         private UserRepository $userRepository,
-        private RequestStack $requestStack
+        private RequestStack $requestStack,
+        private Security $security
     ) {}
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
@@ -29,18 +31,25 @@ class TechnicianStatsProvider implements ProviderInterface
         $start = new \DateTime($startStr . ' 00:00:00');
         $end = new \DateTime($endStr . ' 23:59:59');
 
-        // 2. Techniciens (Supporte technicians[] ou un ID unique)
-        $techIdsInput = $request->query->all()['technicians'] ?? [];
-        if (is_string($techIdsInput)) $techIdsInput = [$techIdsInput];
+        $isAdmin = $this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN');
 
-        if (empty($techIdsInput)) {
-            // Si admin, tous les techs, sinon le provider est limité par le repo ou la sécurité
-            $technicians = $this->userRepository->findAll();
-            $technicians = array_values(array_filter($technicians, function ($t) {
-                return in_array('ROLE_TECHNICIAN', $t->getRoles());
-            }));
+        // 2. Techniciens — si non-admin, forcer le technicien connecté
+        if (!$isAdmin) {
+            $currentUser = $this->security->getUser();
+            if (!$currentUser) return null;
+            $technicians = [$currentUser];
         } else {
-            $technicians = $this->userRepository->findBy(['id' => $techIdsInput]);
+            $techIdsInput = $request->query->all()['technicians'] ?? [];
+            if (is_string($techIdsInput)) $techIdsInput = [$techIdsInput];
+
+            if (empty($techIdsInput)) {
+                $technicians = $this->userRepository->findAll();
+                $technicians = array_values(array_filter($technicians, function ($t) {
+                    return in_array('ROLE_TECHNICIAN', $t->getRoles());
+                }));
+            } else {
+                $technicians = $this->userRepository->findBy(['id' => $techIdsInput]);
+            }
         }
 
         $techIds = array_map(fn($u) => $u->getId(), $technicians);

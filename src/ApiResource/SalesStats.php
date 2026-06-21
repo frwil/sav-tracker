@@ -12,6 +12,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
         new Get(
             uriTemplate: '/stats/sales',
             provider: SalesStatsProvider::class,
+            security: "is_granted('ROLE_SALES_REP') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             name: 'get_sales_stats'
         )
     ],

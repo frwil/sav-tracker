@@ -13,9 +13,9 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Entity]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Post()
+        new Get(security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new GetCollection(security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new Post(security: "is_granted('ROLE_TECHNICIAN')")
     ],
     normalizationContext: ['groups' => ['feed_history:read']],
     denormalizationContext: ['groups' => ['feed_history:write']]

@@ -585,6 +585,11 @@ export const translations = {
         'sales.execution_rate': "Taux d'Exécution",
         'sales.order_distribution': 'Répartition des Commandes',
         'sales.kpi_radar': 'Radar KPIs (%)',
+        'sales.price_checks': '{count} contrôles',
+        'sales.stock_checks': '{count} produits',
+        'sales.activities_count': '{done}/{total} faites',
+        'sales.visits_on_time': 'Faites le jour J',
+        'sales.oos_count': '{count} ruptures',
     },
 
     en: {
@@ -1167,5 +1172,10 @@ export const translations = {
         'sales.execution_rate': 'Execution Rate',
         'sales.order_distribution': 'Order Distribution',
         'sales.kpi_radar': 'KPI Radar (%)',
+        'sales.price_checks': '{count} checks',
+        'sales.stock_checks': '{count} products',
+        'sales.activities_count': '{done}/{total} done',
+        'sales.visits_on_time': 'Done on D-Day',
+        'sales.oos_count': '{count} out-of-stock',
     },
 } as const;

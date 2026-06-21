@@ -10,8 +10,9 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiResource(
     operations: [
         new Get(
-            uriTemplate: '/stats/adherence', 
+            uriTemplate: '/stats/adherence',
             provider: TechnicianStatsProvider::class,
+            security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             name: 'get_adherence_stats'
         )
     ],

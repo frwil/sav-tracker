@@ -14,10 +14,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\Entity]
 #[ApiResource(
     operations: [
-        new Get(),           // Admin: Voir un ticket
-        new GetCollection(), // Admin: Lister les tickets
-        new Post(),          // App: Créer un ticket
-        new Patch()          // Admin: Changer le statut (Résolu/Rejeté)
+        new Get(security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new GetCollection(security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new Post(security: "is_granted('ROLE_TECHNICIAN')"),
+        new Patch(security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')")
     ],
     normalizationContext: ['groups' => ['ticket:read']],
     denormalizationContext: ['groups' => ['ticket:write']]

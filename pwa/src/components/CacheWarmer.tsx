@@ -22,13 +22,15 @@ const CRITICAL_ROUTES = [
     "/dashboard/reports/commercial",
     "/dashboard/reports/forecast",
     "/dashboard/reports/aliment",
+    "/dashboard/sales",
+    "/dashboard/sales/new",
+    "/dashboard/sales/visits",
     "/",
 ];
 
 // Routes supplémentaires pour les admins
 const ADMIN_ROUTES = [
-    "/dashboard/admin",
-    "/dashboard/admin/users",
+    "/dashboard/users",
 ];
 
 // TTL des données API en cache (24h)

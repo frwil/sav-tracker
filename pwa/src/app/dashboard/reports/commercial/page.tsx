@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ReportFilters } from "../components/ReportFilters";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import ExcelJS from 'exceljs';
@@ -14,8 +15,26 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#3B82F6', '#EC4899'];
 
+function getRoles(): string[] {
+    try {
+        const token = localStorage.getItem("sav_token");
+        if (!token) return [];
+        return JSON.parse(atob(token.split('.')[1])).roles || [];
+    } catch { return []; }
+}
+
 export default function CommercialReport() {
     const { t } = useTranslation();
+    const router = useRouter();
+
+    useEffect(() => {
+        const roles = getRoles();
+        const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
+        const isSalesRep = roles.includes("ROLE_SALES_REP");
+        if (!isAdmin && !isSalesRep) {
+            router.replace("/dashboard/reports");
+        }
+    }, [router]);
     const chartRef = useRef<HTMLDivElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);

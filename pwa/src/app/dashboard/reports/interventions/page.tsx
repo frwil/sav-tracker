@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ReportFilters } from "../components/ReportFilters";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import ExcelJS from 'exceljs';
@@ -13,8 +14,26 @@ import toast from "react-hot-toast";
 const COLORS = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+function getRoles(): string[] {
+    try {
+        const token = localStorage.getItem("sav_token");
+        if (!token) return [];
+        return JSON.parse(atob(token.split('.')[1])).roles || [];
+    } catch { return []; }
+}
+
 export default function InterventionsReport() {
     const { t } = useTranslation();
+    const router = useRouter();
+
+    useEffect(() => {
+        const roles = getRoles();
+        const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
+        const isTech = roles.includes("ROLE_TECHNICIAN");
+        if (!isAdmin && !isTech) {
+            router.replace("/dashboard/reports");
+        }
+    }, [router]);
     const chartRef = useRef<HTMLDivElement>(null);
     const reportRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);

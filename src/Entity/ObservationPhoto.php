@@ -9,7 +9,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity]
 #[ApiResource(
-    operations: [new Get()],
+    operations: [new Get(security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')")],
     normalizationContext: ['groups' => ['photo:read']]
 )]
 class ObservationPhoto

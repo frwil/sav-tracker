@@ -50,13 +50,17 @@ export default function PerformanceReport() {
             });
             if (!res.ok) throw new Error("Erreur réseau");
             const stats = await res.json();
+
+            // Commandes : Livrées vs le reste
+            const wonOrders = stats.ordersWon || 0;
+            const pendingOrders = Math.max(0, (stats.preOrdersTaken || 0) - wonOrders);
+
             setData({
                 commercial: true,
                 stats,
                 orderChart: [
-                    { name: 'Livrées', value: stats.ordersWon || 0 },
-                    { name: 'Confirmées', value: (stats.preOrdersTaken || 0) - (stats.ordersWon || 0) - (stats.preOrdersTaken > stats.ordersWon ? 0 : 0) },
-                    { name: 'En attente', value: Math.max(0, (stats.preOrdersTaken || 0) - (stats.ordersWon || 0)) },
+                    { name: 'Livrées', value: wonOrders, fill: '#10B981' },
+                    { name: 'En attente', value: pendingOrders, fill: '#F59E0B' },
                 ].filter(d => d.value > 0),
             });
         } catch (e) {
@@ -286,13 +290,13 @@ export default function PerformanceReport() {
                         <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">{t('dashboard.from')}</label>
                         <input type="date" className="w-full border p-2 rounded-lg text-sm"
                             defaultValue={new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)}
-                            onChange={e => {}} id="comm-start" />
+                            id="comm-start" />
                     </div>
                     <div className="w-full md:w-1/4">
                         <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">{t('dashboard.to')}</label>
                         <input type="date" className="w-full border p-2 rounded-lg text-sm"
                             defaultValue={new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10)}
-                            onChange={e => {}} id="comm-end" />
+                            id="comm-end" />
                     </div>
                     <button
                         onClick={() => {
@@ -322,56 +326,94 @@ export default function PerformanceReport() {
                         <div ref={reportRef} className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 space-y-8">
                             <div className="text-center border-b pb-4">
                                 <h2 className="text-3xl font-black text-indigo-900 uppercase">{t('reports.commercial_synthesis')}</h2>
-                                <p className="text-sm text-gray-500 mt-1">{t('reports.generated_on')} {new Date().toLocaleString()}</p>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {s.salesRepName ? `${s.salesRepName} • ` : ''}{t('reports.generated_on')} {new Date().toLocaleString()}
+                                </p>
                             </div>
 
-                            {/* KPI Visites */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {/* ── Rangée 1 : Visites ── */}
+                            <Section title="📋 Visites">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                 <KpiCard label={t('sales.visits_planned')} value={s.visitsPlanned} icon="📋" color="gray" />
                                 <KpiCard label={t('sales.visits_realized')} value={s.visitsRealized} icon="✅" color="blue" />
-                                <KpiCard label={t('sales.jp_adherence')} value={pct(s.jpAdherence)} icon="🎯" color={s.jpAdherence >= 80 ? 'green' : 'red'} />
-                                <KpiCard label={t('sales.call_rate')} value={pct(s.callRate)} icon="📶" color={s.callRate >= 80 ? 'green' : 'yellow'} />
+                                <KpiCard label={t('sales.visits_on_time')} value={s.visitsOnTime} icon="🎯" color="indigo" />
+                                <KpiCard label={t('sales.jp_adherence')} value={pct(s.jpAdherence)} icon="📐" color={s.jpAdherence >= 80 ? 'green' : 'red'}
+                                    sub={`${s.visitsOnTime}/${s.visitsRealized} visites`} />
+                                <KpiCard label={t('sales.call_rate')} value={pct(s.callRate)} icon="📶" color={s.callRate >= 80 ? 'green' : 'yellow'}
+                                    sub={`${s.visitsRealized}/${s.visitsPlanned} visites`} />
                             </div>
+                            </Section>
 
-                            {/* KPI Commandes */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {/* ── Rangée 2 : Commandes ── */}
+                            <Section title="🛒 Commandes">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                 <KpiCard label={t('sales.orders_taken')} value={s.preOrdersTaken} icon="📝" color="indigo" />
                                 <KpiCard label={t('sales.orders_won')} value={s.ordersWon} icon="🏆" color="green" />
-                                <KpiCard label={t('sales.strike_rate')} value={pct(s.strikeRate)} icon="💪" color={s.strikeRate >= 60 ? 'green' : 'yellow'} />
-                                <KpiCard label={t('sales.revenue')} value={money(s.totalRevenue)} icon="💰" color="blue" sub={t('sales.avg_order') + ': ' + money(s.avgOrderValue)} />
+                                <KpiCard label={t('sales.strike_rate')} value={pct(s.strikeRate)} icon="💪" color={s.strikeRate >= 60 ? 'green' : 'yellow'}
+                                    sub={`${s.ordersWon}/${s.preOrdersTaken} commandes`} />
+                                <KpiCard label={t('sales.revenue')} value={money(s.totalRevenue)} icon="💰" color="blue" />
+                                <KpiCard label={t('sales.avg_order')} value={money(s.avgOrderValue)} icon="🧾" color="gray"
+                                    sub={s.ordersWon > 0 ? `${s.ordersWon} commandes` : undefined} />
                             </div>
+                            </Section>
 
-                            {/* KPI Prix & Stock */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <KpiCard label={t('sales.price_compliance')} value={pct(s.priceCompliance)} icon="💲" color={s.priceCompliance >= 90 ? 'green' : 'red'} />
-                                <KpiCard label={t('sales.must_stock_rate')} value={pct(s.mustStockRate)} icon="📦" color={s.mustStockRate >= 85 ? 'green' : 'red'} />
-                                <KpiCard label={t('sales.oos_rate')} value={pct(s.oosRate)} icon="🚫" color={s.oosRate <= 10 ? 'green' : 'red'} alert={s.oosRate > 10} />
-                                <KpiCard label={t('sales.perfect_store')} value={`${(s.perfectStoreScore ?? 0).toFixed(0)}/100`} icon="⭐" color={s.perfectStoreScore >= 70 ? 'green' : 'yellow'} />
+                            {/* ── Rangée 3 : Prix & Stock ── */}
+                            <Section title="💲 Prix & Stock">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                <KpiCard label={t('sales.price_compliance')} value={pct(s.priceCompliance)} icon="💲"
+                                    color={s.priceCompliance >= 90 ? 'green' : 'red'}
+                                    sub={t('sales.price_checks', { count: String(s.priceChecksDone) })}
+                                    alert={s.priceCompliance > 0 && s.priceCompliance < 70} />
+                                <KpiCard label={t('sales.must_stock_rate')} value={pct(s.mustStockRate)} icon="📦"
+                                    color={s.mustStockRate >= 85 ? 'green' : 'red'}
+                                    sub={t('sales.stock_checks', { count: String(s.stockChecksDone) })}
+                                    alert={s.mustStockRate > 0 && s.mustStockRate < 50} />
+                                <KpiCard label={t('sales.oos_rate')} value={pct(s.oosRate)} icon="🚫"
+                                    color={s.oosRate <= 10 ? 'green' : 'red'}
+                                    sub={t('sales.oos_count', { count: String(s.outOfStockCount) })}
+                                    alert={s.oosRate > 10} />
+                                <KpiCard label={t('sales.avg_freshness')} value={`${(s.avgFreshness ?? 0).toFixed(1)}/5`} icon="🥬"
+                                    color={s.avgFreshness >= 3.5 ? 'green' : 'yellow'} />
+                                <KpiCard label={t('sales.perfect_store')} value={`${(s.perfectStoreScore ?? 0).toFixed(0)}/100`} icon="⭐"
+                                    color={s.perfectStoreScore >= 70 ? 'green' : 'yellow'} />
                             </div>
+                            </Section>
 
-                            {/* KPI Qualité & Exécution */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <KpiCard label={t('sales.avg_freshness')} value={`${(s.avgFreshness ?? 0).toFixed(1)}/5`} icon="🥬" color={s.avgFreshness >= 3.5 ? 'green' : 'yellow'} />
-                                <KpiCard label={t('sales.avg_quality')} value={`${(s.avgQualityScore ?? 0).toFixed(1)}/5`} icon="🏅" color={s.avgQualityScore >= 3 ? 'green' : 'red'} />
-                                <KpiCard label={t('sales.avg_visibility')} value={`${(s.avgVisibilityScore ?? 0).toFixed(1)}/5`} icon="👁️" color={s.avgVisibilityScore >= 3 ? 'green' : 'yellow'} />
-                                <KpiCard label={t('sales.execution_rate')} value={pct(s.executionRate)} icon="📊" color={s.executionRate >= 80 ? 'green' : 'red'} />
+                            {/* ── Rangée 4 : Qualité, Visibilité, Exécution ── */}
+                            <Section title="🏅 Qualité & Exécution">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                <KpiCard label={t('sales.avg_quality')} value={`${(s.avgQualityScore ?? 0).toFixed(1)}/5`} icon="🏅"
+                                    color={s.avgQualityScore >= 3 ? 'green' : 'red'} />
+                                <KpiCard label={t('sales.avg_visibility')} value={`${(s.avgVisibilityScore ?? 0).toFixed(1)}/5`} icon="👁️"
+                                    color={s.avgVisibilityScore >= 3 ? 'green' : 'yellow'} />
+                                <KpiCard label={t('sales.execution_rate')} value={pct(s.executionRate)} icon="📊"
+                                    color={s.executionRate >= 80 ? 'green' : 'red'}
+                                    sub={t('sales.activities_count', { done: String(s.activitiesCompleted), total: String(s.activitiesTotal) })}
+                                    alert={s.executionRate > 0 && s.executionRate < 50} />
+                                <KpiCard label="Prix conformes" value={s.priceCompliant} icon="✅" color="green"
+                                    sub={`/${s.priceChecksDone}`} />
+                                <KpiCard label="Must-Stock OK" value={s.mustStockPresent} icon="📦" color="blue"
+                                    sub={`/${s.stockChecksDone}`} />
                             </div>
+                            </Section>
 
                             {/* Graphiques */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="h-72" ref={chartRef}>
                                     <h3 className="font-bold text-gray-700 mb-4 text-center">{t('sales.order_distribution')}</h3>
+                                    {data.orderChart.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="90%">
                                         <PieChart>
                                             <Pie data={data.orderChart} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
                                                 {data.orderChart.map((entry: any, index: number) => (
-                                                    <Cell key={`cell-${index}`} fill={['#10B981', '#3B82F6', '#F59E0B'][index % 3]} />
+                                                    <Cell key={`cell-${index}`} fill={entry.fill || ['#10B981', '#F59E0B'][index % 2]} />
                                                 ))}
                                             </Pie>
                                             <Tooltip />
                                             <Legend />
                                         </PieChart>
                                     </ResponsiveContainer>
+                                    ) : <p className="text-center text-gray-400 pt-10">Aucune commande sur la période</p>}
                                 </div>
                                 <div className="h-72">
                                     <h3 className="font-bold text-gray-700 mb-4 text-center">{t('sales.kpi_radar')}</h3>
@@ -380,14 +422,15 @@ export default function PerformanceReport() {
                                             { name: 'Prix %', value: s.priceCompliance },
                                             { name: 'Must-Stock %', value: s.mustStockRate },
                                             { name: 'Exécution %', value: s.executionRate },
-                                            { name: 'Strike %', value: s.strikeRate },
+                                            { name: 'Strike Rate %', value: s.strikeRate },
+                                            { name: 'Call Rate %', value: s.callRate },
                                             { name: 'JP %', value: s.jpAdherence },
                                         ]} layout="vertical">
                                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                             <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
-                                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+                                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
                                             <Tooltip formatter={(v: number | undefined) => `${(v ?? 0).toFixed(1)}%`} />
-                                            <Bar dataKey="value" fill="#4F46E5" radius={[0, 4, 4, 0]} barSize={24} />
+                                            <Bar dataKey="value" fill="#4F46E5" radius={[0, 4, 4, 0]} barSize={20} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -625,6 +668,16 @@ function KpiCard({ label, value, icon, sub, color = 'gray', alert }: {
             </div>
             <p className="text-2xl font-black text-gray-900">{value}</p>
             {sub && <p className="text-[10px] text-gray-500 mt-0.5">{sub}</p>}
+        </div>
+    );
+}
+
+// ─── Section Header ───
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 border-b pb-2">{title}</h4>
+            {children}
         </div>
     );
 }

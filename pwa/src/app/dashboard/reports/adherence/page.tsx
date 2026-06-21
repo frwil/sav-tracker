@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ReportFilters } from "../components/ReportFilters";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -19,6 +20,14 @@ const COLORS = {
     pie: ['#3B82F6', '#E5E7EB']
 };
 
+function getRoles(): string[] {
+    try {
+        const token = localStorage.getItem("sav_token");
+        if (!token) return [];
+        return JSON.parse(atob(token.split('.')[1])).roles || [];
+    } catch { return []; }
+}
+
 interface TechnicianStats {
     technicianName: string;
     visitsPlanned: number;
@@ -31,7 +40,17 @@ interface TechnicianStats {
 }
 
 export default function AdherenceReportPage() {
+    const router = useRouter();
     const reportRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const roles = getRoles();
+        const isAdmin = roles.includes("ROLE_ADMIN") || roles.includes("ROLE_SUPER_ADMIN");
+        const isTech = roles.includes("ROLE_TECHNICIAN");
+        if (!isAdmin && !isTech) {
+            router.replace("/dashboard/reports");
+        }
+    }, [router]);
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<TechnicianStats | null>(null);
     const [currentRange, setCurrentRange] = useState<{start: string, end: string} | null>(null);

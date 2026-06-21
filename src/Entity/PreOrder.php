@@ -23,8 +23,8 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('ROLE_USER')"),
-        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Get(security: "is_granted('ROLE_SALES_REP') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new GetCollection(security: "is_granted('ROLE_SALES_REP') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
         new Post(security: "is_granted('ROLE_SALES_REP')"),
         new Patch(security: "is_granted('ROLE_SALES_REP')"),
         new Delete(security: "is_granted('ROLE_SALES_REP')"),

@@ -5,6 +5,7 @@ namespace App\Doctrine;
 use App\Entity\User;
 use App\Entity\Visit;
 use App\Entity\Customer;
+use App\Entity\SalesVisit;
 use Doctrine\ORM\QueryBuilder;
 use ApiPlatform\Metadata\Operation;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -30,44 +31,33 @@ class CurrentUserExtension implements QueryCollectionExtensionInterface, QueryIt
 
     private function addWhere(QueryBuilder $queryBuilder, string $resourceClass): void
     {
-        // 1. On ne touche qu'à l'entité Visit
-        if (Visit::class !== $resourceClass) {
+        // Admin / Super Admin voient tout
+        if ($this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPER_ADMIN')) {
             return;
         }
 
-        // 2. Si c'est un Super Admin, on le laisse tout voir
-        if ($this->security->isGranted('ROLE_SUPER_ADMIN')) {
-            return;
-        }
-
-        if ($this->security->isGranted('ROLE_ADMIN') || 
-            $this->security->isGranted('ROLE_SUPER_ADMIN') || 
-            $this->security->isGranted('ROLE_OPERATOR')) {
-            return;
-        }
-
-        // 3. On récupère l'utilisateur connecté
         $user = $this->security->getUser();
-        if (null === $user) {
+        if (null === $user || !$user instanceof User) {
             return;
         }
 
-        if (!$user instanceof User) {
-            return;
-        }
-
-        // 4. On ajoute la condition WHERE technician = current_user
         $rootAlias = $queryBuilder->getRootAliases()[0];
-        if ($resourceClass === Customer::class) {
-            // AVANT : createdBy OR affectedTo
-            // MAINTENANT : Seulement affectedTo
-            $queryBuilder->andWhere(sprintf('%s.affectedTo = :current_user', $rootAlias));
+
+        // 1. Visites technicien : filtrer par technician = current_user
+        if ($resourceClass === Visit::class) {
+            $queryBuilder->andWhere(sprintf('%s.technician = :current_user', $rootAlias));
             $queryBuilder->setParameter('current_user', $user);
         }
 
-        // 3. Pour les visites, on garde l'historique (Je vois les visites que J'AI faites)
-        if ($resourceClass === Visit::class) {
-            $queryBuilder->andWhere(sprintf('%s.technician = :current_user', $rootAlias));
+        // 2. Visites commerciales : filtrer par salesRep = current_user
+        if ($resourceClass === SalesVisit::class) {
+            $queryBuilder->andWhere(sprintf('%s.salesRep = :current_user', $rootAlias));
+            $queryBuilder->setParameter('current_user', $user);
+        }
+
+        // 3. Clients : filtrer par affectedTo = current_user
+        if ($resourceClass === Customer::class) {
+            $queryBuilder->andWhere(sprintf('%s.affectedTo = :current_user', $rootAlias));
             $queryBuilder->setParameter('current_user', $user);
         }
     }

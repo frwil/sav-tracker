@@ -21,8 +21,8 @@ use App\State\ConsultationProcessor; // Pensez à créer ce processeur (copie de
 #[ORM\Entity]
 #[ApiResource(
     operations: [
-        new Get(provider: ConsultationProvider::class), // Créez ce provider si vous voulez un comportement spécifique
-        new GetCollection(provider: ConsultationProvider::class),
+        new Get(provider: ConsultationProvider::class, security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
+        new GetCollection(provider: ConsultationProvider::class, security: "is_granted('ROLE_TECHNICIAN') or is_granted('ROLE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')"),
         new Post(
             processor: ConsultationProcessor::class,
             securityPostDenormalize: "is_granted('CONSULTATION_CREATE', object)"
