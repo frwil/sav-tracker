@@ -21,15 +21,36 @@ export default function PerformanceReport() {
 
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<any>(null);
-    const [userRole, setUserRole] = useState<string>("");
 
-    // ── Détection du rôle ──
+    // ── Détection du rôle (synchrone via lazy initializer + fallback useEffect) ──
+    const [userRole, setUserRole] = useState<string>(() => {
+        if (typeof window === 'undefined') return "";
+        try {
+            const token = localStorage.getItem("sav_token");
+            if (!token) return "";
+            // Support base64url (JWT standard) vers base64 (atob)
+            let payload = token.split('.')[1] || "";
+            payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+            const json = JSON.parse(atob(payload));
+            const roles: string[] = json.roles || [];
+            if (roles.includes('ROLE_SALES_REP')) return 'ROLE_SALES_REP';
+            if (roles.includes('ROLE_TECHNICIAN')) return 'ROLE_TECHNICIAN';
+            if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')) return 'ROLE_ADMIN';
+            return "";
+        } catch { return ""; }
+    });
+
+    // Fallback: si le lazy initializer n'a pas trouvé le rôle (ex: token stocké après init),
+    // on réessaie au montage
     useEffect(() => {
+        if (userRole) return;
         const token = localStorage.getItem("sav_token");
         if (!token) return;
         try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const roles: string[] = payload.roles || [];
+            let payload = token.split('.')[1] || "";
+            payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+            const json = JSON.parse(atob(payload));
+            const roles: string[] = json.roles || [];
             if (roles.includes('ROLE_SALES_REP')) setUserRole('ROLE_SALES_REP');
             else if (roles.includes('ROLE_TECHNICIAN')) setUserRole('ROLE_TECHNICIAN');
             else if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPER_ADMIN')) setUserRole('ROLE_ADMIN');
@@ -37,6 +58,8 @@ export default function PerformanceReport() {
     }, []);
 
     const isSalesRep = userRole === 'ROLE_SALES_REP';
+    const isTech = userRole === 'ROLE_TECHNICIAN';
+    const isAdmin = userRole === 'ROLE_ADMIN';
 
     // ─── CHARGEMENT COMMERCIAL ────────────────────────────────────
 
@@ -271,6 +294,20 @@ export default function PerformanceReport() {
     }, [userRole]);
 
     // ══════════════════════════════════════════════════════════════
+    // ÉTAT INITIAL : rôle non encore détecté → loader
+    // ══════════════════════════════════════════════════════════════
+    if (!userRole) {
+        return (
+            <div className="max-w-7xl mx-auto p-4 pb-20 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center animate-pulse">
+                    <div className="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">{t('common.loading')}...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // ══════════════════════════════════════════════════════════════
     // VUE COMMERCIALE
     // ══════════════════════════════════════════════════════════════
     if (isSalesRep) {
@@ -456,7 +493,7 @@ export default function PerformanceReport() {
                 <span className="text-blue-600">🚀</span> {t('reports.performance')}
             </h1>
 
-            <ReportFilters onFilter={loadTechData} isAdmin={userRole === 'ROLE_ADMIN'} />
+            <ReportFilters onFilter={loadTechData} isAdmin={isAdmin} />
 
             {loading && <div className="text-center py-10 animate-pulse text-gray-500">{t('reports.calculating')}</div>}
 
