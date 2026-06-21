@@ -775,7 +775,7 @@ export default function DashboardHome() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
-                    label="Visites Tot."
+                    label={t('tech.total_visits')}
                     value={data.visitsCount.toString()}
                     loading={data.loading}
                     icon="📝"
@@ -784,7 +784,7 @@ export default function DashboardHome() {
                     tooltip={t('tech.total_visits_tip')}
                 />
                 <StatCard
-                    label="Retards"
+                    label={t('tech.late_reports')}
                     value={data.lateReports.toString()}
                     loading={data.loading}
                     alert={data.lateReports > 0}
