@@ -608,7 +608,7 @@ export default function PerformanceReport() {
                                                         <tbody className="divide-y divide-gray-50">
                                                             {clientVisits.map((v: any) => (
                                                                 <tr key={v.id}>
-                                                                    <td className="px-4 py-2 text-gray-600 whitespace-nowrap">
+                                                                    <td className="px-4 py-2 !text-gray-800 whitespace-nowrap">
                                                                         {new Date(v.visitedAt).toLocaleDateString()}
                                                                     </td>
                                                                     <td className="px-4 py-2">
@@ -632,7 +632,7 @@ export default function PerformanceReport() {
                                                                         {v.observations?.[0]?.flock?.speculation?.name || '-'}
                                                                         {v.observations?.[0]?.flock?.subjectCount ? ` (${v.observations[0].flock.subjectCount})` : ''}
                                                                     </td>
-                                                                    <td className="px-4 py-2 text-gray-500 italic truncate max-w-[200px]">
+                                                                    <td className="px-4 py-2 !text-gray-800 italic truncate max-w-[200px]">
                                                                         {v.observations?.length} {t('reports.obs_recorded')}
                                                                     </td>
                                                                 </tr>

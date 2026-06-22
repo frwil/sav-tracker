@@ -367,7 +367,7 @@ export default function SalesVisitDetailPage() {
                                                 {ecart > 0 ? '+' : ''}{ecart.toLocaleString()}
                                             </td>
                                             <td className="py-2">{pa.priceCompliance ? '✅' : '❌'}</td>
-                                            <td className="py-2 text-gray-500">{concurrents.join(', ') || '-'}</td>
+                                            <td className="py-2 !text-gray-800">{concurrents.join(', ') || '-'}</td>
                                             {isOpen && (
                                                 <td className="py-2">
                                                     <button onClick={() => setEditingPrice(pa)}

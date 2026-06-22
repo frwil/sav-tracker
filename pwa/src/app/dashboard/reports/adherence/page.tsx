@@ -169,7 +169,7 @@ export default function AdherenceReportPage() {
                         </Link>
                         <h1 className="text-2xl font-black text-gray-900">Performance & Adhérence</h1>
                     </div>
-                    <p className="text-gray-500 ml-7">Suivi des objectifs, du planning et de la réalité terrain.</p>
+                    <p className="text-gray-800 ml-7">Suivi des objectifs, du planning et de la réalité terrain.</p>
                 </div>
                 {data && (
                     <div className="flex gap-2">
@@ -268,23 +268,23 @@ export default function AdherenceReportPage() {
                         <table className="w-full text-sm">
                             <tbody className="divide-y divide-gray-100">
                                 <tr>
-                                    <td className="p-4 text-gray-500">Période</td>
+                                    <td className="p-4 !text-gray-800">Période</td>
                                     <td className="p-4 font-medium text-right">{currentRange?.start} au {currentRange?.end}</td>
                                 </tr>
                                 <tr>
-                                    <td className="p-4 text-gray-500">Objectif théorique (Contrat)</td>
+                                    <td className="p-4 !text-gray-800">Objectif théorique (Contrat)</td>
                                     <td className="p-4 font-bold text-right">{data.visitsObjective}</td>
                                 </tr>
                                 <tr>
-                                    <td className="p-4 text-gray-500">Total Planifié (Agenda)</td>
+                                    <td className="p-4 !text-gray-800">Total Planifié (Agenda)</td>
                                     <td className="p-4 font-bold text-right">{data.visitsPlanned}</td>
                                 </tr>
                                 <tr>
-                                    <td className="p-4 text-gray-500">Total Réalisé (Fait)</td>
+                                    <td className="p-4 !text-gray-800">Total Réalisé (Fait)</td>
                                     <td className="p-4 font-bold text-right text-purple-600">{data.visitsRealized}</td>
                                 </tr>
                                 <tr>
-                                    <td className="p-4 text-gray-500">Dont réalisés à la date prévue</td>
+                                    <td className="p-4 !text-gray-800">Dont réalisés à la date prévue</td>
                                     <td className="p-4 font-bold text-right text-blue-600">{data.visitsOnTime}</td>
                                 </tr>
                             </tbody>

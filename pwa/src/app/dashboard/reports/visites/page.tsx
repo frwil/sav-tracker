@@ -254,7 +254,7 @@ export default function VisitsReport() {
                                 <tbody className="divide-y divide-gray-100">
                                     {data.raw.slice(0, 5).map((v: any) => (
                                         <tr key={v.id}>
-                                            <td className="p-3 text-gray-600">{new Date(v.visitedAt).toLocaleDateString()}</td>
+                                            <td className="p-3 !text-gray-800">{new Date(v.visitedAt).toLocaleDateString()}</td>
                                             <td className="p-3 font-bold text-gray-800">{v.customer?.name}</td>
                                             <td className="p-3">{v.flock?.name}</td>
                                             <td className="p-3 text-indigo-600 font-medium">{v.technician?.username}</td>
